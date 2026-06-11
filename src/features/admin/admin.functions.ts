@@ -195,9 +195,9 @@ Transform the real child from the attached photo into an adorable 3D cartoon her
 Scene to illustrate: ${page.scene}.
 The child is the main hero of the scene. Square children's storybook illustration, ${STYLE_NEGATIVE}.`;
 
-    // محاولة Lovable AI أولاً، ثم OpenAI تلقائياً عند نفاد الرصيد (402) أو فشل غير مؤقت
+    // محاولة Lovable AI أولاً، ثم OpenAI، ثم Gemini تلقائياً عند الفشل
     let base64: string | null = null;
-    let providerUsed: "lovable" | "openai" = "lovable";
+    let providerUsed: "lovable" | "openai" | "gemini" = "lovable";
 
     const lovableRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -236,39 +236,91 @@ The child is the main hero of the scene. Square children's storybook illustratio
       console.warn("Lovable AI failed", lovableRes.status, await lovableRes.text().catch(() => ""));
     }
 
-    // Fallback: OpenAI gpt-image-1 (image edit مع صورة الطفل كمرجع)
-    if (!base64) {
-      const openaiKey = process.env.OPENAI_API_KEY;
-      if (!openaiKey) {
-        throw new Error("نفد رصيد الذكاء الاصطناعي ولا يوجد مزود بديل مُهيأ");
-      }
+    // Fallback 1: OpenAI gpt-image-1
+    if (!base64 && process.env.OPENAI_API_KEY) {
       providerUsed = "openai";
+      try {
+        const photoRes = await fetch(signedPhoto.signedUrl);
+        if (!photoRes.ok) throw new Error("photo fetch failed");
+        const photoBlob = await photoRes.blob();
 
-      const photoRes = await fetch(signedPhoto.signedUrl);
-      if (!photoRes.ok) throw new Error("تعذر تحميل صورة الطفل للمزود البديل");
-      const photoBlob = await photoRes.blob();
+        const form = new FormData();
+        form.append("model", "gpt-image-1");
+        form.append("prompt", prompt);
+        form.append("size", "1024x1024");
+        form.append("n", "1");
+        form.append("image", photoBlob, "child.png");
 
-      const form = new FormData();
-      form.append("model", "gpt-image-1");
-      form.append("prompt", prompt);
-      form.append("size", "1024x1024");
-      form.append("n", "1");
-      form.append("image", photoBlob, "child.png");
+        const openaiRes = await fetch("https://api.openai.com/v1/images/edits", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+          body: form,
+        });
 
-      const openaiRes = await fetch("https://api.openai.com/v1/images/edits", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${openaiKey}` },
-        body: form,
-      });
-
-      if (!openaiRes.ok) {
-        const errText = await openaiRes.text();
-        console.error("OpenAI fallback failed", openaiRes.status, errText);
-        throw new Error("تعذر توليد الصورة من المزود البديل، تحقق من مفتاح OpenAI");
+        if (openaiRes.ok) {
+          const oj = (await openaiRes.json()) as { data?: { b64_json?: string }[] };
+          base64 = oj.data?.[0]?.b64_json ?? null;
+        } else {
+          console.warn("OpenAI fallback failed", openaiRes.status, await openaiRes.text().catch(() => ""));
+        }
+      } catch (e) {
+        console.warn("OpenAI fallback error", e);
       }
-      const oj = (await openaiRes.json()) as { data?: { b64_json?: string }[] };
-      base64 = oj.data?.[0]?.b64_json ?? null;
-      if (!base64) throw new Error("لم يُرجع OpenAI صورة، أعد المحاولة");
+    }
+
+    // Fallback 2: Google Gemini (gemini-2.5-flash-image / nano-banana)
+    if (!base64 && process.env.GEMINI_API_KEY) {
+      providerUsed = "gemini";
+      try {
+        const photoRes = await fetch(signedPhoto.signedUrl);
+        if (!photoRes.ok) throw new Error("photo fetch failed");
+        const photoBuf = Buffer.from(await photoRes.arrayBuffer());
+        const photoB64 = photoBuf.toString("base64");
+        const mime = photoRes.headers.get("content-type") || "image/png";
+
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${process.env.GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [
+                {
+                  role: "user",
+                  parts: [
+                    { text: prompt },
+                    { inline_data: { mime_type: mime, data: photoB64 } },
+                  ],
+                },
+              ],
+            }),
+          },
+        );
+
+        if (geminiRes.ok) {
+          const gj = (await geminiRes.json()) as {
+            candidates?: {
+              content?: { parts?: { inline_data?: { data?: string }; inlineData?: { data?: string } }[] };
+            }[];
+          };
+          const parts = gj.candidates?.[0]?.content?.parts ?? [];
+          for (const p of parts) {
+            const d = p.inline_data?.data ?? p.inlineData?.data;
+            if (d) {
+              base64 = d;
+              break;
+            }
+          }
+        } else {
+          console.error("Gemini fallback failed", geminiRes.status, await geminiRes.text().catch(() => ""));
+        }
+      } catch (e) {
+        console.error("Gemini fallback error", e);
+      }
+    }
+
+    if (!base64) {
+      throw new Error("فشل توليد الصورة من جميع المزودات المُهيأة، تحقق من الرصيد والمفاتيح");
     }
 
     const bytes = Buffer.from(base64, "base64");
