@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { BookOpen, Camera, Heart } from "lucide-react";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { BookOpen, Check, Heart, ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import { PRICE_PER_ITEM_EGP, useCart } from "@/features/cart/CartContext";
 import { parsePages } from "@/features/ai/storyTypes";
 
 export const Route = createFileRoute("/stories/$slug")({
