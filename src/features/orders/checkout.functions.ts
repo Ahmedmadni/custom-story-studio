@@ -7,6 +7,7 @@ const ItemInput = z.object({
   templateId: z.string().uuid(),
   childName: z.string().trim().min(1).max(40),
   childAge: z.number().int().min(1).max(14).nullable().optional(),
+  gender: z.enum(["boy", "girl"]).default("boy"),
   childPhotoPath: z.string().min(1),
   notes: z.string().max(500).nullable().optional(),
 });
@@ -30,6 +31,7 @@ export const submitCheckout = createServerFn({ method: "POST" })
       template_id: it.templateId,
       child_name: it.childName,
       child_age: it.childAge ?? null,
+      gender: it.gender,
       whatsapp: data.whatsapp,
       child_photo_path: it.childPhotoPath,
       notes: it.notes ?? null,
