@@ -197,7 +197,7 @@ The child is the main hero of the scene. Square children's storybook illustratio
 
     // محاولة Lovable AI أولاً، ثم OpenAI، ثم Gemini تلقائياً عند الفشل
     let base64: string | null = null;
-    let providerUsed: "lovable" | "openai" | "gemini" = "lovable";
+    let providerUsed: "lovable" | "openai" | "gemini" | "stability" | "replicate" = "lovable";
 
     const lovableRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
