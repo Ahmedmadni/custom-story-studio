@@ -3,7 +3,7 @@
  * أسلوب بوستر سينمائي ثلاثي الأبعاد فاخر (مرجع: ملصقات أفلام الأطفال الكبيرة).
  */
 export const STORY_STYLE_PROMPT =
-  "Cinematic premium 3D movie-poster illustration style for kids, Pixar/DreamWorks-grade rendering: hero-centered composition, dramatic but warm cinematic lighting with soft rim light, rich detailed background with depth of field, vibrant saturated colors, glossy expressive eyes, soft rounded features, polished subsurface skin shading, fluffy detailed hair, ultra-high-quality 3D render, story-book hero portrait energy";
+  "TOP-TIER cinematic 3D animated movie style — the EXACT visual quality and feel of major theatrical animated features like Disney/Pixar 'Monsters University' and 'Monsters Inc', DreamWorks 'The Good Dinosaur', Pixar 'Up' and 'Toy Story 4', Warner Bros 'Tom & Jerry' 2021 3D movie, Illumination 'Despicable Me': big-budget feature-film 3D animation rendering, NOT toy/figurine/stock-3D look. Mandatory: hero-centered cinematic movie-poster composition, dramatic theatrical lighting with strong key light + warm rim light + soft bounce light, deep rich painterly background with real depth of field and atmospheric haze, vibrant saturated film-grade color grading, ultra-glossy expressive huge cartoon eyes with catchlights, soft rounded exaggerated cartoon features, polished subsurface-scattering skin, fluffy strand-level hair, detailed fabric micro-texture on clothes, subtle film grain, story-book theatrical poster energy. Reject: stiff plastic doll look, flat lighting, generic stock 3D, AI-generic kid avatar look, low-detail toy renders.";
 
 export const STYLE_NEGATIVE =
   "no watermark, no logos, no signatures, no random gibberish text";
