@@ -3,14 +3,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Check,
+  CreditCard,
+  ExternalLink,
   ImageIcon,
+  KeyRound,
   Loader2,
   MessageCircle,
   Receipt,
   ShieldAlert,
+  Sparkles,
   Wand2,
   X,
 } from "lucide-react";
+
 import { useState } from "react";
 import { toast } from "sonner";
 
