@@ -792,8 +792,6 @@ export const adminGetUsageStats = createServerFn({ method: "POST" })
 // إدارة القوالب من لوحة التحكم — قراءة، تعديل، ورفع/توليد الصور
 // ============================================================
 
-import { STORY_STYLE_PROMPT as STYLE_P, STYLE_NEGATIVE as STYLE_N, ageStylePrompt as agePart, bakedTitlePrompt } from "@/features/ai/storyStyle";
-import type { StoryPage } from "@/features/ai/storyTypes";
 
 export const adminListTemplates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
