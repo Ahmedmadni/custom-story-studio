@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { STORY_STYLE_PROMPT, STYLE_NEGATIVE } from "@/lib/storyStyle";
+import { STORY_STYLE_PROMPT, STYLE_NEGATIVE, ageStylePrompt } from "@/lib/storyStyle";
 import { parsePages } from "@/lib/storyTypes";
 
 const GenerateInput = z.object({
@@ -50,8 +50,8 @@ function buildSystemPrompt(contentType: "story" | "book", language: "ar" | "en")
       : "Write the page texts, page titles, title and summary in simple, engaging English suitable for young children. Keep the category in Arabic.";
 
   const pageRules = `- لكل صفحة: عنوان قصير جذاب (title من 2 إلى 4 كلمات بلغة المحتوى) + نص (جملتان إلى ثلاث جمل) + وصف مشهد بالإنجليزية للرسام (scene).
-- character: وصف بصري ثابت بالإنجليزية لشكل البطل الطفل (الشعر، العينان، البشرة، الملابس) يبقى نفسه في كل الصفحات.
-- scene يجب أن يصور حرفياً ما يحدث في نص نفس الصفحة (نفس المكان، نفس الفعل، نفس الشخصيات) حتى يشعر القارئ أن الصورة جزء من المشهد المكتوب، ويذكر "the hero child" دائماً.`;
+- character: وصف بصري ثابت بالإنجليزية لشكل البطل الطفل (الشعر، العينان، البشرة، الملابس) يبقى نفسه في كل الصفحات، ويجب أن يعكس عمر الطفل المحدد بدقة: طفل صغير جداً = شخصية أصغر وألطف وأبسط بملابس ناعمة، طفل أكبر = شخصية أطول وأكثر نضجاً في الملامح والملابس.
+- scene يجب أن يصور حرفياً ما يحدث في نص نفس الصفحة (نفس المكان، نفس الفعل، نفس الشخصيات) حتى يشعر القارئ أن الصورة جزء من المشهد المكتوب، ويذكر "the hero child" دائماً، وتكون الأجواء والتفاصيل والمفردات مناسبة لعمر الطفل.`;
 
   if (contentType === "story") {
     return `أنت كاتب قصص أطفال محترف متخصص في القصص النبيلة والإنسانية والقيم الأخلاقية.
@@ -122,11 +122,12 @@ export const generateAiStory = createServerFn({ method: "POST" })
     const rawPages = parsePages(story.pages);
     if (rawPages.length < 4) throw new Error("المحتوى المولد غير مكتمل، حاول مرة أخرى");
 
-    // دمج وصف البطل الثابت داخل كل مشهد لضمان اتساق الصور بين الصفحات
+    // دمج وصف البطل الثابت + نمط العمر داخل كل مشهد لضمان اتساق الصور وملاءمتها لعمر الطفل
     const character = (story.character ?? "").trim();
+    const ageStyle = ageStylePrompt(data.age);
     const pages = rawPages.map((p) => ({
       ...p,
-      scene: character ? `The hero child: ${character}. Scene: ${p.scene}` : p.scene,
+      scene: `${ageStyle}. ${character ? `The hero child: ${character}. ` : ""}Scene: ${p.scene}`,
     }));
 
     const slug = `custom-${crypto.randomUUID().slice(0, 8)}`;
@@ -188,7 +189,7 @@ export const generatePageImage = createServerFn({ method: "POST" })
     // RLS: المستخدم يرى قوالبه المخصصة فقط (أو المدير)
     const { data: template, error: tplErr } = await context.supabase
       .from("story_templates")
-      .select("id, pages, created_by")
+      .select("id, pages, created_by, age_range")
       .eq("id", data.templateId)
       .single();
     if (tplErr || !template) throw new Error("المحتوى غير موجود");
@@ -204,7 +205,11 @@ export const generatePageImage = createServerFn({ method: "POST" })
     const page = pages.find((p) => p.n === data.pageNumber);
     if (!page) throw new Error("الصفحة غير موجودة");
 
-    const prompt = `${STORY_STYLE_PROMPT}.
+    // ضمان تطبيق نمط العمر حتى للقوالب القديمة التي لا تحمله داخل المشهد
+    const agePart = page.scene.includes("Age styling")
+      ? ""
+      : `\n${ageStylePrompt(template.age_range)}.`;
+    const prompt = `${STORY_STYLE_PROMPT}.${agePart}
 Children's storybook page illustration that literally depicts this exact written scene so the image feels like part of the text: ${page.scene}.
 Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
 

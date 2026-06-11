@@ -4,6 +4,36 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* مؤثرات خفيفة لصفحة الدخول وعناصر مرحة */
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(4deg);
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@utility animate-float-soft {
+  animation: float-soft 7s ease-in-out infinite;
+}
+
+@utility animate-pop-in {
+  animation: pop-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @theme {
   --font-display: "Baloo Bhaijaan 2", "Rubik", sans-serif;
   --font-sans: "Rubik", "Baloo Bhaijaan 2", sans-serif;
