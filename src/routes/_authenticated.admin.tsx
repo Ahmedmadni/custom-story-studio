@@ -385,28 +385,7 @@ function OrderDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-wrap items-center gap-4">
-          {order.photoUrl && (
-            <img
-              src={order.photoUrl}
-              alt={`صورة ${order.childName}`}
-              className="h-28 w-28 rounded-2xl object-cover shadow-md"
-            />
-          )}
-          <div className="space-y-1 text-sm">
-            <p>
-              <b>واتساب العميل:</b> <span dir="ltr">{order.whatsapp}</span>
-            </p>
-            {order.notes && (
-              <p>
-                <b>ملاحظات:</b> {order.notes}
-              </p>
-            )}
-            <StatusBadge status={order.status} />
-          </div>
-        </div>
 
-        {/* status actions */}
         <div className="flex flex-wrap items-center gap-4">
           {order.photoUrl && (
             <img
