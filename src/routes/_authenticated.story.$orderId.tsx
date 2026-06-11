@@ -157,13 +157,16 @@ function StoryViewer() {
           {pages.map((p) => (
             <div
               key={p.n}
-              className="print-page hidden min-h-screen flex-col items-center justify-center gap-6 p-8"
+              className="print-page hidden min-h-screen flex-col items-center justify-center gap-5 p-8"
             >
+              {p.title && (
+                <h2 className="font-display text-3xl font-extrabold">{p.title}</h2>
+              )}
               {p.imageUrl && (
                 <img
                   src={p.imageUrl}
-                  alt={`صفحة ${p.n}`}
-                  className="max-h-[70vh] rounded-2xl object-contain"
+                  alt={p.title ?? `صفحة ${p.n}`}
+                  className="max-h-[60vh] rounded-2xl object-contain"
                 />
               )}
               <p className="max-w-2xl text-center font-display text-2xl leading-relaxed">
