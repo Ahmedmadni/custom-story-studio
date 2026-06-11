@@ -195,7 +195,11 @@ Transform the real child from the attached photo into an adorable 3D cartoon her
 Scene to illustrate: ${page.scene}.
 The child is the main hero of the scene. Square children's storybook illustration, ${STYLE_NEGATIVE}.`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // محاولة Lovable AI أولاً، ثم OpenAI تلقائياً عند نفاد الرصيد (402) أو فشل غير مؤقت
+    let base64: string | null = null;
+    let providerUsed: "lovable" | "openai" = "lovable";
+
+    const lovableRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${key}`,
@@ -216,21 +220,59 @@ The child is the main hero of the scene. Square children's storybook illustratio
       }),
     });
 
-    if (res.status === 429) throw new Error("الخدمة مشغولة، انتظر دقيقة ثم أعد المحاولة");
-    if (res.status === 402) throw new Error("نفد رصيد الذكاء الاصطناعي");
-    if (!res.ok) {
-      console.error("generate page error", res.status, await res.text());
-      throw new Error("تعذر توليد الصورة، أعد المحاولة");
+    if (lovableRes.status === 429) {
+      throw new Error("الخدمة مشغولة، انتظر دقيقة ثم أعد المحاولة");
     }
 
-    const json = (await res.json()) as {
-      choices?: { message?: { images?: { image_url?: { url?: string } }[] } }[];
-    };
-    const dataUrl = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    if (!dataUrl?.includes("base64,")) throw new Error("لم يُرجع النموذج صورة، أعد المحاولة");
+    if (lovableRes.ok) {
+      const json = (await lovableRes.json()) as {
+        choices?: { message?: { images?: { image_url?: { url?: string } }[] } }[];
+      };
+      const dataUrl = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      if (dataUrl?.includes("base64,")) {
+        base64 = dataUrl.split("base64,")[1];
+      }
+    } else {
+      console.warn("Lovable AI failed", lovableRes.status, await lovableRes.text().catch(() => ""));
+    }
 
-    const base64 = dataUrl.split("base64,")[1];
+    // Fallback: OpenAI gpt-image-1 (image edit مع صورة الطفل كمرجع)
+    if (!base64) {
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) {
+        throw new Error("نفد رصيد الذكاء الاصطناعي ولا يوجد مزود بديل مُهيأ");
+      }
+      providerUsed = "openai";
+
+      const photoRes = await fetch(signedPhoto.signedUrl);
+      if (!photoRes.ok) throw new Error("تعذر تحميل صورة الطفل للمزود البديل");
+      const photoBlob = await photoRes.blob();
+
+      const form = new FormData();
+      form.append("model", "gpt-image-1");
+      form.append("prompt", prompt);
+      form.append("size", "1024x1024");
+      form.append("n", "1");
+      form.append("image", photoBlob, "child.png");
+
+      const openaiRes = await fetch("https://api.openai.com/v1/images/edits", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${openaiKey}` },
+        body: form,
+      });
+
+      if (!openaiRes.ok) {
+        const errText = await openaiRes.text();
+        console.error("OpenAI fallback failed", openaiRes.status, errText);
+        throw new Error("تعذر توليد الصورة من المزود البديل، تحقق من مفتاح OpenAI");
+      }
+      const oj = (await openaiRes.json()) as { data?: { b64_json?: string }[] };
+      base64 = oj.data?.[0]?.b64_json ?? null;
+      if (!base64) throw new Error("لم يُرجع OpenAI صورة، أعد المحاولة");
+    }
+
     const bytes = Buffer.from(base64, "base64");
+    console.log(`[generate-page] provider=${providerUsed} order=${data.orderId} page=${data.pageNumber}`);
     const imagePath = `${data.orderId}/page-${data.pageNumber}.png`;
 
     const { error: uploadErr } = await supabaseAdmin.storage
