@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { isValidEgyptianMobile } from "@/lib/whatsapp";
+import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
 
 export const Route = createFileRoute("/_authenticated/order/$templateId")({
   head: () => ({

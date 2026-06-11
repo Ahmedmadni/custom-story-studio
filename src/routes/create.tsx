@@ -27,7 +27,7 @@ import { toast } from "sonner";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { PdfActions } from "@/components/PdfActions";
+import { PdfActions } from "@/features/pdf/PdfActions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,7 +41,7 @@ import {
   getTemplateApproval,
   reorderPages,
   updatePageText,
-} from "@/lib/ai.functions";
+} from "@/features/ai/ai.functions";
 import {
   BOOK_CATEGORIES,
   BOOK_LENGTHS,
@@ -50,19 +50,19 @@ import {
   type BookCategoryValue,
   type BookLength,
   type ReadingLevel,
-} from "@/lib/bookCategories";
-import type { PdfStoryPage } from "@/lib/storyPdf";
+} from "@/features/library/bookCategories";
+import type { PdfStoryPage } from "@/features/pdf/storyPdf";
 import {
   clearWizardDraft,
   loadWizardDraft,
   saveWizardDraft,
-} from "@/lib/draft.functions";
+} from "@/features/orders/draft.functions";
 import {
   CONTENT_TYPE_OPTIONS,
   LANGUAGE_OPTIONS,
   type LanguageMode,
-} from "@/lib/storyTypes";
-import { isValidEgyptianMobile } from "@/lib/whatsapp";
+} from "@/features/ai/storyTypes";
+import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
 
 export const Route = createFileRoute("/create")({
   head: () => ({

@@ -12,9 +12,9 @@ import { useState } from "react";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { PdfActions } from "@/components/PdfActions";
+import { PdfActions } from "@/features/pdf/PdfActions";
 import { Button } from "@/components/ui/button";
-import { getMyStory } from "@/lib/story.functions";
+import { getMyStory } from "@/features/orders/story.functions";
 
 export const Route = createFileRoute("/_authenticated/story/$orderId")({
   head: () => ({

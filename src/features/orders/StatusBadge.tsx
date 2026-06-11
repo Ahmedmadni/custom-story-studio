@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { STATUS_LABELS } from "@/lib/storyTypes";
+import { STATUS_LABELS } from "@/features/ai/storyTypes";
 import { cn } from "@/lib/utils";
 
 const styles: Record<string, string> = {

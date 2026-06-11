@@ -9,7 +9,7 @@ import { ErrorBlock } from "@/components/ErrorBlock";
 import { FilterChips } from "@/components/FilterChips";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { StoryCard } from "@/components/StoryCard";
+import { StoryCard } from "@/features/library/StoryCard";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 

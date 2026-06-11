@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { parsePages } from "@/lib/storyTypes";
+import { parsePages } from "@/features/ai/storyTypes";
 
 export const Route = createFileRoute("/stories/$slug")({
   head: () => ({

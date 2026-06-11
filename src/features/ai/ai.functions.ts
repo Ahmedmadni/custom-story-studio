@@ -6,15 +6,15 @@ import {
   BOOK_CATEGORIES,
   pagesForLength,
   type BookMeta,
-} from "@/lib/bookCategories";
+} from "@/features/library/bookCategories";
 import {
   STORY_STYLE_PROMPT,
   STYLE_NEGATIVE,
   ageStylePrompt,
   bakedTitlePrompt,
   photoModePrompt,
-} from "@/lib/storyStyle";
-import { parsePages, type StoryPage } from "@/lib/storyTypes";
+} from "@/features/ai/storyStyle";
+import { parsePages, type StoryPage } from "@/features/ai/storyTypes";
 
 const BookMetaInput = z.object({
   category: z.enum([

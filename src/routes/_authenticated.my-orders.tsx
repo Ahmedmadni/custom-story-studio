@@ -6,12 +6,12 @@ import { BookOpen, Eye, FileDown, Wand2 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge } from "@/features/orders/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { listMyPdfs } from "@/lib/pdf.functions";
+import { listMyPdfs } from "@/features/pdf/pdf.functions";
 
 
 export const Route = createFileRoute("/_authenticated/my-orders")({
