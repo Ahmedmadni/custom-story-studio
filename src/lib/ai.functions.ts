@@ -266,3 +266,47 @@ Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
 
     return { pageNumber: data.pageNumber, imageUrl: signed?.signedUrl ?? null };
   });
+
+const UpdatePageTextInput = z.object({
+  templateId: z.string().uuid(),
+  pageNumber: z.number().int().min(1).max(12),
+  title: z.string().trim().max(80).optional(),
+  text: z.string().trim().min(1, "نص الصفحة مطلوب").max(1000),
+});
+
+/**
+ * تعديل عنوان/نص صفحة في قصة أو كتاب أنشأه المستخدم — قبل اعتماد المحتوى وتصدير PDF.
+ */
+export const updatePageText = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => UpdatePageTextInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: template, error: tplErr } = await context.supabase
+      .from("story_templates")
+      .select("id, pages, created_by")
+      .eq("id", data.templateId)
+      .single();
+    if (tplErr || !template) throw new Error("المحتوى غير موجود");
+    if (template.created_by !== context.userId) throw new Error("غير مصرح لك");
+
+    const pages = parsePages(template.pages);
+    if (!pages.some((p) => p.n === data.pageNumber)) throw new Error("الصفحة غير موجودة");
+
+    const updatedPages = pages.map((p) =>
+      p.n === data.pageNumber
+        ? { ...p, title: data.title ?? p.title, text: data.text }
+        : p,
+    );
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: upErr } = await supabaseAdmin
+      .from("story_templates")
+      .update({ pages: updatedPages as unknown as never })
+      .eq("id", data.templateId);
+    if (upErr) {
+      console.error("update page text", upErr);
+      throw new Error("تعذر حفظ التعديل");
+    }
+
+    return { ok: true, pageNumber: data.pageNumber };
+  });
