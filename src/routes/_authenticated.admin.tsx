@@ -407,8 +407,94 @@ function OrderDialog({
         </div>
 
         {/* status actions */}
+        <div className="flex flex-wrap items-center gap-4">
+          {order.photoUrl && (
+            <img
+              src={order.photoUrl}
+              alt={`صورة ${order.childName}`}
+              className="h-28 w-28 rounded-2xl object-cover shadow-md"
+            />
+          )}
+          <div className="space-y-1 text-sm">
+            <p>
+              <b>واتساب العميل:</b> <span dir="ltr">{order.whatsapp}</span>
+            </p>
+            {order.notes && (
+              <p>
+                <b>ملاحظات:</b> {order.notes}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2 pt-1">
+              <PaymentBadge status={order.paymentStatus} />
+              <StatusBadge status={order.status} />
+            </div>
+          </div>
+        </div>
+
+        {/* payment verification */}
+        <div className="rounded-2xl border-2 border-grass/30 bg-grass/5 p-4">
+          <h3 className="flex items-center gap-2 font-display font-bold">
+            <Receipt className="h-4 w-4 text-grass" />
+            مراجعة الدفع — {order.priceEgp} جنيه فودافون كاش
+          </h3>
+          {order.receiptUrl ? (
+            <a
+              href={order.receiptUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-block"
+            >
+              <img
+                src={order.receiptUrl}
+                alt="إيصال الدفع"
+                className="h-40 rounded-xl border bg-card object-contain p-1 shadow hover:shadow-lg"
+              />
+            </a>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">
+              لم يُرفع إيصال بعد
+            </p>
+          )}
+          {order.paymentStatus === "rejected" && order.paymentRejectionReason && (
+            <p className="mt-2 rounded-xl bg-destructive/10 p-2 text-xs text-destructive">
+              سبب الرفض: {order.paymentRejectionReason}
+            </p>
+          )}
+          {order.paymentStatus === "receipt_uploaded" && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button
+                className="rounded-full bg-grass font-bold text-grass-foreground hover:bg-grass/90"
+                disabled={verifyMutation.isPending}
+                onClick={() => verifyMutation.mutate()}
+              >
+                <Check className="ms-1 h-4 w-4" />
+                تأكيد الدفع وبدء التنفيذ
+              </Button>
+              <Input
+                placeholder="سبب الرفض (مطلوب للرفض)"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                maxLength={300}
+                className="h-9 max-w-xs rounded-full"
+              />
+              <Button
+                variant="outline"
+                className="rounded-full font-bold text-destructive"
+                disabled={
+                  rejectPayMutation.isPending || rejectReason.trim().length === 0
+                }
+                onClick={() => rejectPayMutation.mutate()}
+              >
+                <X className="ms-1 h-4 w-4" />
+                رفض الدفع
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* status actions */}
         <div className="flex flex-wrap gap-2 border-t pt-4">
-          {order.status === "pending" && (
+          {order.status === "pending" && order.paymentStatus === "verified" && (
             <>
               <Button
                 className="rounded-full bg-grass font-bold text-grass-foreground hover:bg-grass/90"
