@@ -103,10 +103,14 @@ src/features/
 ## ٤) ترتيب الشحن المقترح
 A (migration) ✅ → C (لغة موحّدة) ✅ → D (كتب مهيكلة) ✅ → E (اعتماد إلزامي) ✅ → F (drafts + retry) ✅ → G (تلميع UI) ✅ → H (QA checklist) ✅.
 
-### ملاحظة عن المرحلة B (إعادة الهيكلة feature-based)
-أجّلتُها عمداً: بعد سلسلة من إصلاحات الـ routes والـ RLS الأخيرة، أي reorg كبير الآن
-يخاطر بإعادة كسر مسارات تعمل اليوم بدون فائدة وظيفية مرئية للمستخدم. يُنصَح
-بتنفيذها في PR منفصل ومخصّص مع اختبار شامل.
+### المرحلة B — ما تم ✅
+- إنشاء `src/features/{ai,pdf,library,orders,admin,create}/`.
+- نقل: ai/storyStyle/storyTypes → features/ai، storyPdf/pdf.functions/PdfActions → features/pdf،
+  StoryCard/bookCategories → features/library، story.functions/draft.functions/whatsapp/StatusBadge → features/orders،
+  admin.functions → features/admin.
+- تحديث كل الـ imports (~14 ملف) دون أي مرجع قديم متبقٍ.
+- `src/components/` يحتوي الآن فقط على مكوّنات UI العامة، و`src/lib/` فقط على utilities مشتركة.
+- تقسيم `create.tsx` نفسه إلى خطوات داخل `features/create/` مؤجّل لـ PR لاحق.
 
 ### المرحلة G — ما تم
 - مكوّنات موحّدة جديدة: `EmptyState`, `ErrorBlock`, `CardShimmer`, `FilterChips`.
