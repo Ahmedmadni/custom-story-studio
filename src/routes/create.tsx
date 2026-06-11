@@ -186,7 +186,7 @@ function CreateWizard() {
             setAge(p.age ?? "");
             setLanguage(p.language ?? "");
             setWhatsapp(p.whatsapp ?? "");
-            setPhotoMode(p.photoMode ?? "cartoon");
+            setPhotoMode(p.photoMode ?? "real");
             setContentType(p.contentType ?? "story");
             setTopic(p.topic ?? "");
             setBookCategory(p.bookCategory ?? "");
