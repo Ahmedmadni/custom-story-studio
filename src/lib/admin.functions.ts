@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { STORY_STYLE_PROMPT, STYLE_NEGATIVE } from "@/lib/storyStyle";
+import { STORY_STYLE_PROMPT, STYLE_NEGATIVE, ageStylePrompt } from "@/lib/storyStyle";
 import { parsePages, personalize } from "@/lib/storyTypes";
 
 type AuthedContext = {
@@ -130,8 +130,12 @@ export const adminGeneratePage = createServerFn({ method: "POST" })
       .createSignedUrl(order.child_photo_path, 600);
     if (!signedPhoto?.signedUrl) throw new Error("تعذر الوصول لصورة الطفل");
 
-    const prompt = `${STORY_STYLE_PROMPT}.
-Transform the real child from the attached photo into an adorable 3D cartoon hero character in this exact style. Keep the child's face clearly recognizable (same hair color and style, eye color, skin tone, facial features) but rendered as a beautiful enhanced 3D cartoon character like a Pixar movie star.
+    // نمط العمر: يطبق عمر الطفل من الطلب إذا لم يكن مدمجاً في المشهد
+    const agePart = page.scene.includes("Age styling")
+      ? ""
+      : `\n${ageStylePrompt(order.child_age)}.`;
+    const prompt = `${STORY_STYLE_PROMPT}.${agePart}
+Transform the real child from the attached photo into an adorable 3D cartoon hero character in this exact style. Keep the child's face clearly recognizable (same hair color and style, eye color, skin tone, facial features) but rendered as a beautiful enhanced 3D cartoon character like a Pixar movie star, with body proportions, outfit and overall maturity matching the child's real age.
 Scene to illustrate: ${page.scene}.
 The child is the main hero of the scene. Square children's storybook illustration, ${STYLE_NEGATIVE}.`;
 
