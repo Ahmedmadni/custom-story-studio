@@ -253,6 +253,7 @@ function OrdersList() {
                 </p>
               </div>
               <div className="flex flex-col items-end gap-1">
+                <PaymentBadge status={o.paymentStatus} />
                 <StatusBadge status={o.status} />
                 <span className="text-xs font-bold text-muted-foreground">
                   الصور: {o.donePages}/{o.totalPages}
