@@ -23,6 +23,106 @@ async function assertAdmin(context: AuthedContext) {
   if (!data) throw new Error("غير مصرح لك بالوصول");
 }
 
+function summarizeProviderFailure(provider: string, status?: number, body?: string) {
+  const text = (body ?? "").toLowerCase();
+  const name =
+    provider === "lovable"
+      ? "Lovable AI"
+      : provider === "openai"
+        ? "OpenAI"
+        : provider === "gemini"
+          ? "Gemini"
+          : provider === "stability"
+            ? "Stability"
+            : provider === "replicate"
+              ? "Replicate"
+              : provider;
+
+  if (status === 402 || text.includes("insufficient credit") || text.includes("payment_required")) {
+    return `رصيد ${name} غير كافٍ`;
+  }
+  if (status === 401 || text.includes("invalid_api_key") || text.includes("incorrect api key")) {
+    return `مفتاح ${name} غير صالح`;
+  }
+  if (status === 429 || text.includes("quota") || text.includes("resource_exhausted")) {
+    return `حصة ${name} مستنفدة مؤقتاً`;
+  }
+  if (status === 404) {
+    return `المسار المطلوب غير موجود لدى ${name}`;
+  }
+  return `تعذر الإكمال عبر ${name}${status ? ` (${status})` : ""}`;
+}
+
+async function runReplicateFaceSwap(params: {
+  sceneUrl: string;
+  photoUrl: string;
+  lovableKey: string;
+  replicateKey: string;
+}) {
+  const GW = "https://connector-gateway.lovable.dev/replicate/v1";
+  const headers = {
+    Authorization: `Bearer ${params.lovableKey}`,
+    "X-Connection-Api-Key": params.replicateKey,
+    "Content-Type": "application/json",
+  };
+
+  const createRes = await fetch(`${GW}/models/cdingram/face-swap/predictions`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      input: {
+        input_image: params.sceneUrl,
+        swap_image: params.photoUrl,
+      },
+    }),
+  });
+
+  if (!createRes.ok) {
+    const body = await createRes.text().catch(() => "");
+    console.warn("Face swap create failed", createRes.status, body);
+    return {
+      bytes: null,
+      reason: `استبدال الوجه: ${summarizeProviderFailure("replicate", createRes.status, body)}`,
+    };
+  }
+
+  const created = (await createRes.json()) as { id?: string };
+  if (!created.id) {
+    return { bytes: null, reason: "استبدال الوجه لم يُرجع معرف عملية" };
+  }
+
+  let swappedUrl: string | null = null;
+  for (let i = 0; i < 40; i++) {
+    await new Promise((r) => setTimeout(r, i < 4 ? 1500 : 3000));
+    const pollRes = await fetch(`${GW}/predictions/${created.id}`, { headers });
+    if (!pollRes.ok) continue;
+    const pj = (await pollRes.json()) as {
+      status?: string;
+      output?: string | string[];
+      error?: unknown;
+    };
+    if (pj.status === "succeeded") {
+      swappedUrl = Array.isArray(pj.output) ? pj.output[0] : (pj.output ?? null);
+      break;
+    }
+    if (pj.status === "failed" || pj.status === "canceled") {
+      console.error("Face swap failed", pj.error);
+      return { bytes: null, reason: "فشلت عملية استبدال الوجه" };
+    }
+  }
+
+  if (!swappedUrl) {
+    return { bytes: null, reason: "انتهت مهلة استبدال الوجه قبل اكتمال النتيجة" };
+  }
+
+  const imgRes = await fetch(swappedUrl);
+  if (!imgRes.ok) {
+    return { bytes: null, reason: "تعذر تنزيل نتيجة استبدال الوجه" };
+  }
+
+  return { bytes: Buffer.from(await imgRes.arrayBuffer()), reason: null };
+}
+
 /** قائمة الطلبات للوحة التحكم مع روابط موقعة لصور الأطفال والإيصالات */
 export const adminListOrders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
