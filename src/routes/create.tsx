@@ -74,6 +74,7 @@ function CreateWizard() {
   const [language, setLanguage] = useState<"ar" | "en">("ar");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoMode, setPhotoMode] = useState<"cartoon" | "real">("cartoon");
   const [whatsapp, setWhatsapp] = useState("");
   const [contentType, setContentType] = useState<"story" | "book">("story");
   const [topic, setTopic] = useState("");
@@ -90,9 +91,9 @@ function CreateWizard() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [regenPage, setRegenPage] = useState<number | null>(null);
 
-  /** توليد صور الصفحات بالتتابع — كل صورة من مشهد نص صفحتها */
+  /** توليد صور الصفحات بالتتابع — كل صورة من مشهد نص صفحتها، مع صورة الطفل إن وجدت */
   const generateImages = async (
-    res: { id: string; pages: { n: number }[] },
+    res: { id: string; pages: { n: number }[]; photoPath?: string | null },
     existing: Record<number, string>,
   ) => {
     const todo = res.pages.filter((p) => !existing[p.n]);
@@ -103,7 +104,14 @@ function CreateWizard() {
     let failed = 0;
     for (const p of todo) {
       try {
-        const r = await imageFn({ data: { templateId: res.id, pageNumber: p.n } });
+        const r = await imageFn({
+          data: {
+            templateId: res.id,
+            pageNumber: p.n,
+            childPhotoPath: res.photoPath ?? undefined,
+            photoMode: res.photoPath ? photoMode : undefined,
+          },
+        });
         if (r.imageUrl) {
           const url = r.imageUrl;
           setPageImages((m) => ({ ...m, [p.n]: url }));
@@ -133,6 +141,7 @@ function CreateWizard() {
       });
 
       let orderCreated = false;
+      let photoPath: string | null = null;
       if (photo && user) {
         try {
           const ext = photo.name.split(".").pop()?.toLowerCase() || "jpg";
@@ -141,6 +150,7 @@ function CreateWizard() {
             .from("child-photos")
             .upload(path, photo, { contentType: photo.type });
           if (upErr) throw upErr;
+          photoPath = path;
           const { error: insErr } = await supabase.from("orders").insert({
             user_id: user.id,
             template_id: res.id,
@@ -148,7 +158,10 @@ function CreateWizard() {
             child_age: age ? Number(age) : null,
             whatsapp: whatsapp.trim(),
             child_photo_path: path,
-            notes: "طلب من معالج الإنشاء — المطلوب توليد الصفحات بصورة الطفل",
+            notes:
+              photoMode === "cartoon"
+                ? "طلب من معالج الإنشاء — تحويل صورة الطفل إلى شخصية كرتونية بأسلوب القصة"
+                : "طلب من معالج الإنشاء — استخدام صورة الطفل الحقيقية مع تحسين الجودة ودمجها في الصور",
           });
           if (insErr) throw insErr;
           orderCreated = true;
@@ -156,7 +169,7 @@ function CreateWizard() {
           toast.error("تم توليد المحتوى لكن تعذر إرسال طلب الصور — يمكنك طلبه لاحقاً من صفحة المحتوى");
         }
       }
-      return { ...res, orderCreated };
+      return { ...res, orderCreated, photoPath };
     },
     onSuccess: (data) => {
       setPageIndex(0);
@@ -253,7 +266,14 @@ function CreateWizard() {
     if (!result) return;
     setRegenPage(n);
     try {
-      const r = await imageFn({ data: { templateId: result.id, pageNumber: n } });
+      const r = await imageFn({
+        data: {
+          templateId: result.id,
+          pageNumber: n,
+          childPhotoPath: result.photoPath ?? undefined,
+          photoMode: result.photoPath ? photoMode : undefined,
+        },
+      });
       if (r.imageUrl) {
         const url = r.imageUrl;
         setPageImages((m) => ({ ...m, [n]: url }));
@@ -276,6 +296,7 @@ function CreateWizard() {
     setLanguage("ar");
     setPhoto(null);
     setPhotoPreview(null);
+    setPhotoMode("cartoon");
     setWhatsapp("");
     setContentType("story");
     setTopic("");
@@ -416,8 +437,9 @@ function CreateWizard() {
                 <div>
                   <Label className="font-bold">صورة الطفل (اختياري)</Label>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    إذا رفعت صورة واضحة لوجه طفلك، سنرسم الصفحات بصورته كبطل كرتوني
-                    ثلاثي الأبعاد وترسل لك عبر الواتساب بعد الموافقة
+                    ارفع صورة واضحة لوجه طفلك، ثم اختر: نحوّله إلى شخصية كرتونية
+                    بأسلوب القصة، أو نُبقي صورته الحقيقية مع تحسين الجودة ودمجها
+                    داخل الصفحات
                   </p>
                   <label className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-primary/40 bg-secondary/30 p-6 transition-colors hover:bg-secondary/60">
                     {photoPreview ? (
@@ -442,28 +464,69 @@ function CreateWizard() {
                     />
                   </label>
                   {photo && (
-                    <div className="mt-4">
-                      <Label htmlFor="wa" className="font-bold">
-                        رقم الواتساب لاستلام النسخة المصورة
-                      </Label>
-                      <Input
-                        id="wa"
-                        dir="ltr"
-                        value={whatsapp}
-                        onChange={(e) => setWhatsapp(e.target.value)}
-                        placeholder="01012345678"
-                        maxLength={15}
-                        className="mt-2 rounded-xl text-left"
-                      />
-                      <button
-                        onClick={() => {
-                          setPhoto(null);
-                          setPhotoPreview(null);
-                        }}
-                        className="mt-3 text-xs font-semibold text-destructive hover:underline"
-                      >
-                        إزالة الصورة والمتابعة بدونها
-                      </button>
+                    <div className="mt-5">
+                      <Label className="font-bold">كيف يظهر طفلك داخل الصور؟</Label>
+                      <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => setPhotoMode("cartoon")}
+                          className={`rounded-2xl border-2 p-4 text-start transition-colors ${
+                            photoMode === "cartoon"
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2 font-display text-lg font-bold">
+                            <Wand2 className="h-5 w-5 text-candy" />
+                            شخصية كرتونية
+                          </span>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            نحوّل صورة طفلك إلى شخصية كرتونية ثلاثية الأبعاد متناسقة
+                            مع أسلوب القصة، مع الحفاظ على ملامحه المميزة
+                          </p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPhotoMode("real")}
+                          className={`rounded-2xl border-2 p-4 text-start transition-colors ${
+                            photoMode === "real"
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2 font-display text-lg font-bold">
+                            <Camera className="h-5 w-5 text-grass" />
+                            الصورة الحقيقية
+                          </span>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            نُبقي ملامح طفلك الأصلية كما هي مع تحسين الجودة والوضوح
+                            ودمجها بشكل جميل داخل مشاهد القصة أو الكتاب
+                          </p>
+                        </button>
+                      </div>
+                      <div className="mt-4">
+                        <Label htmlFor="wa" className="font-bold">
+                          رقم الواتساب لاستلام النسخة المصورة
+                        </Label>
+                        <Input
+                          id="wa"
+                          dir="ltr"
+                          value={whatsapp}
+                          onChange={(e) => setWhatsapp(e.target.value)}
+                          placeholder="01012345678"
+                          maxLength={15}
+                          className="mt-2 rounded-xl text-left"
+                        />
+                        <button
+                          onClick={() => {
+                            setPhoto(null);
+                            setPhotoPreview(null);
+                          }}
+                          className="mt-3 text-xs font-semibold text-destructive hover:underline"
+                        >
+                          إزالة الصورة والمتابعة بدونها
+                        </button>
+                      </div>
                     </div>
                   )}
                   <p className="mt-3 text-xs text-muted-foreground">
@@ -536,7 +599,11 @@ function CreateWizard() {
                     <p>💡 <b>الموضوع:</b> {topic.trim()}</p>
                     <p>
                       📸 <b>صورة الطفل:</b>{" "}
-                      {photo ? "مرفوعة — ستولد نسخة مصورة بعد الموافقة" : "بدون صورة"}
+                      {photo
+                        ? photoMode === "cartoon"
+                          ? "مرفوعة — تتحول لشخصية كرتونية بأسلوب القصة"
+                          : "مرفوعة — تبقى بملامحها الحقيقية مع تحسين الجودة والدمج"
+                        : "بدون صورة"}
                     </p>
                   </div>
                   <Button
