@@ -9,23 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as BooksRouteImport } from './routes/books'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StoriesIndexRouteImport } from './routes/stories.index'
 import { Route as StoriesSlugRouteImport } from './routes/stories.$slug'
 import { Route as AuthenticatedMyOrdersRouteImport } from './routes/_authenticated.my-orders'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedStoryOrderIdRouteImport } from './routes/_authenticated.story.$orderId'
 import { Route as AuthenticatedOrderTemplateIdRouteImport } from './routes/_authenticated.order.$templateId'
 
-const StoriesRoute = StoriesRouteImport.update({
-  id: '/stories',
-  path: '/stories',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CreateRoute = CreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -48,6 +43,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoriesIndexRoute = StoriesIndexRouteImport.update({
+  id: '/stories/',
+  path: '/stories/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoriesSlugRoute = StoriesSlugRouteImport.update({
@@ -83,10 +83,10 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
   '/create': typeof CreateRoute
-  '/stories': typeof StoriesRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
   '/stories/$slug': typeof StoriesSlugRoute
+  '/stories/': typeof StoriesIndexRoute
   '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
   '/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
 }
@@ -95,10 +95,10 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
   '/create': typeof CreateRoute
-  '/stories': typeof StoriesRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
   '/stories/$slug': typeof StoriesSlugRoute
+  '/stories': typeof StoriesIndexRoute
   '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
   '/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
 }
@@ -109,10 +109,10 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
   '/create': typeof CreateRoute
-  '/stories': typeof StoriesRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/my-orders': typeof AuthenticatedMyOrdersRoute
   '/stories/$slug': typeof StoriesSlugRoute
+  '/stories/': typeof StoriesIndexRoute
   '/_authenticated/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
   '/_authenticated/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
 }
@@ -123,10 +123,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/books'
     | '/create'
-    | '/stories'
     | '/admin'
     | '/my-orders'
     | '/stories/$slug'
+    | '/stories/'
     | '/order/$templateId'
     | '/story/$orderId'
   fileRoutesByTo: FileRoutesByTo
@@ -135,10 +135,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/books'
     | '/create'
-    | '/stories'
     | '/admin'
     | '/my-orders'
     | '/stories/$slug'
+    | '/stories'
     | '/order/$templateId'
     | '/story/$orderId'
   id:
@@ -148,10 +148,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/books'
     | '/create'
-    | '/stories'
     | '/_authenticated/admin'
     | '/_authenticated/my-orders'
     | '/stories/$slug'
+    | '/stories/'
     | '/_authenticated/order/$templateId'
     | '/_authenticated/story/$orderId'
   fileRoutesById: FileRoutesById
@@ -162,18 +162,11 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BooksRoute: typeof BooksRoute
   CreateRoute: typeof CreateRoute
-  StoriesRoute: typeof StoriesRouteWithChildren
+  StoriesIndexRoute: typeof StoriesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/stories': {
-      id: '/stories'
-      path: '/stories'
-      fullPath: '/stories'
-      preLoaderRoute: typeof StoriesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/create': {
       id: '/create'
       path: '/create'
@@ -207,6 +200,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stories/': {
+      id: '/stories/'
+      path: '/stories'
+      fullPath: '/stories/'
+      preLoaderRoute: typeof StoriesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/stories/$slug': {
@@ -265,25 +265,24 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
-interface StoriesRouteChildren {
-  StoriesSlugRoute: typeof StoriesSlugRoute
-}
-
-const StoriesRouteChildren: StoriesRouteChildren = {
-  StoriesSlugRoute: StoriesSlugRoute,
-}
-
-const StoriesRouteWithChildren =
-  StoriesRoute._addFileChildren(StoriesRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   BooksRoute: BooksRoute,
   CreateRoute: CreateRoute,
-  StoriesRoute: StoriesRouteWithChildren,
+  StoriesIndexRoute: StoriesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
