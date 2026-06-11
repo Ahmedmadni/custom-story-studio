@@ -1,9 +1,17 @@
 export interface StoryPage {
   n: number;
-  /** عنوان قصير للصفحة بلغة المحتوى */
+  /** عنوان الصفحة بلغة المحتوى (للوضع الأحادي ar أو en) */
   title?: string;
-  /** النص العربي للصفحة، يحتوي {child} كاسم البطل */
+  /** نص الصفحة الأحادي (يحتوي {child} كاسم البطل) */
   text: string;
+  /** نسخة عربية من العنوان (للوضع الثنائي) */
+  title_ar?: string;
+  /** نسخة إنجليزية من العنوان (للوضع الثنائي) */
+  title_en?: string;
+  /** نسخة عربية من النص (للوضع الثنائي) */
+  text_ar?: string;
+  /** نسخة إنجليزية من النص (للوضع الثنائي) */
+  text_en?: string;
   /** وصف المشهد بالإنجليزية لتوليد الصورة */
   scene: string;
   /** مسار صورة الصفحة المولدة داخل مخزن story-pages (إن وجدت) */
@@ -14,7 +22,7 @@ export function parsePages(pages: unknown): StoryPage[] {
   if (!Array.isArray(pages)) return [];
   return pages.filter(
     (p): p is StoryPage =>
-      typeof p === "object" && p !== null && "text" in p && "n" in p,
+      typeof p === "object" && p !== null && "n" in p,
   );
 }
 
@@ -40,9 +48,16 @@ export const STATUS_LABELS: Record<string, string> = {
   rejected: "مرفوض",
 };
 
+export type LanguageMode = "ar" | "en" | "bilingual";
+
 export const LANGUAGE_OPTIONS = [
-  { value: "ar", label: "العربية", hint: "نص عربي فصيح بسيط" },
-  { value: "en", label: "English", hint: "Simple English for kids" },
+  { value: "ar", label: "العربية فقط", hint: "نص عربي فصيح بسيط مناسب للأطفال" },
+  {
+    value: "bilingual",
+    label: "عربي + إنجليزي",
+    hint: "نسختان متطابقتان في كل صفحة — مثالي للتعلم المزدوج",
+  },
+  { value: "en", label: "English Only", hint: "Simple, kid-friendly English" },
 ] as const;
 
 export const CONTENT_TYPE_OPTIONS = [
@@ -54,6 +69,35 @@ export const CONTENT_TYPE_OPTIONS = [
   {
     value: "book",
     label: "كتاب تعليمي",
-    desc: "كتاب يعلّم الحروف أو الأرقام أو أي موضوع تختاره بطريقة ممتعة",
+    desc: "كتاب يعلّم موضوعاً مختاراً (رياضيات، علوم، حروف…) بطريقة ممتعة",
   },
 ] as const;
+
+/** يعيد نص الصفحة المناسب لوضع اللغة المطلوب */
+export function pageTextFor(
+  p: StoryPage,
+  language: LanguageMode,
+  childName: string,
+): { ar?: string; en?: string; primary: string } {
+  const ar =
+    (p.text_ar && personalize(p.text_ar, childName)) ||
+    (language === "ar" ? personalize(p.text, childName) : undefined);
+  const en =
+    (p.text_en && personalize(p.text_en, childName)) ||
+    (language === "en" ? personalize(p.text, childName) : undefined);
+  const primary =
+    language === "en"
+      ? en ?? personalize(p.text, childName)
+      : ar ?? personalize(p.text, childName);
+  return { ar, en, primary };
+}
+
+export function pageTitleFor(
+  p: StoryPage,
+  language: LanguageMode,
+): { ar?: string; en?: string; primary?: string } {
+  const ar = p.title_ar || (language === "ar" ? p.title : undefined);
+  const en = p.title_en || (language === "en" ? p.title : undefined);
+  const primary = language === "en" ? en ?? p.title : ar ?? p.title;
+  return { ar, en, primary };
+}

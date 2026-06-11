@@ -1,14 +1,18 @@
 /**
  * توليد ملف PDF عالي الجودة للقصة/الكتاب التعليمي في المتصفح:
  * غلاف + صفحات مرتبة (عنوان + نص + صورة + رقم الصفحة).
- * نعرض كل صفحة كعنصر DOM بخطوط الموقع ثم نحولها لصورة عالية الدقة داخل PDF
- * لضمان عرض العربية بشكل مثالي.
+ * يدعم اللغة العربية فقط، الإنجليزية فقط، أو الوضع الثنائي عربي+إنجليزي.
  */
 
 export interface PdfStoryPage {
   n: number;
   title?: string | null;
   text: string;
+  /** للوضع الثنائي: عنوان ونص بالعربية بالإضافة إلى الإنجليزية */
+  title_ar?: string | null;
+  text_ar?: string | null;
+  title_en?: string | null;
+  text_en?: string | null;
   imageUrl?: string | null;
 }
 
@@ -16,13 +20,12 @@ export interface StoryPdfInput {
   title: string;
   childName?: string | null;
   moral?: string | null;
-  language: "ar" | "en";
+  language: "ar" | "en" | "bilingual";
   contentType?: "story" | "book";
   pages: PdfStoryPage[];
   onProgress?: (done: number, total: number) => void;
 }
 
-/* أبعاد A4 عند 96dpi — تُرفع الدقة ×2 عند اللقطة */
 const PAGE_W = 794;
 const PAGE_H = 1123;
 
@@ -90,12 +93,8 @@ function buildCover(input: StoryPdfInput, coverImg: string | null): HTMLDivEleme
       "div",
       `margin-top:10px;font-size:15px;font-weight:700;color:${MUTED};`,
       input.contentType === "book"
-        ? ar
-          ? "كتاب تعليمي ممتع"
-          : "A fun educational book"
-        : ar
-          ? "قصة مصورة للأطفال"
-          : "An illustrated children's story",
+        ? "كتاب تعليمي ممتع"
+        : "قصة مصورة للأطفال",
     ),
   );
 
@@ -112,7 +111,7 @@ function buildCover(input: StoryPdfInput, coverImg: string | null): HTMLDivEleme
       textEl(
         "div",
         `margin-top:18px;display:inline-block;background:${CREAM};border:3px solid ${GOLD};border-radius:999px;padding:10px 28px;font-size:23px;font-weight:800;color:${INK};`,
-        ar ? `⭐ بطل الحكاية: ${input.childName} ⭐` : `⭐ Our hero: ${input.childName} ⭐`,
+        `⭐ بطل الحكاية: ${input.childName} ⭐`,
       ),
     );
   }
@@ -137,7 +136,17 @@ function buildCover(input: StoryPdfInput, coverImg: string | null): HTMLDivEleme
       textEl(
         "div",
         `margin-top:28px;background:#FDEAE5;border-radius:20px;padding:14px 30px;font-size:19px;font-weight:700;color:${CORAL};max-width:600px;`,
-        ar ? `💝 ${input.moral}` : `💝 ${input.moral}`,
+        `💝 ${input.moral}`,
+      ),
+    );
+  }
+
+  if (input.language === "bilingual") {
+    page.appendChild(
+      textEl(
+        "div",
+        `margin-top:14px;font-size:13px;font-weight:700;color:${MUTED};`,
+        "Bilingual edition — عربي / English",
       ),
     );
   }
@@ -152,49 +161,107 @@ function buildCover(input: StoryPdfInput, coverImg: string | null): HTMLDivEleme
   return page;
 }
 
+function personalize(
+  text: string | null | undefined,
+  child?: string | null,
+): string {
+  if (!text) return "";
+  return child ? text.replaceAll("{child}", child) : text;
+}
+
 function buildContentPage(
   p: PdfStoryPage,
   imgData: string | null,
   childName: string | null | undefined,
-  language: "ar" | "en",
+  language: "ar" | "en" | "bilingual",
 ): HTMLDivElement {
   const ar = language !== "en";
   const page = pageShell(ar ? "rtl" : "ltr");
-  page.style.padding = "44px 52px 70px";
+  page.style.padding = "40px 50px 70px";
 
   if (imgData) {
     const img = document.createElement("img");
     img.src = imgData;
-    img.style.cssText = `width:100%;height:580px;object-fit:cover;border-radius:28px;border:5px solid ${GOLD};box-shadow:0 10px 26px rgba(59,43,39,0.15);`;
+    img.style.cssText = `width:100%;height:${language === "bilingual" ? "450px" : "560px"};object-fit:cover;border-radius:28px;border:5px solid ${GOLD};box-shadow:0 10px 26px rgba(59,43,39,0.15);`;
     page.appendChild(img);
   } else {
     page.appendChild(
       textEl(
         "div",
-        `width:100%;height:580px;border-radius:28px;border:5px solid ${GOLD};background:${CREAM};display:flex;align-items:center;justify-content:center;font-size:100px;`,
+        `width:100%;height:${language === "bilingual" ? "450px" : "560px"};border-radius:28px;border:5px solid ${GOLD};background:${CREAM};display:flex;align-items:center;justify-content:center;font-size:100px;`,
         "🎨",
       ),
     );
   }
 
-  if (p.title) {
+  if (language === "bilingual") {
+    const arTitle = p.title_ar ?? p.title ?? null;
+    const enTitle = p.title_en ?? null;
+    const arText = personalize(p.text_ar ?? p.text, childName);
+    const enText = personalize(p.text_en ?? "", childName);
+
+    const arBlock = div(`width:100%;margin-top:22px;text-align:center;`);
+    arBlock.dir = "rtl";
+    if (arTitle)
+      arBlock.appendChild(
+        textEl(
+          "h2",
+          `margin:0;font-size:26px;font-weight:800;color:${CORAL};`,
+          arTitle,
+        ),
+      );
+    arBlock.appendChild(
+      textEl(
+        "p",
+        `margin:8px 0 0;font-size:20px;line-height:1.85;font-weight:600;color:${INK};`,
+        arText,
+      ),
+    );
+    page.appendChild(arBlock);
+
+    const divider = div(
+      `width:60%;height:2px;background:${GOLD};opacity:.45;margin:14px auto;border-radius:2px;`,
+    );
+    page.appendChild(divider);
+
+    const enBlock = div(`width:100%;text-align:center;`);
+    enBlock.dir = "ltr";
+    if (enTitle)
+      enBlock.appendChild(
+        textEl(
+          "h3",
+          `margin:0;font-size:22px;font-weight:800;color:${CORAL};`,
+          enTitle,
+        ),
+      );
+    if (enText)
+      enBlock.appendChild(
+        textEl(
+          "p",
+          `margin:6px 0 0;font-size:18px;line-height:1.7;font-weight:600;color:${INK};`,
+          enText,
+        ),
+      );
+    page.appendChild(enBlock);
+  } else {
+    if (p.title) {
+      page.appendChild(
+        textEl(
+          "h2",
+          `margin:30px 0 0;font-size:31px;font-weight:800;color:${CORAL};text-align:center;max-width:660px;`,
+          p.title,
+        ),
+      );
+    }
+    const text = personalize(p.text, childName);
     page.appendChild(
       textEl(
-        "h2",
-        `margin:30px 0 0;font-size:31px;font-weight:800;color:${CORAL};text-align:center;max-width:660px;`,
-        p.title,
+        "p",
+        `margin:${p.title ? "16px" : "32px"} 0 0;font-size:24px;line-height:1.95;font-weight:600;color:${INK};text-align:center;max-width:660px;`,
+        text,
       ),
     );
   }
-
-  const text = childName ? p.text.replaceAll("{child}", childName) : p.text;
-  page.appendChild(
-    textEl(
-      "p",
-      `margin:${p.title ? "16px" : "32px"} 0 0;font-size:24px;line-height:1.95;font-weight:600;color:${INK};text-align:center;max-width:660px;`,
-      text,
-    ),
-  );
 
   page.appendChild(
     textEl(
@@ -219,7 +286,6 @@ export async function generateStoryPdf(input: StoryPdfInput): Promise<Blob> {
     input.onProgress?.(done, total);
   };
 
-  // تحميل الصور كـ data URLs لتفادي مشاكل CORS عند اللقطة
   const imgMap = new Map<number, string>();
   await Promise.all(
     input.pages.map(async (p) => {
@@ -268,11 +334,19 @@ export async function generateStoryPdf(input: StoryPdfInput): Promise<Blob> {
 
   try {
     const firstImg = input.pages.find((p) => imgMap.has(p.n));
-    await snap(buildCover(input, firstImg ? (imgMap.get(firstImg.n) ?? null) : null), true);
+    await snap(
+      buildCover(input, firstImg ? (imgMap.get(firstImg.n) ?? null) : null),
+      true,
+    );
 
     for (const p of input.pages) {
       await snap(
-        buildContentPage(p, imgMap.get(p.n) ?? null, input.childName, input.language),
+        buildContentPage(
+          p,
+          imgMap.get(p.n) ?? null,
+          input.childName,
+          input.language,
+        ),
         false,
       );
     }

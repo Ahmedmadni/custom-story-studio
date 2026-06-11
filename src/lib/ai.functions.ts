@@ -2,82 +2,179 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { STORY_STYLE_PROMPT, STYLE_NEGATIVE, ageStylePrompt, photoModePrompt } from "@/lib/storyStyle";
-import { parsePages } from "@/lib/storyTypes";
+import {
+  BOOK_CATEGORIES,
+  pagesForLength,
+  type BookMeta,
+} from "@/lib/bookCategories";
+import {
+  STORY_STYLE_PROMPT,
+  STYLE_NEGATIVE,
+  ageStylePrompt,
+  photoModePrompt,
+} from "@/lib/storyStyle";
+import { parsePages, type StoryPage } from "@/lib/storyTypes";
+
+const BookMetaInput = z.object({
+  category: z.enum([
+    "mathematics",
+    "science",
+    "programming",
+    "arabic_letters",
+    "english_letters",
+    "animals",
+    "fruits",
+    "colors",
+  ]),
+  reading_level: z.enum(["beginner", "intermediate", "advanced"]),
+  length: z.enum(["short", "medium", "long"]),
+});
 
 const GenerateInput = z.object({
   childName: z.string().trim().min(1, "اسم الطفل مطلوب").max(40),
-  theme: z.string().trim().min(3, "اكتب فكرة المحتوى").max(300),
+  theme: z.string().trim().max(300).optional(),
   age: z.string().trim().max(10).optional(),
-  language: z.enum(["ar", "en"]).default("ar"),
+  language: z.enum(["ar", "en", "bilingual"]).default("ar"),
   contentType: z.enum(["story", "book"]).default("story"),
+  bookMeta: BookMetaInput.optional(),
 });
 
-interface AiStoryPage {
+interface AiPage {
   n: number;
-  title: string;
-  text: string;
+  title?: string;
+  text?: string;
+  title_ar?: string;
+  title_en?: string;
+  text_ar?: string;
+  text_en?: string;
   scene: string;
 }
 
-interface AiStoryResult {
+interface AiResult {
   title: string;
+  title_ar?: string;
+  title_en?: string;
   summary: string;
   moral: string;
   category: string;
-  /** وصف ثابت بالإنجليزية لشكل البطل لضمان اتساق الصور بين الصفحات */
   character: string;
-  pages: AiStoryPage[];
+  learning_goals?: string[];
+  pages: AiPage[];
 }
 
-function extractJson(raw: string): AiStoryResult {
-  const cleaned = raw
-    .replace(/```json/gi, "")
-    .replace(/```/g, "")
-    .trim();
+function extractJson(raw: string): AiResult {
+  const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end === -1) throw new Error("لم نتمكن من قراءة المحتوى المولد، حاول مرة أخرى");
-  return JSON.parse(cleaned.slice(start, end + 1)) as AiStoryResult;
+  if (start === -1 || end === -1)
+    throw new Error("لم نتمكن من قراءة المحتوى المولد، حاول مرة أخرى");
+  return JSON.parse(cleaned.slice(start, end + 1)) as AiResult;
 }
 
-const JSON_SHAPE = `{"title":"...","summary":"...","moral":"...","category":"...","character":"consistent english visual description of the hero child (hair, eyes, skin, outfit)","pages":[{"n":1,"title":"short page title","text":"...","scene":"english scene description featuring the hero child, directly matching the page text"}]}`;
+function langRule(language: "ar" | "en" | "bilingual"): string {
+  if (language === "ar")
+    return "اكتب كل النصوص (العناوين، النص، الملخص) بلغة عربية فصحى بسيطة ومشوقة تناسب الأطفال. استخدم حقول title و text فقط.";
+  if (language === "en")
+    return "Write all texts (titles, body, summary) in simple engaging English for young children. Use only the title and text fields. Keep the category in Arabic.";
+  return "BILINGUAL MODE — for EACH page provide BOTH Arabic and English: title_ar, title_en, text_ar, text_en. Also provide top-level title_ar AND title_en. The Arabic and English versions of each page must convey the EXACT same meaning (educational translation, not literal), tuned for kids. Keep the category in Arabic.";
+}
 
-function buildSystemPrompt(contentType: "story" | "book", language: "ar" | "en"): string {
-  const langRule =
-    language === "ar"
-      ? "اكتب نصوص الصفحات وعناوينها والعنوان والملخص بلغة عربية فصحى بسيطة ومشوقة تناسب الأطفال."
-      : "Write the page texts, page titles, title and summary in simple, engaging English suitable for young children. Keep the category in Arabic.";
+function jsonShape(language: "ar" | "en" | "bilingual"): string {
+  const titles =
+    language === "bilingual"
+      ? `"title":"<arabic title>","title_ar":"...","title_en":"..."`
+      : `"title":"..."`;
+  const pageShape =
+    language === "bilingual"
+      ? `{"n":1,"title_ar":"...","title_en":"...","text_ar":"...","text_en":"...","scene":"english scene description featuring the hero child, directly matching this page"}`
+      : `{"n":1,"title":"short page title","text":"...","scene":"english scene description featuring the hero child, directly matching this page"}`;
+  return `{${titles},"summary":"...","moral":"...","category":"...","character":"consistent english visual description of the hero child","learning_goals":["short goal","..."],"pages":[${pageShape}]}`;
+}
 
-  const pageRules = `- لكل صفحة: عنوان قصير جذاب (title من 2 إلى 4 كلمات بلغة المحتوى) + نص (جملتان إلى ثلاث جمل) + وصف مشهد بالإنجليزية للرسام (scene).
-- character: وصف بصري ثابت بالإنجليزية لشكل البطل الطفل (الشعر، العينان، البشرة، الملابس) يبقى نفسه في كل الصفحات، ويجب أن يعكس عمر الطفل المحدد بدقة: طفل صغير جداً = شخصية أصغر وألطف وأبسط بملابس ناعمة، طفل أكبر = شخصية أطول وأكثر نضجاً في الملامح والملابس.
-- scene يجب أن يصور حرفياً ما يحدث في نص نفس الصفحة (نفس المكان، نفس الفعل، نفس الشخصيات) حتى يشعر القارئ أن الصورة جزء من المشهد المكتوب، ويذكر "the hero child" دائماً، وتكون الأجواء والتفاصيل والمفردات مناسبة لعمر الطفل.`;
+function buildSystemPrompt(
+  contentType: "story" | "book",
+  language: "ar" | "en" | "bilingual",
+  pageCount: number,
+  bookMeta?: BookMeta,
+): string {
+  const pageRules = `- لكل صفحة: عنوان قصير (2-4 كلمات) + نص (جملتان إلى ثلاث جمل) + وصف مشهد بالإنجليزية للرسام (scene).
+- character: وصف بصري ثابت بالإنجليزية لشكل الطفل البطل (الشعر، العينان، البشرة، الملابس) يبقى نفسه في كل الصفحات، ويعكس عمر الطفل: طفل صغير = شخصية أصغر وأبسط، طفل أكبر = أطول وأكثر نضجاً.
+- scene يجب أن يصور حرفياً ما يحدث في نص نفس الصفحة بنفس المكان والفعل والشخصيات، ويذكر "the hero child" دائماً.`;
 
   if (contentType === "story") {
-    return `أنت كاتب قصص أطفال محترف متخصص في القصص النبيلة والإنسانية والقيم الأخلاقية.
-اكتب قصة أطفال قصيرة من 6 صفحات بالضبط.
+    return `أنت كاتب قصص أطفال محترف متخصص في القصص النبيلة والقيم.
+اكتب قصة أطفال من ${pageCount} صفحات بالضبط.
 قواعد صارمة:
-- ${langRule}
-- استخدم {child} ككلمة بديلة لاسم بطل القصة في النص (لا تكتب الاسم الحقيقي أبداً).
+- ${langRule(language)}
+- استخدم {child} ككلمة بديلة لاسم بطل القصة في كل النصوص (لا تكتب الاسم الحقيقي).
 ${pageRules}
-- القصة يجب أن تزرع قيمة نبيلة وتنتهي نهاية سعيدة ملهمة.
+- learning_goals: 2-3 أهداف قصيرة لما سيتعلمه الطفل (القيمة، السلوك).
+- نهاية سعيدة ملهمة.
 - category بالعربية من: قيم وأخلاق، الصداقة، الأسرة والمحبة، مغامرات وشجاعة، عادات وحياة، الطبيعة والحيوان.
 أعد فقط JSON صالحاً بهذا الشكل دون أي نص إضافي:
-${JSON_SHAPE}`;
+${jsonShape(language)}`;
   }
 
-  return `أنت مؤلف كتب تعليمية للأطفال، تحول أي موضوع تعليمي إلى رحلة ممتعة وتفاعلية.
-اكتب كتاباً تعليمياً للأطفال من 6 صفحات بالضبط حول الموضوع المطلوب.
+  const cat = BOOK_CATEGORIES.find((c) => c.value === bookMeta?.category);
+  const catLine = cat
+    ? `موضوع الكتاب: ${cat.label}. توجيه تعليمي: ${cat.prompt}`
+    : "موضوع الكتاب حسب وصف المستخدم";
+  const levelLine = {
+    beginner:
+      "مستوى القراءة: مبتدئ — استخدم كلمات قصيرة جداً وجملة واحدة قصيرة لكل فكرة.",
+    intermediate:
+      "مستوى القراءة: متوسط — جملتان واضحتان لكل صفحة بمفردات مألوفة.",
+    advanced:
+      "مستوى القراءة: متقدم — يمكن استخدام 2-3 جمل بمفردات أغنى وأفكار أعمق.",
+  }[bookMeta?.reading_level ?? "intermediate"];
+
+  return `أنت مؤلف كتب أطفال تعليمية محترف، تحوّل أي موضوع إلى رحلة ممتعة وتدرّجية.
+اكتب كتاباً تعليمياً للأطفال من ${pageCount} صفحات بالضبط حول الموضوع المطلوب.
 قواعد صارمة:
-- ${langRule}
-- استخدم {child} ككلمة بديلة لاسم الطفل المتعلم في النص (لا تكتب الاسم الحقيقي أبداً)، واجعله مشاركاً في التعلم.
-- كل صفحة تعلّم فكرة أو معلومة واحدة بسيطة ومتدرجة.
+- ${catLine}
+- ${levelLine}
+- ${langRule(language)}
+- استخدم {child} ككلمة بديلة لاسم الطفل المتعلم في كل النصوص، واجعله مشاركاً في التعلم.
+- بنية الكتاب الإجبارية:
+  • الصفحة 1: غلاف داخلي ترحيبي قصير يعرّف بالموضوع.
+  • الصفحات الوسطى: دروس تعليمية متدرجة (فكرة واحدة لكل صفحة) مع مثال ملموس.
+  • صفحة قبل الأخيرة: مراجعة سريعة أو نشاط قصير ممتع للطفل ("هل تستطيع أن…؟").
+  • الصفحة الأخيرة: خلاصة وتشجيع لما تعلّمه الطفل.
 ${pageRules}
-- الصفحة الأخيرة تلخص ما تعلمه الطفل وتشجعه.
-- moral هي المهارة أو المعرفة المكتسبة.
-- category بالعربية من: الحروف والأرقام، الألوان والأشكال، علوم وطبيعة، مهارات وحياة.
+- learning_goals: 3-4 أهداف تعلّم محددة وقابلة للقياس.
+- moral: المهارة أو المعرفة الرئيسية المكتسبة.
+- category بالعربية تصف الموضوع بإيجاز.
 أعد فقط JSON صالحاً بهذا الشكل دون أي نص إضافي:
-${JSON_SHAPE}`;
+${jsonShape(language)}`;
+}
+
+async function callLlm(systemPrompt: string, userPrompt: string, key: string) {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    }),
+  });
+  if (res.status === 429)
+    throw new Error("الخدمة مشغولة حالياً، انتظر قليلاً ثم أعد المحاولة");
+  if (res.status === 402)
+    throw new Error("نفد رصيد الذكاء الاصطناعي، تواصل مع إدارة الموقع");
+  if (!res.ok) {
+    console.error("AI generate error", res.status, await res.text());
+    throw new Error("تعذر التوليد، حاول مرة أخرى");
+  }
+  const json = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+  };
+  return extractJson(json.choices?.[0]?.message?.content ?? "");
 }
 
 export const generateAiStory = createServerFn({ method: "POST" })
@@ -87,48 +184,42 @@ export const generateAiStory = createServerFn({ method: "POST" })
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("خدمة الذكاء الاصطناعي غير مهيأة");
 
+    const pageCount =
+      data.contentType === "book" && data.bookMeta
+        ? pagesForLength(data.bookMeta.length)
+        : 6;
+
     const typeLabel = data.contentType === "book" ? "كتاب تعليمي" : "قصة";
-    const userPrompt = `اكتب ${typeLabel} عن: ${data.theme}
-اسم الطفل سيكون: ${data.childName} (لكن استخدم {child} في النص)
+    const themeLine =
+      data.contentType === "book" && data.bookMeta
+        ? `موضوع الكتاب: ${BOOK_CATEGORIES.find((c) => c.value === data.bookMeta!.category)?.label}${data.theme ? ` — تخصيص: ${data.theme}` : ""}`
+        : `اكتب ${typeLabel} عن: ${data.theme ?? ""}`;
+
+    const userPrompt = `${themeLine}
+اسم الطفل سيكون: ${data.childName} (استخدم {child} في النص)
 عمر الطفل: ${data.age ?? "4-8"} سنوات
-لغة المحتوى: ${data.language === "ar" ? "العربية" : "الإنجليزية"}`;
+لغة المحتوى: ${data.language === "ar" ? "العربية فقط" : data.language === "en" ? "English only" : "Bilingual Arabic + English"}`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: buildSystemPrompt(data.contentType, data.language) },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
+    const story = await callLlm(
+      buildSystemPrompt(data.contentType, data.language, pageCount, data.bookMeta),
+      userPrompt,
+      key,
+    );
 
-    if (res.status === 429) throw new Error("الخدمة مشغولة حالياً، انتظر قليلاً ثم أعد المحاولة");
-    if (res.status === 402) throw new Error("نفد رصيد الذكاء الاصطناعي، تواصل مع إدارة الموقع");
-    if (!res.ok) {
-      console.error("AI generate error", res.status, await res.text());
-      throw new Error("تعذر التوليد، حاول مرة أخرى");
-    }
-
-    const json = (await res.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const story = extractJson(json.choices?.[0]?.message?.content ?? "");
     const rawPages = parsePages(story.pages);
-    if (rawPages.length < 4) throw new Error("المحتوى المولد غير مكتمل، حاول مرة أخرى");
+    if (rawPages.length < 4)
+      throw new Error("المحتوى المولد غير مكتمل، حاول مرة أخرى");
 
-    // دمج وصف البطل الثابت + نمط العمر داخل كل مشهد لضمان اتساق الصور وملاءمتها لعمر الطفل
     const character = (story.character ?? "").trim();
     const ageStyle = ageStylePrompt(data.age);
-    const pages = rawPages.map((p) => ({
+    const pages: StoryPage[] = rawPages.map((p) => ({
       ...p,
       scene: `${ageStyle}. ${character ? `The hero child: ${character}. ` : ""}Scene: ${p.scene}`,
     }));
+
+    const bookMetaRow = data.bookMeta
+      ? { ...data.bookMeta, learning_goals: story.learning_goals ?? [] }
+      : null;
 
     const slug = `custom-${crypto.randomUUID().slice(0, 8)}`;
     const { data: inserted, error } = await context.supabase
@@ -147,7 +238,8 @@ export const generateAiStory = createServerFn({ method: "POST" })
         created_by: context.userId,
         content_type: data.contentType,
         language: data.language,
-      })
+        book_meta: bookMetaRow as unknown as never,
+      } as never)
       .select("id, slug, title, summary, moral, category, pages")
       .single();
 
@@ -166,23 +258,54 @@ export const generateAiStory = createServerFn({ method: "POST" })
       pages,
       contentType: data.contentType,
       language: data.language,
+      learningGoals: story.learning_goals ?? [],
       stylePrompt: STORY_STYLE_PROMPT,
     };
   });
 
 const PageImageInput = z.object({
   templateId: z.string().uuid(),
-  pageNumber: z.number().int().min(1).max(12),
-  /** مسار صورة الطفل المرفوعة (اختياري) لاستخدامها كمرجع في الرسم */
+  pageNumber: z.number().int().min(1).max(20),
   childPhotoPath: z.string().trim().max(300).optional(),
-  /** cartoon = تحويل لشخصية كرتونية، real = إبقاء الملامح الحقيقية مع تحسين الجودة والدمج */
   photoMode: z.enum(["cartoon", "real"]).optional(),
 });
 
-/**
- * توليد صورة صفحة من قصة/كتاب أنشأه المستخدم — بنفس مشهد نص الصفحة
- * وبالنمط المعتمد Children's Cartoon Style 3D، ثم حفظها وربطها بالصفحة.
- */
+async function ensureOwnerOrAdmin(
+  context: { supabase: any; userId: string },
+  templateId: string,
+): Promise<{ pages: StoryPage[]; created_by: string; age_range: string | null }> {
+  const { data: template, error } = await context.supabase
+    .from("story_templates")
+    .select("id, pages, created_by, age_range")
+    .eq("id", templateId)
+    .single();
+  if (error || !template) throw new Error("المحتوى غير موجود");
+  if (template.created_by !== context.userId) {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("غير مصرح لك");
+  }
+  return {
+    pages: parsePages(template.pages),
+    created_by: template.created_by,
+    age_range: template.age_range,
+  };
+}
+
+async function ensureNotApproved(templateId: string): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: row } = await supabaseAdmin
+    .from("story_templates")
+    .select("approved_at")
+    .eq("id", templateId)
+    .single();
+  if ((row as { approved_at?: string | null } | null)?.approved_at) {
+    throw new Error("المحتوى معتمد بالفعل — لا يمكن التعديل عليه");
+  }
+}
+
 export const generatePageImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => PageImageInput.parse(input))
@@ -190,48 +313,29 @@ export const generatePageImage = createServerFn({ method: "POST" })
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("خدمة الذكاء الاصطناعي غير مهيأة");
 
-    // RLS: المستخدم يرى قوالبه المخصصة فقط (أو المدير)
-    const { data: template, error: tplErr } = await context.supabase
-      .from("story_templates")
-      .select("id, pages, created_by, age_range")
-      .eq("id", data.templateId)
-      .single();
-    if (tplErr || !template) throw new Error("المحتوى غير موجود");
-    if (template.created_by !== context.userId) {
-      const { data: isAdmin } = await context.supabase.rpc("has_role", {
-        _user_id: context.userId,
-        _role: "admin",
-      });
-      if (!isAdmin) throw new Error("غير مصرح لك");
-    }
-
-    const pages = parsePages(template.pages);
-    const page = pages.find((p) => p.n === data.pageNumber);
+    const tpl = await ensureOwnerOrAdmin(context, data.templateId);
+    const page = tpl.pages.find((p) => p.n === data.pageNumber);
     if (!page) throw new Error("الصفحة غير موجودة");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // صورة الطفل المرجعية (اختياري) — يجب أن تخص المستخدم نفسه
     let photoDataUrl: string | null = null;
     if (data.childPhotoPath) {
       if (!data.childPhotoPath.startsWith(`${context.userId}/`)) {
         throw new Error("غير مصرح لك باستخدام هذه الصورة");
       }
-      const { data: file, error: dlErr } = await supabaseAdmin.storage
+      const { data: file } = await supabaseAdmin.storage
         .from("child-photos")
         .download(data.childPhotoPath);
-      if (dlErr || !file) {
-        console.error("download child photo", dlErr);
-      } else {
+      if (file) {
         const buf = Buffer.from(await file.arrayBuffer());
         photoDataUrl = `data:${file.type || "image/jpeg"};base64,${buf.toString("base64")}`;
       }
     }
 
-    // ضمان تطبيق نمط العمر حتى للقوالب القديمة التي لا تحمله داخل المشهد
     const agePart = page.scene.includes("Age styling")
       ? ""
-      : `\n${ageStylePrompt(template.age_range)}.`;
+      : `\n${ageStylePrompt(tpl.age_range)}.`;
     const photoPart = photoDataUrl
       ? `\n${photoModePrompt(data.photoMode ?? "cartoon")}.`
       : "";
@@ -239,30 +343,34 @@ export const generatePageImage = createServerFn({ method: "POST" })
 Children's storybook page illustration that literally depicts this exact written scene so the image feels like part of the text: ${page.scene}.
 Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
+    const res = await fetch(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3.1-flash-image-preview",
+          messages: [
+            {
+              role: "user",
+              content: photoDataUrl
+                ? [
+                    { type: "text", text: prompt },
+                    { type: "image_url", image_url: { url: photoDataUrl } },
+                  ]
+                : prompt,
+            },
+          ],
+          modalities: ["image", "text"],
+        }),
       },
-      body: JSON.stringify({
-        model: "google/gemini-3.1-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: photoDataUrl
-              ? [
-                  { type: "text", text: prompt },
-                  { type: "image_url", image_url: { url: photoDataUrl } },
-                ]
-              : prompt,
-          },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+    );
 
-    if (res.status === 429) throw new Error("الخدمة مشغولة، انتظر قليلاً ثم أعد المحاولة");
+    if (res.status === 429)
+      throw new Error("الخدمة مشغولة، انتظر قليلاً ثم أعد المحاولة");
     if (res.status === 402) throw new Error("نفد رصيد الذكاء الاصطناعي");
     if (!res.ok) {
       console.error("page image error", res.status, await res.text());
@@ -270,24 +378,26 @@ Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
     }
 
     const json = (await res.json()) as {
-      choices?: { message?: { images?: { image_url?: { url?: string } }[] } }[];
+      choices?: {
+        message?: { images?: { image_url?: { url?: string } }[] };
+      }[];
     };
     const dataUrl = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    if (!dataUrl?.includes("base64,")) throw new Error("لم يُرجع النموذج صورة، أعد المحاولة");
+    if (!dataUrl?.includes("base64,"))
+      throw new Error("لم يُرجع النموذج صورة، أعد المحاولة");
 
     const bytes = Buffer.from(dataUrl.split("base64,")[1], "base64");
     const imagePath = `templates/${data.templateId}/page-${data.pageNumber}.png`;
 
-    const { error: uploadErr } = await supabaseAdmin.storage
+    const { error: upErr } = await supabaseAdmin.storage
       .from("story-pages")
       .upload(imagePath, bytes, { contentType: "image/png", upsert: true });
-    if (uploadErr) {
-      console.error("upload page image", uploadErr);
+    if (upErr) {
+      console.error("upload page image", upErr);
       throw new Error("تعذر حفظ الصورة");
     }
 
-    // ربط الصورة بالصفحة داخل القالب
-    const updatedPages = pages.map((p) =>
+    const updatedPages = tpl.pages.map((p) =>
       p.n === data.pageNumber ? { ...p, image_path: imagePath } : p,
     );
     await supabaseAdmin
@@ -299,49 +409,120 @@ Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
       .from("story-pages")
       .createSignedUrl(imagePath, 60 * 60 * 24);
 
-    return { pageNumber: data.pageNumber, imageUrl: signed?.signedUrl ?? null };
+    return {
+      pageNumber: data.pageNumber,
+      imageUrl: signed?.signedUrl ?? null,
+    };
   });
 
 const UpdatePageTextInput = z.object({
   templateId: z.string().uuid(),
-  pageNumber: z.number().int().min(1).max(12),
+  pageNumber: z.number().int().min(1).max(20),
   title: z.string().trim().max(80).optional(),
-  text: z.string().trim().min(1, "نص الصفحة مطلوب").max(1000),
+  text: z.string().trim().min(1).max(1000).optional(),
+  title_ar: z.string().trim().max(80).optional(),
+  title_en: z.string().trim().max(80).optional(),
+  text_ar: z.string().trim().max(1000).optional(),
+  text_en: z.string().trim().max(1000).optional(),
 });
 
-/**
- * تعديل عنوان/نص صفحة في قصة أو كتاب أنشأه المستخدم — قبل اعتماد المحتوى وتصدير PDF.
- */
 export const updatePageText = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => UpdatePageTextInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { data: template, error: tplErr } = await context.supabase
-      .from("story_templates")
-      .select("id, pages, created_by")
-      .eq("id", data.templateId)
-      .single();
-    if (tplErr || !template) throw new Error("المحتوى غير موجود");
-    if (template.created_by !== context.userId) throw new Error("غير مصرح لك");
+    await ensureNotApproved(data.templateId);
+    const tpl = await ensureOwnerOrAdmin(context, data.templateId);
+    if (!tpl.pages.some((p) => p.n === data.pageNumber))
+      throw new Error("الصفحة غير موجودة");
 
-    const pages = parsePages(template.pages);
-    if (!pages.some((p) => p.n === data.pageNumber)) throw new Error("الصفحة غير موجودة");
-
-    const updatedPages = pages.map((p) =>
+    const updatedPages = tpl.pages.map((p) =>
       p.n === data.pageNumber
-        ? { ...p, title: data.title ?? p.title, text: data.text }
+        ? {
+            ...p,
+            title: data.title ?? p.title,
+            text: data.text ?? p.text,
+            title_ar: data.title_ar ?? p.title_ar,
+            title_en: data.title_en ?? p.title_en,
+            text_ar: data.text_ar ?? p.text_ar,
+            text_en: data.text_en ?? p.text_en,
+          }
         : p,
     );
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error: upErr } = await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from("story_templates")
       .update({ pages: updatedPages as unknown as never })
       .eq("id", data.templateId);
-    if (upErr) {
-      console.error("update page text", upErr);
-      throw new Error("تعذر حفظ التعديل");
-    }
+    if (error) throw new Error("تعذر حفظ التعديل");
 
     return { ok: true, pageNumber: data.pageNumber };
+  });
+
+const ReorderInput = z.object({
+  templateId: z.string().uuid(),
+  order: z.array(z.number().int().min(1).max(20)).min(2).max(20),
+});
+
+/** إعادة ترتيب صفحات المحتوى — يحدّث n لكل صفحة وفق الترتيب الجديد */
+export const reorderPages = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ReorderInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureNotApproved(data.templateId);
+    const tpl = await ensureOwnerOrAdmin(context, data.templateId);
+    if (data.order.length !== tpl.pages.length)
+      throw new Error("ترتيب غير مكتمل");
+
+    const map = new Map(tpl.pages.map((p) => [p.n, p]));
+    const reordered: StoryPage[] = data.order.map((oldN, i) => {
+      const p = map.get(oldN);
+      if (!p) throw new Error("رقم صفحة غير صحيح");
+      return { ...p, n: i + 1 };
+    });
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("story_templates")
+      .update({ pages: reordered as unknown as never })
+      .eq("id", data.templateId);
+    if (error) throw new Error("تعذر حفظ الترتيب");
+    return { ok: true };
+  });
+
+const ApproveInput = z.object({ templateId: z.string().uuid() });
+
+/** اعتماد المحتوى نهائياً — شرط مسبق لتصدير PDF ومشاركته */
+export const approveTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ApproveInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureOwnerOrAdmin(context, data.templateId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("story_templates")
+      .update({ approved_at: new Date().toISOString() } as never)
+      .eq("id", data.templateId);
+    if (error) throw new Error("تعذر اعتماد المحتوى");
+    return { ok: true, approvedAt: new Date().toISOString() };
+  });
+
+const TemplateIdInput = z.object({ templateId: z.string().uuid() });
+
+/** قراءة حالة الاعتماد لاستخدامها في واجهات أخرى */
+export const getTemplateApproval = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => TemplateIdInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureOwnerOrAdmin(context, data.templateId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin
+      .from("story_templates")
+      .select("approved_at")
+      .eq("id", data.templateId)
+      .single();
+    return {
+      approvedAt:
+        (row as { approved_at?: string | null } | null)?.approved_at ?? null,
+    };
   });

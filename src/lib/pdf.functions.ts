@@ -8,9 +8,11 @@ const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20MB
 const SaveInput = z.object({
   title: z.string().trim().min(1).max(120),
   pdfBase64: z.string().min(100).max(28_000_000),
+  /** إثبات أن المحتوى المُصدَّر قد اعتُمد قبل التصدير */
+  templateId: z.string().uuid().optional(),
 });
 
-/** حفظ نسخة PDF داخل حساب المستخدم (مخزن خاص story-pdfs) */
+/** حفظ نسخة PDF داخل حساب المستخدم — تتحقق من اعتماد المحتوى قبل الحفظ */
 export const saveStoryPdf = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SaveInput.parse(input))
@@ -19,7 +21,21 @@ export const saveStoryPdf = createServerFn({ method: "POST" })
     if (bytes.byteLength < 1000) throw new Error("ملف غير صالح");
     if (bytes.byteLength > MAX_PDF_BYTES) throw new Error("حجم الملف كبير جداً");
 
-    // اسم الملف: timestamp__العنوان مرمزاً (base64url) لاستعادته عند العرض
+    // إذا أتى templateId نتحقق من اعتماد المحتوى الذي يخص هذا المستخدم
+    if (data.templateId) {
+      const { data: tpl } = await context.supabase
+        .from("story_templates")
+        .select("approved_at, created_by")
+        .eq("id", data.templateId)
+        .single();
+      if (!tpl) throw new Error("المحتوى غير موجود");
+      const row = tpl as { approved_at?: string | null; created_by?: string };
+      if (row.created_by !== context.userId)
+        throw new Error("غير مصرح لك بحفظ هذا المحتوى");
+      if (!row.approved_at)
+        throw new Error("لا يمكن تصدير PDF قبل اعتماد المحتوى");
+    }
+
     const encodedTitle = Buffer.from(data.title.slice(0, 40)).toString("base64url");
     const path = `${context.userId}/${Date.now()}__${encodedTitle}.pdf`;
 
@@ -62,7 +78,7 @@ export const listMyPdfs = createServerFn({ method: "POST" })
             try {
               title = Buffer.from(encoded, "base64url").toString("utf8") || title;
             } catch {
-              // تجاهل أسماء غير قابلة للفك
+              /* تجاهل أسماء غير قابلة للفك */
             }
           }
           const createdAt = Number(ts) || null;

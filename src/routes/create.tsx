@@ -1,9 +1,10 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
   ArrowRight,
+  ArrowUpDown,
   BadgeCheck,
   BookOpen,
   Camera,
@@ -19,7 +20,7 @@ import {
   Wand2,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Footer } from "@/components/Footer";
@@ -31,8 +32,32 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { generateAiStory, generatePageImage, updatePageText } from "@/lib/ai.functions";
-import { CONTENT_TYPE_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/storyTypes";
+import {
+  approveTemplate,
+  generateAiStory,
+  generatePageImage,
+  reorderPages,
+  updatePageText,
+} from "@/lib/ai.functions";
+import {
+  BOOK_CATEGORIES,
+  BOOK_LENGTHS,
+  READING_LEVELS,
+  readingLevelFromAge,
+  type BookCategoryValue,
+  type BookLength,
+  type ReadingLevel,
+} from "@/lib/bookCategories";
+import {
+  clearWizardDraft,
+  loadWizardDraft,
+  saveWizardDraft,
+} from "@/lib/draft.functions";
+import {
+  CONTENT_TYPE_OPTIONS,
+  LANGUAGE_OPTIONS,
+  type LanguageMode,
+} from "@/lib/storyTypes";
 import { isValidEgyptianMobile } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/create")({
@@ -42,7 +67,7 @@ export const Route = createFileRoute("/create")({
       {
         name: "description",
         content:
-          "معالج إنشاء بخطوات واضحة: اسم الطفل، العمر، اللغة، صورة اختيارية، نوع المحتوى، توليد بالذكاء الاصطناعي، معاينة، تصدير PDF ومشاركة واتساب.",
+          "معالج إنشاء بخطوات واضحة: اسم الطفل، العمر، اللغة (عربي/إنجليزي/ثنائي)، صورة اختيارية، نوع المحتوى، توليد، معاينة، اعتماد، تصدير PDF ومشاركة واتساب.",
       },
     ],
   }),
@@ -62,36 +87,151 @@ const STEPS = [
 
 const MAX_PHOTO_MB = 8;
 
+interface DraftPayload {
+  step?: number;
+  childName?: string;
+  age?: string;
+  language?: LanguageMode;
+  whatsapp?: string;
+  photoMode?: "cartoon" | "real";
+  contentType?: "story" | "book";
+  topic?: string;
+  bookCategory?: BookCategoryValue;
+  readingLevel?: ReadingLevel;
+  bookLength?: BookLength;
+}
+
 function CreateWizard() {
   const { user, loading } = useAuth();
   const generateFn = useServerFn(generateAiStory);
   const imageFn = useServerFn(generatePageImage);
   const updateFn = useServerFn(updatePageText);
+  const approveFn = useServerFn(approveTemplate);
+  const reorderFn = useServerFn(reorderPages);
+  const saveDraftFn = useServerFn(saveWizardDraft);
+  const loadDraftFn = useServerFn(loadWizardDraft);
+  const clearDraftFn = useServerFn(clearWizardDraft);
 
   const [step, setStep] = useState(0);
   const [childName, setChildName] = useState("");
   const [age, setAge] = useState("");
-  const [language, setLanguage] = useState<"ar" | "en">("ar");
+  const [language, setLanguage] = useState<LanguageMode | "">("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoMode, setPhotoMode] = useState<"cartoon" | "real">("cartoon");
   const [whatsapp, setWhatsapp] = useState("");
   const [contentType, setContentType] = useState<"story" | "book">("story");
   const [topic, setTopic] = useState("");
+  // Book-specific
+  const [bookCategory, setBookCategory] = useState<BookCategoryValue | "">("");
+  const [readingLevel, setReadingLevel] = useState<ReadingLevel>("intermediate");
+  const [bookLength, setBookLength] = useState<BookLength>("short");
+  // Preview state
   const [pageIndex, setPageIndex] = useState(0);
   const [pageImages, setPageImages] = useState<Record<number, string>>({});
   const [imgGenActive, setImgGenActive] = useState(false);
   const [imgGenCount, setImgGenCount] = useState(0);
   const [imgGenTotal, setImgGenTotal] = useState(0);
-  // تعديلات المستخدم على نصوص الصفحات قبل الاعتماد
-  const [pageEdits, setPageEdits] = useState<Record<number, { title: string; text: string }>>({});
+  const [pageEdits, setPageEdits] = useState<
+    Record<
+      number,
+      { title?: string; text?: string; title_ar?: string; title_en?: string; text_ar?: string; text_en?: string }
+    >
+  >({});
   const [editingPage, setEditingPage] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editText, setEditText] = useState("");
+  const [editTitleEn, setEditTitleEn] = useState("");
+  const [editTextEn, setEditTextEn] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [regenPage, setRegenPage] = useState<number | null>(null);
+  const [reorderMode, setReorderMode] = useState(false);
+  const [approved, setApproved] = useState(false);
+  const [approving, setApproving] = useState(false);
 
-  /** توليد صور الصفحات بالتتابع — كل صورة من مشهد نص صفحتها، مع صورة الطفل إن وجدت */
+  // ===== Draft restoration =====
+  const { data: existingDraft } = useQuery({
+    queryKey: ["wizard-draft", user?.id],
+    queryFn: () => loadDraftFn(),
+    enabled: !!user,
+    staleTime: Infinity,
+  });
+
+  const [draftPrompted, setDraftPrompted] = useState(false);
+  useEffect(() => {
+    if (!user || draftPrompted || !existingDraft) return;
+    const p = (existingDraft as { payload?: DraftPayload } | null)?.payload;
+    if (!p || !p.childName) {
+      setDraftPrompted(true);
+      return;
+    }
+    setDraftPrompted(true);
+    toast(
+      `لديك مسودة محفوظة لـ ${p.childName} — هل ترغب باستئنافها؟`,
+      {
+        duration: 12000,
+        action: {
+          label: "استئناف",
+          onClick: () => {
+            setChildName(p.childName ?? "");
+            setAge(p.age ?? "");
+            setLanguage(p.language ?? "");
+            setWhatsapp(p.whatsapp ?? "");
+            setPhotoMode(p.photoMode ?? "cartoon");
+            setContentType(p.contentType ?? "story");
+            setTopic(p.topic ?? "");
+            setBookCategory(p.bookCategory ?? "");
+            setReadingLevel(p.readingLevel ?? "intermediate");
+            setBookLength(p.bookLength ?? "short");
+            setStep(Math.min(4, p.step ?? 0));
+            toast.success("تم استئناف المسودة ✏️");
+          },
+        },
+        cancel: {
+          label: "تجاهل",
+          onClick: () => void clearDraftFn(),
+        },
+      },
+    );
+  }, [user, existingDraft, draftPrompted, clearDraftFn]);
+
+  // ===== Draft autosave (debounced) =====
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedRef = useRef<string>("");
+  useEffect(() => {
+    if (!user || step > 5 || childName.trim().length === 0) return;
+    const payload: DraftPayload = {
+      step,
+      childName,
+      age,
+      language: language || undefined,
+      whatsapp,
+      photoMode,
+      contentType,
+      topic,
+      bookCategory: bookCategory || undefined,
+      readingLevel,
+      bookLength,
+    };
+    const sig = JSON.stringify(payload);
+    if (sig === lastSavedRef.current) return;
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    draftTimerRef.current = setTimeout(() => {
+      lastSavedRef.current = sig;
+      void saveDraftFn({ data: payload as Record<string, unknown> });
+    }, 1200);
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    };
+  }, [user, step, childName, age, language, whatsapp, photoMode, contentType, topic, bookCategory, readingLevel, bookLength, saveDraftFn]);
+
+  // Auto-derive reading level from age when book selected
+  useEffect(() => {
+    if (contentType === "book" && age) {
+      setReadingLevel(readingLevelFromAge(Number(age)));
+    }
+  }, [age, contentType]);
+
   const generateImages = async (
     res: { id: string; pages: { n: number }[]; photoPath?: string | null },
     existing: Record<number, string>,
@@ -103,24 +243,30 @@ function CreateWizard() {
     setImgGenCount(0);
     let failed = 0;
     for (const p of todo) {
-      try {
-        const r = await imageFn({
-          data: {
-            templateId: res.id,
-            pageNumber: p.n,
-            childPhotoPath: res.photoPath ?? undefined,
-            photoMode: res.photoPath ? photoMode : undefined,
-          },
-        });
-        if (r.imageUrl) {
-          const url = r.imageUrl;
-          setPageImages((m) => ({ ...m, [p.n]: url }));
-        } else {
-          failed++;
+      let attempt = 0;
+      let success = false;
+      while (attempt < 2 && !success) {
+        try {
+          const r = await imageFn({
+            data: {
+              templateId: res.id,
+              pageNumber: p.n,
+              childPhotoPath: res.photoPath ?? undefined,
+              photoMode: res.photoPath ? photoMode : undefined,
+            },
+          });
+          if (r.imageUrl) {
+            const url = r.imageUrl;
+            setPageImages((m) => ({ ...m, [p.n]: url }));
+            success = true;
+          } else {
+            attempt++;
+          }
+        } catch {
+          attempt++;
         }
-      } catch {
-        failed++;
       }
+      if (!success) failed++;
       setImgGenCount((c) => c + 1);
     }
     setImgGenActive(false);
@@ -130,13 +276,25 @@ function CreateWizard() {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      if (!language) throw new Error("الرجاء اختيار اللغة");
+      if (contentType === "book" && !bookCategory)
+        throw new Error("الرجاء اختيار فئة الكتاب التعليمي");
+
       const res = await generateFn({
         data: {
           childName: childName.trim(),
-          theme: topic.trim(),
+          theme: topic.trim() || undefined,
           age: age.trim() || undefined,
-          language,
+          language: language as LanguageMode,
           contentType,
+          bookMeta:
+            contentType === "book" && bookCategory
+              ? {
+                  category: bookCategory,
+                  reading_level: readingLevel,
+                  length: bookLength,
+                }
+              : undefined,
         },
       });
 
@@ -160,13 +318,13 @@ function CreateWizard() {
             child_photo_path: path,
             notes:
               photoMode === "cartoon"
-                ? "طلب من معالج الإنشاء — تحويل صورة الطفل إلى شخصية كرتونية بأسلوب القصة"
-                : "طلب من معالج الإنشاء — استخدام صورة الطفل الحقيقية مع تحسين الجودة ودمجها في الصور",
+                ? "طلب من معالج الإنشاء — تحويل صورة الطفل إلى شخصية كرتونية"
+                : "طلب من معالج الإنشاء — استخدام صورة الطفل الحقيقية مع التحسين والدمج",
           });
           if (insErr) throw insErr;
           orderCreated = true;
         } catch {
-          toast.error("تم توليد المحتوى لكن تعذر إرسال طلب الصور — يمكنك طلبه لاحقاً من صفحة المحتوى");
+          toast.error("تم توليد المحتوى لكن تعذر إرسال طلب الصور");
         }
       }
       return { ...res, orderCreated, photoPath };
@@ -174,6 +332,7 @@ function CreateWizard() {
     onSuccess: (data) => {
       setPageIndex(0);
       setPageImages({});
+      setApproved(false);
       setStep(6);
       void generateImages(data, {});
     },
@@ -181,7 +340,8 @@ function CreateWizard() {
   });
 
   const result = mutation.data;
-  const currentPage = result?.pages[pageIndex];
+  const pages = result?.pages ?? [];
+  const currentPage = pages[pageIndex];
 
   const onPhotoChange = (file: File | null) => {
     if (!file) return;
@@ -206,10 +366,12 @@ function CreateWizard() {
         return age.trim().length > 0 && n >= 1 && n <= 14;
       }
       case 2:
-        return true;
+        return language !== "";
       case 3:
         return !photo || isValidEgyptianMobile(whatsapp);
       case 4:
+        if (contentType === "book")
+          return bookCategory !== "";
         return topic.trim().length >= 3;
       default:
         return true;
@@ -219,13 +381,15 @@ function CreateWizard() {
   const personalize = (t: string) =>
     t.replaceAll("{child}", childName.trim() || "بطلنا");
 
-  /** الصفحة بعد تطبيق تعديلات المستخدم عليها */
-  const withEdits = <T extends { n: number; title?: string; text: string }>(p: T): T =>
-    pageEdits[p.n]
-      ? { ...p, title: pageEdits[p.n].title || p.title, text: pageEdits[p.n].text }
-      : p;
+  const withEdits = <T extends { n: number; title?: string; text?: string; title_ar?: string; title_en?: string; text_ar?: string; text_en?: string }>(
+    p: T,
+  ): T => {
+    const e = pageEdits[p.n];
+    return e ? { ...p, ...e } : p;
+  };
 
   const shownPage = currentPage ? withEdits(currentPage) : undefined;
+  const isBilingual = result?.language === "bilingual";
 
   const goToPage = (i: number) => {
     setEditingPage(null);
@@ -234,8 +398,15 @@ function CreateWizard() {
 
   const startEdit = () => {
     if (!shownPage) return;
-    setEditTitle(shownPage.title ?? "");
-    setEditText(shownPage.text);
+    if (isBilingual) {
+      setEditTitle(shownPage.title_ar ?? "");
+      setEditText(shownPage.text_ar ?? shownPage.text ?? "");
+      setEditTitleEn(shownPage.title_en ?? "");
+      setEditTextEn(shownPage.text_en ?? "");
+    } else {
+      setEditTitle(shownPage.title ?? "");
+      setEditText(shownPage.text ?? "");
+    }
     setEditingPage(shownPage.n);
   };
 
@@ -244,15 +415,33 @@ function CreateWizard() {
     const pn = editingPage;
     setSavingEdit(true);
     try {
-      await updateFn({
-        data: {
-          templateId: result.id,
-          pageNumber: pn,
-          title: editTitle.trim() || undefined,
-          text: editText.trim(),
-        },
-      });
-      setPageEdits((m) => ({ ...m, [pn]: { title: editTitle.trim(), text: editText.trim() } }));
+      const payload = isBilingual
+        ? {
+            templateId: result.id,
+            pageNumber: pn,
+            title_ar: editTitle.trim() || undefined,
+            text_ar: editText.trim(),
+            title_en: editTitleEn.trim() || undefined,
+            text_en: editTextEn.trim() || undefined,
+          }
+        : {
+            templateId: result.id,
+            pageNumber: pn,
+            title: editTitle.trim() || undefined,
+            text: editText.trim(),
+          };
+      await updateFn({ data: payload });
+      setPageEdits((m) => ({
+        ...m,
+        [pn]: isBilingual
+          ? {
+              title_ar: editTitle.trim(),
+              text_ar: editText.trim(),
+              title_en: editTitleEn.trim(),
+              text_en: editTextEn.trim(),
+            }
+          : { title: editTitle.trim(), text: editText.trim() },
+      }));
       setEditingPage(null);
       toast.success("تم حفظ التعديل ✏️");
     } catch (e) {
@@ -277,7 +466,7 @@ function CreateWizard() {
       if (r.imageUrl) {
         const url = r.imageUrl;
         setPageImages((m) => ({ ...m, [n]: url }));
-        toast.success("تم رسم صورة جديدة لهذه الصفحة 🎨");
+        toast.success("تم رسم صورة جديدة 🎨");
       } else {
         toast.error("لم نحصل على صورة، حاول مرة أخرى");
       }
@@ -288,18 +477,66 @@ function CreateWizard() {
     }
   };
 
+  const movePage = async (n: number, dir: -1 | 1) => {
+    if (!result) return;
+    const order = pages.map((p) => p.n);
+    const idx = order.indexOf(n);
+    const swap = idx + dir;
+    if (idx < 0 || swap < 0 || swap >= order.length) return;
+    [order[idx], order[swap]] = [order[swap], order[idx]];
+    try {
+      await reorderFn({ data: { templateId: result.id, order } });
+      // Reorder local result pages + page images
+      const map = new Map(pages.map((p) => [p.n, p]));
+      const imgMap = { ...pageImages };
+      mutation.data!.pages = order.map((oldN, i) => ({
+        ...(map.get(oldN) as (typeof pages)[number]),
+        n: i + 1,
+      }));
+      const newImages: Record<number, string> = {};
+      order.forEach((oldN, i) => {
+        if (imgMap[oldN]) newImages[i + 1] = imgMap[oldN];
+      });
+      setPageImages(newImages);
+      setPageEdits({}); // edits keyed by old n
+      setPageIndex(0);
+      toast.success("تم تحديث الترتيب");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "تعذر تغيير الترتيب");
+    }
+  };
+
+  const approveAndContinue = async () => {
+    if (!result) return;
+    setApproving(true);
+    try {
+      await approveFn({ data: { templateId: result.id } });
+      setApproved(true);
+      setStep(7);
+      void clearDraftFn();
+      toast.success("تم اعتماد المحتوى ✅");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "تعذر اعتماد المحتوى");
+    } finally {
+      setApproving(false);
+    }
+  };
+
   const reset = () => {
     mutation.reset();
     setStep(0);
     setChildName("");
     setAge("");
-    setLanguage("ar");
+    setLanguage("");
     setPhoto(null);
     setPhotoPreview(null);
     setPhotoMode("cartoon");
     setWhatsapp("");
     setContentType("story");
     setTopic("");
+    setBookCategory("");
+    setReadingLevel("intermediate");
+    setBookLength("short");
     setPageIndex(0);
     setPageImages({});
     setImgGenActive(false);
@@ -309,9 +546,32 @@ function CreateWizard() {
     setEditingPage(null);
     setEditTitle("");
     setEditText("");
+    setEditTitleEn("");
+    setEditTextEn("");
     setRegenPage(null);
+    setApproved(false);
+    setReorderMode(false);
+    void clearDraftFn();
   };
 
+  const pdfPages = useMemo(
+    () =>
+      pages.map((p) => {
+        const v = withEdits(p);
+        return {
+          n: v.n,
+          title: v.title || v.title_ar || null,
+          text: v.text_ar || v.text || "",
+          title_ar: v.title_ar || (isBilingual ? v.title : undefined) || null,
+          text_ar: v.text_ar || (isBilingual ? v.text : undefined) || null,
+          title_en: v.title_en || null,
+          text_en: v.text_en || null,
+          imageUrl: pageImages[v.n] ?? null,
+        };
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pages, pageEdits, pageImages, isBilingual],
+  );
 
   return (
     <div className="min-h-screen">
@@ -338,9 +598,9 @@ function CreateWizard() {
           <>
             {/* Stepper */}
             <div className="no-print mt-8">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between overflow-x-auto">
                 {STEPS.map((label, i) => (
-                  <div key={label} className="flex flex-1 flex-col items-center">
+                  <div key={label} className="flex flex-1 min-w-[44px] flex-col items-center">
                     <span
                       className={`flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors ${
                         i < step
@@ -367,7 +627,6 @@ function CreateWizard() {
               </p>
             </div>
 
-            {/* Step content */}
             <div className="no-print mt-8 rounded-3xl border-2 border-border bg-card p-6 shadow-sm md:p-8">
               {step === 0 && (
                 <div>
@@ -404,7 +663,7 @@ function CreateWizard() {
                     className="mt-2 w-36 rounded-xl"
                   />
                   <p className="mt-2 text-xs text-muted-foreground">
-                    نكيّف اللغة والأفكار حسب عمر الطفل (من 1 إلى 14 سنة)
+                    نكيّف اللغة والصور والمستوى حسب عمر الطفل (من 1 إلى 14 سنة)
                   </p>
                 </div>
               )}
@@ -412,7 +671,10 @@ function CreateWizard() {
               {step === 2 && (
                 <div>
                   <Label className="font-bold">اختر لغة المحتوى</Label>
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    اللغة تُحفظ مع المحتوى وتظهر في المعاينة وملف PDF والمشاركة.
+                  </p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
                     {LANGUAGE_OPTIONS.map((l) => (
                       <button
                         key={l.value}
@@ -437,9 +699,7 @@ function CreateWizard() {
                 <div>
                   <Label className="font-bold">صورة الطفل (اختياري)</Label>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    ارفع صورة واضحة لوجه طفلك، ثم اختر: نحوّله إلى شخصية كرتونية
-                    بأسلوب القصة، أو نُبقي صورته الحقيقية مع تحسين الجودة ودمجها
-                    داخل الصفحات
+                    ارفع صورة واضحة لوجه طفلك، ثم اختر شكل ظهوره في الصور
                   </p>
                   <label className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-primary/40 bg-secondary/30 p-6 transition-colors hover:bg-secondary/60">
                     {photoPreview ? (
@@ -481,8 +741,7 @@ function CreateWizard() {
                             شخصية كرتونية
                           </span>
                           <p className="mt-1 text-sm text-muted-foreground">
-                            نحوّل صورة طفلك إلى شخصية كرتونية ثلاثية الأبعاد متناسقة
-                            مع أسلوب القصة، مع الحفاظ على ملامحه المميزة
+                            نحوّل صورة طفلك إلى شخصية كرتونية ثلاثية الأبعاد متناسقة مع أسلوب القصة، مع الحفاظ على ملامحه
                           </p>
                         </button>
                         <button
@@ -499,8 +758,7 @@ function CreateWizard() {
                             الصورة الحقيقية
                           </span>
                           <p className="mt-1 text-sm text-muted-foreground">
-                            نُبقي ملامح طفلك الأصلية كما هي مع تحسين الجودة والوضوح
-                            ودمجها بشكل جميل داخل مشاهد القصة أو الكتاب
+                            نُبقي ملامح طفلك الأصلية مع تحسين الجودة والوضوح ودمجها داخل مشاهد الكتاب
                           </p>
                         </button>
                       </div>
@@ -530,7 +788,7 @@ function CreateWizard() {
                     </div>
                   )}
                   <p className="mt-3 text-xs text-muted-foreground">
-                    🔒 الصورة محفوظة بشكل خاص وآمن ولا يطلع عليها أحد سوى إدارة الموقع
+                    🔒 الصورة محفوظة بشكل خاص وآمن
                   </p>
                 </div>
               )}
@@ -561,26 +819,99 @@ function CreateWizard() {
                       </button>
                     ))}
                   </div>
-                  <div className="mt-5">
-                    <Label htmlFor="topic" className="font-bold">
-                      {contentType === "story"
-                        ? "فكرة القصة أو القيمة المطلوبة"
-                        : "موضوع الكتاب التعليمي"}
-                    </Label>
-                    <Textarea
-                      id="topic"
-                      value={topic}
-                      onChange={(e) => setTopic(e.target.value)}
-                      placeholder={
-                        contentType === "story"
-                          ? "مثال: قصة عن الصدق ومساعدة الجيران، تدور أحداثها في حديقة الحي…"
-                          : "مثال: تعليم أيام الأسبوع، أو جدول الضرب للمبتدئين، أو آداب الطعام…"
-                      }
-                      maxLength={300}
-                      rows={3}
-                      className="mt-2 rounded-xl"
-                    />
-                  </div>
+
+                  {contentType === "story" ? (
+                    <div className="mt-5">
+                      <Label htmlFor="topic" className="font-bold">
+                        فكرة القصة أو القيمة المطلوبة
+                      </Label>
+                      <Textarea
+                        id="topic"
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                        placeholder="مثال: قصة عن الصدق ومساعدة الجيران…"
+                        maxLength={300}
+                        rows={3}
+                        className="mt-2 rounded-xl"
+                      />
+                    </div>
+                  ) : (
+                    <div className="mt-5 space-y-5">
+                      <div>
+                        <Label className="font-bold">فئة الكتاب التعليمي</Label>
+                        <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4">
+                          {BOOK_CATEGORIES.map((c) => (
+                            <button
+                              key={c.value}
+                              type="button"
+                              onClick={() => setBookCategory(c.value)}
+                              className={`rounded-2xl border-2 p-3 text-center transition-colors min-h-16 ${
+                                bookCategory === c.value
+                                  ? "border-primary bg-primary/10"
+                                  : "border-border hover:border-primary/50"
+                              }`}
+                            >
+                              <div className="text-2xl">{c.emoji}</div>
+                              <div className="mt-1 text-xs font-bold">{c.label}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="font-bold">مستوى القراءة</Label>
+                        <div className="mt-2 grid gap-2 md:grid-cols-3">
+                          {READING_LEVELS.map((l) => (
+                            <button
+                              key={l.value}
+                              type="button"
+                              onClick={() => setReadingLevel(l.value)}
+                              className={`rounded-xl border-2 p-3 text-start transition-colors ${
+                                readingLevel === l.value
+                                  ? "border-primary bg-primary/10"
+                                  : "border-border hover:border-primary/50"
+                              }`}
+                            >
+                              <div className="font-bold">{l.label}</div>
+                              <div className="text-xs text-muted-foreground">{l.desc}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="font-bold">طول الكتاب</Label>
+                        <div className="mt-2 grid gap-2 md:grid-cols-3">
+                          {BOOK_LENGTHS.map((l) => (
+                            <button
+                              key={l.value}
+                              type="button"
+                              onClick={() => setBookLength(l.value)}
+                              className={`rounded-xl border-2 p-3 text-center transition-colors ${
+                                bookLength === l.value
+                                  ? "border-primary bg-primary/10"
+                                  : "border-border hover:border-primary/50"
+                              }`}
+                            >
+                              <div className="font-bold">{l.label}</div>
+                              <div className="text-xs text-muted-foreground">{l.pages} صفحات</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="topicBook" className="font-bold">
+                          تخصيص إضافي (اختياري)
+                        </Label>
+                        <Input
+                          id="topicBook"
+                          value={topic}
+                          onChange={(e) => setTopic(e.target.value)}
+                          placeholder="مثال: ركّز على الأرقام من 1 إلى 10"
+                          maxLength={200}
+                          className="mt-2 rounded-xl"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -591,18 +922,25 @@ function CreateWizard() {
                   </h2>
                   <div className="mx-auto mt-5 max-w-md space-y-2 rounded-2xl bg-secondary/40 p-5 text-start text-sm">
                     <p>👦 <b>الطفل:</b> {childName.trim()} — {age} سنوات</p>
-                    <p>🌍 <b>اللغة:</b> {language === "ar" ? "العربية" : "English"}</p>
+                    <p>🌍 <b>اللغة:</b> {LANGUAGE_OPTIONS.find((l) => l.value === language)?.label}</p>
                     <p>
                       📚 <b>النوع:</b>{" "}
                       {contentType === "story" ? "قصة مصورة" : "كتاب تعليمي"}
                     </p>
-                    <p>💡 <b>الموضوع:</b> {topic.trim()}</p>
+                    {contentType === "book" ? (
+                      <>
+                        <p>🎓 <b>الفئة:</b> {BOOK_CATEGORIES.find((c) => c.value === bookCategory)?.label}</p>
+                        <p>📖 <b>المستوى:</b> {READING_LEVELS.find((l) => l.value === readingLevel)?.label} • {BOOK_LENGTHS.find((l) => l.value === bookLength)?.label}</p>
+                      </>
+                    ) : (
+                      <p>💡 <b>الموضوع:</b> {topic.trim()}</p>
+                    )}
                     <p>
                       📸 <b>صورة الطفل:</b>{" "}
                       {photo
                         ? photoMode === "cartoon"
-                          ? "مرفوعة — تتحول لشخصية كرتونية بأسلوب القصة"
-                          : "مرفوعة — تبقى بملامحها الحقيقية مع تحسين الجودة والدمج"
+                          ? "كرتونية بأسلوب القصة"
+                          : "حقيقية مع تحسين الجودة"
                         : "بدون صورة"}
                     </p>
                   </div>
@@ -610,7 +948,7 @@ function CreateWizard() {
                     size="lg"
                     disabled={mutation.isPending}
                     onClick={() => mutation.mutate()}
-                    className="mt-6 rounded-full px-10 text-base font-bold shadow-lg"
+                    className="mt-6 rounded-full px-10 text-base font-bold shadow-lg min-h-11"
                   >
                     {mutation.isPending ? (
                       <>
@@ -634,30 +972,50 @@ function CreateWizard() {
                       {result.contentType === "book" ? "كتابك التعليمي ✨" : "قصتك الجديدة ✨"}
                     </span>
                     <h2 className="mt-1 font-display text-3xl font-extrabold">
-                      {result.title}
+                      {personalize(result.title)}
                     </h2>
-                    <p className="mt-2 text-muted-foreground">{result.summary}</p>
+                    <p className="mt-2 text-muted-foreground">{personalize(result.summary)}</p>
                     {result.moral && (
                       <p className="mt-2 text-sm font-semibold text-candy">
                         💝 {result.contentType === "book" ? "المهارة المكتسبة" : "القيمة"}:{" "}
-                        {result.moral}
+                        {personalize(result.moral)}
                       </p>
                     )}
-                    <p className="mx-auto mt-3 inline-block rounded-full bg-secondary/60 px-4 py-1.5 text-xs font-bold text-secondary-foreground">
-                      👀 راجع كل صفحة — يمكنك تعديل النص أو إعادة رسم الصورة قبل الاعتماد
-                    </p>
+                    {result.learningGoals && result.learningGoals.length > 0 && (
+                      <div className="mx-auto mt-3 max-w-md rounded-2xl bg-secondary/30 p-3 text-start text-xs">
+                        <b>🎯 أهداف التعلّم:</b>
+                        <ul className="mt-1 list-disc ps-5">
+                          {result.learningGoals.map((g: string, i: number) => (
+                            <li key={i}>{g}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Page viewer: عنوان + صورة + نص + رقم الصفحة */}
+                  {/* Reorder toolbar */}
+                  <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                    <Button
+                      variant={reorderMode ? "default" : "outline"}
+                      size="sm"
+                      className="rounded-full font-bold"
+                      onClick={() => setReorderMode((v) => !v)}
+                    >
+                      <ArrowUpDown className="ms-2 h-4 w-4" />
+                      {reorderMode ? "إنهاء إعادة الترتيب" : "إعادة ترتيب الصفحات"}
+                    </Button>
+                  </div>
+
+                  {/* Page viewer */}
                   <div
                     dir={result.language === "en" ? "ltr" : "rtl"}
-                    className="mt-6 overflow-hidden rounded-2xl border-2 border-secondary bg-card shadow-sm"
+                    className="mt-4 overflow-hidden rounded-2xl border-2 border-secondary bg-card shadow-sm"
                   >
                     <div className="relative aspect-square w-full bg-secondary/30 md:aspect-[4/3]">
                       {shownPage && pageImages[shownPage.n] ? (
                         <img
                           src={pageImages[shownPage.n]}
-                          alt={shownPage.title ?? `صورة الصفحة ${shownPage.n}`}
+                          alt={shownPage.title ?? `صفحة ${shownPage.n}`}
                           className="h-full w-full object-cover"
                         />
                       ) : (
@@ -665,14 +1023,10 @@ function CreateWizard() {
                           {imgGenActive ? (
                             <>
                               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                              <span className="text-sm font-semibold">
-                                🎨 جارٍ رسم صورة هذا المشهد…
-                              </span>
+                              <span className="text-sm font-semibold">🎨 جارٍ رسم صورة هذا المشهد…</span>
                             </>
                           ) : (
-                            <span className="text-sm font-semibold">
-                              الصورة غير متوفرة لهذه الصفحة
-                            </span>
+                            <span className="text-sm font-semibold">الصورة غير متوفرة</span>
                           )}
                         </div>
                       )}
@@ -683,37 +1037,62 @@ function CreateWizard() {
                         </div>
                       )}
                       <span className="absolute bottom-3 start-3 rounded-full bg-primary px-3.5 py-1 text-xs font-extrabold text-primary-foreground shadow-md">
-                        {result.language === "en" ? "Page" : "صفحة"} {shownPage?.n}
+                        صفحة {shownPage?.n}
                       </span>
                     </div>
-                    <div className="p-6 text-center">
+                    <div className="p-6">
                       {shownPage && editingPage === shownPage.n ? (
                         <div dir="rtl" className="text-start">
                           <Label htmlFor="editTitle" className="font-bold">
-                            عنوان الصفحة
+                            {isBilingual ? "العنوان (عربي)" : "عنوان الصفحة"}
                           </Label>
                           <Input
                             id="editTitle"
-                            dir={result.language === "en" ? "ltr" : "rtl"}
                             value={editTitle}
                             onChange={(e) => setEditTitle(e.target.value)}
                             maxLength={80}
                             className="mt-1 rounded-xl"
                           />
                           <Label htmlFor="editText" className="mt-4 block font-bold">
-                            نص الصفحة
+                            {isBilingual ? "النص (عربي)" : "نص الصفحة"}
                           </Label>
                           <Textarea
                             id="editText"
-                            dir={result.language === "en" ? "ltr" : "rtl"}
                             value={editText}
                             onChange={(e) => setEditText(e.target.value)}
-                            rows={4}
+                            rows={3}
                             maxLength={1000}
                             className="mt-1 rounded-xl"
                           />
+                          {isBilingual && (
+                            <>
+                              <Label htmlFor="editTitleEn" className="mt-4 block font-bold">
+                                Title (English)
+                              </Label>
+                              <Input
+                                id="editTitleEn"
+                                dir="ltr"
+                                value={editTitleEn}
+                                onChange={(e) => setEditTitleEn(e.target.value)}
+                                maxLength={80}
+                                className="mt-1 rounded-xl text-left"
+                              />
+                              <Label htmlFor="editTextEn" className="mt-4 block font-bold">
+                                Text (English)
+                              </Label>
+                              <Textarea
+                                id="editTextEn"
+                                dir="ltr"
+                                value={editTextEn}
+                                onChange={(e) => setEditTextEn(e.target.value)}
+                                rows={3}
+                                maxLength={1000}
+                                className="mt-1 rounded-xl text-left"
+                              />
+                            </>
+                          )}
                           <p className="mt-1 text-xs text-muted-foreground">
-                            💡 اكتب {"{child}"} ليظهر اسم الطفل تلقائياً مكانها
+                            💡 اكتب {"{child}"} ليظهر اسم الطفل تلقائياً
                           </p>
                           <div className="mt-4 flex flex-wrap justify-center gap-2">
                             <Button
@@ -741,8 +1120,31 @@ function CreateWizard() {
                             </Button>
                           </div>
                         </div>
+                      ) : isBilingual ? (
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div dir="rtl" className="text-center md:border-e-2 md:border-secondary md:pe-4">
+                            {shownPage?.title_ar && (
+                              <h3 className="font-display text-xl font-extrabold text-primary">
+                                {shownPage.title_ar}
+                              </h3>
+                            )}
+                            <p className="mt-2 font-display text-lg font-semibold leading-relaxed">
+                              {personalize(shownPage?.text_ar ?? shownPage?.text ?? "")}
+                            </p>
+                          </div>
+                          <div dir="ltr" className="text-center">
+                            {shownPage?.title_en && (
+                              <h3 className="font-display text-xl font-extrabold text-primary">
+                                {shownPage.title_en}
+                              </h3>
+                            )}
+                            <p className="mt-2 font-display text-lg font-semibold leading-relaxed">
+                              {personalize(shownPage?.text_en ?? "")}
+                            </p>
+                          </div>
+                        </div>
                       ) : (
-                        <>
+                        <div className="text-center">
                           {shownPage?.title && (
                             <h3 className="font-display text-2xl font-extrabold text-primary">
                               {shownPage.title}
@@ -751,12 +1153,12 @@ function CreateWizard() {
                           <p className="mt-2 min-h-16 font-display text-xl font-semibold leading-relaxed">
                             {personalize(shownPage?.text ?? "")}
                           </p>
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  {/* أدوات الصفحة الحالية: تعديل النص / إعادة رسم الصورة */}
+                  {/* Page tools */}
                   {shownPage && editingPage === null && (
                     <div dir="rtl" className="mt-3 flex flex-wrap items-center justify-center gap-2">
                       <Button
@@ -778,6 +1180,28 @@ function CreateWizard() {
                         <RotateCcw className="ms-2 h-4 w-4" />
                         إعادة رسم الصورة
                       </Button>
+                      {reorderMode && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-full font-bold"
+                            disabled={pageIndex === 0}
+                            onClick={() => void movePage(shownPage.n, -1)}
+                          >
+                            ↑ تقديم
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-full font-bold"
+                            disabled={pageIndex === pages.length - 1}
+                            onClick={() => void movePage(shownPage.n, 1)}
+                          >
+                            ↓ تأخير
+                          </Button>
+                        </>
+                      )}
                     </div>
                   )}
 
@@ -785,15 +1209,15 @@ function CreateWizard() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="rounded-full"
+                      className="rounded-full min-h-11 min-w-11"
                       disabled={pageIndex === 0}
                       onClick={() => goToPage(Math.max(0, pageIndex - 1))}
                       aria-label="الصفحة السابقة"
                     >
                       <ChevronRight className="h-5 w-5" />
                     </Button>
-                    <div className="flex gap-1.5">
-                      {result.pages.map((p, i) => (
+                    <div className="flex flex-wrap justify-center gap-1.5">
+                      {pages.map((p, i) => (
                         <button
                           key={p.n}
                           onClick={() => goToPage(i)}
@@ -807,9 +1231,9 @@ function CreateWizard() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="rounded-full"
-                      disabled={pageIndex === result.pages.length - 1}
-                      onClick={() => goToPage(Math.min(result.pages.length - 1, pageIndex + 1))}
+                      className="rounded-full min-h-11 min-w-11"
+                      disabled={pageIndex === pages.length - 1}
+                      onClick={() => goToPage(Math.min(pages.length - 1, pageIndex + 1))}
                       aria-label="الصفحة التالية"
                     >
                       <ChevronLeft className="h-5 w-5" />
@@ -818,62 +1242,54 @@ function CreateWizard() {
 
                   {imgGenActive && (
                     <p className="mt-4 text-center text-sm font-semibold text-muted-foreground">
-                      🎨 جارٍ توليد الصور المتناسقة مع نص كل صفحة… {imgGenCount}/
-                      {imgGenTotal}
+                      🎨 جارٍ توليد الصور… {imgGenCount}/{imgGenTotal}
                     </p>
                   )}
-                  {!imgGenActive &&
-                    result.pages.some((p) => !pageImages[p.n]) && (
-                      <div className="mt-4 text-center">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-full font-bold"
-                          onClick={() => void generateImages(result, pageImages)}
-                        >
-                          <RotateCcw className="ms-2 h-4 w-4" />
-                          إعادة توليد الصور الناقصة
-                        </Button>
-                      </div>
-                    )}
-
-                  {result.orderCreated ? (
-                    <p className="mt-6 rounded-2xl bg-grass/15 p-4 text-center text-sm font-semibold text-grass">
-                      🎉 تم استلام طلبك! بعد الموافقة سنولّد الصفحات المصورة بصورة
-                      طفلك ونرسلها لك عبر الواتساب
-                    </p>
-                  ) : (
-                    <p className="mt-6 text-center text-sm text-muted-foreground">
-                      تريد نسخة مصورة بصورة طفلك؟{" "}
-                      <Link
-                        to="/order/$templateId"
-                        params={{ templateId: result.id }}
-                        className="font-bold text-primary hover:underline"
+                  {!imgGenActive && pages.some((p) => !pageImages[p.n]) && (
+                    <div className="mt-4 text-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full font-bold"
+                        onClick={() => void generateImages(result, pageImages)}
                       >
-                        اطلبها الآن
-                      </Link>
-                    </p>
+                        <RotateCcw className="ms-2 h-4 w-4" />
+                        إعادة توليد الصور الناقصة
+                      </Button>
+                    </div>
                   )}
 
-                  {/* اعتماد المحتوى */}
+                  {/* Approval gate */}
                   <div className="mt-8 rounded-2xl border-2 border-grass/40 bg-grass/10 p-5 text-center">
                     <p className="text-sm font-semibold">
-                      راضٍ عن كل الصفحات؟ اعتمد المحتوى للانتقال إلى خطوة التصدير والمشاركة
+                      راضٍ عن كل الصفحات؟ اعتمد المحتوى لفتح تصدير PDF والمشاركة عبر واتساب
                     </p>
                     <Button
                       size="lg"
-                      disabled={imgGenActive || regenPage !== null || editingPage !== null}
-                      onClick={() => setStep(7)}
-                      className="mt-4 rounded-full bg-grass px-10 text-base font-bold text-grass-foreground shadow-lg hover:bg-grass/90"
+                      disabled={
+                        approving ||
+                        imgGenActive ||
+                        regenPage !== null ||
+                        editingPage !== null
+                      }
+                      onClick={() => void approveAndContinue()}
+                      className="mt-4 rounded-full bg-grass px-10 text-base font-bold text-grass-foreground shadow-lg hover:bg-grass/90 min-h-11"
                     >
-                      <BadgeCheck className="ms-2 h-5 w-5" />
-                      اعتماد المحتوى
+                      {approving ? (
+                        <Loader2 className="ms-2 h-5 w-5 animate-spin" />
+                      ) : (
+                        <BadgeCheck className="ms-2 h-5 w-5" />
+                      )}
+                      اعتماد المحتوى نهائياً
                     </Button>
-                    {!imgGenActive && result.pages.some((p) => !pageImages[p.n]) && (
+                    {pages.some((p) => !pageImages[p.n]) && (
                       <p className="mt-2 text-xs text-muted-foreground">
-                        ⚠️ بعض الصور ناقصة — الأفضل إعادة توليدها قبل الاعتماد ليكون الملف كاملاً
+                        ⚠️ بعض الصور ناقصة — الأفضل إكمالها قبل الاعتماد
                       </p>
                     )}
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      بعد الاعتماد لن تتمكن من تعديل النصوص أو الصور لهذا المحتوى
+                    </p>
                   </div>
 
                   <div className="mt-3 text-center">
@@ -894,50 +1310,35 @@ function CreateWizard() {
                     تم اعتماد المحتوى 🎉
                   </h2>
                   <p className="mx-auto mt-2 max-w-md text-muted-foreground">
-                    «{personalize(result.title)}» جاهز الآن — حمّل ملف PDF عالي الجودة ثم
-                    شاركه عبر واتساب
+                    «{personalize(result.title)}» جاهز — حمّل PDF عالي الجودة ثم شاركه عبر واتساب
                   </p>
 
-                  {/* Export & share */}
                   <div className="mt-6">
                     <PdfActions
                       title={personalize(result.title)}
                       childName={childName.trim() || null}
                       moral={result.moral ? personalize(result.moral) : null}
-                      language={result.language}
-                      contentType={result.contentType}
-                      pages={result.pages.map((p) => {
-                        const v = withEdits(p);
-                        return {
-                          n: v.n,
-                          title: v.title || null,
-                          text: v.text,
-                          imageUrl: pageImages[v.n] ?? null,
-                        };
-                      })}
+                      language={result.language as LanguageMode}
+                      contentType={result.contentType as "story" | "book"}
+                      templateId={result.id}
+                      pages={pdfPages}
+                      disabled={!approved}
+                      disabledReason={
+                        !approved ? "اعتمد المحتوى أولاً" : undefined
+                      }
                     />
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    يحتوي الملف على غلاف وجميع الصفحات بالنص والصورة، وتحفظ نسخة تلقائياً في
-                    حسابك
+                    يحتوي الملف على غلاف وكل الصفحات وتحفظ نسخة في حسابك
                   </p>
 
                   {result.orderCreated && (
                     <p className="mt-5 rounded-2xl bg-grass/15 p-4 text-sm font-semibold text-grass">
-                      🎉 طلب النسخة المصورة بصورة طفلك مستلم — سنرسلها لك عبر الواتساب بعد
-                      الموافقة
+                      🎉 طلب النسخة المصورة بصورة طفلك مستلم — سنرسلها عبر الواتساب
                     </p>
                   )}
 
                   <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                    <Button
-                      variant="outline"
-                      className="rounded-full px-6 font-bold"
-                      onClick={() => setStep(6)}
-                    >
-                      <ArrowRight className="ms-1 h-4 w-4" />
-                      العودة للمعاينة والتعديل
-                    </Button>
                     <Button variant="ghost" className="rounded-full font-bold" onClick={reset}>
                       <RotateCcw className="ms-2 h-4 w-4" />
                       إنشاء جديد
@@ -951,7 +1352,7 @@ function CreateWizard() {
                 <div className="mt-8 flex items-center justify-between">
                   <Button
                     variant="outline"
-                    className="rounded-full px-6 font-bold"
+                    className="rounded-full px-6 font-bold min-h-11"
                     disabled={step === 0}
                     onClick={() => setStep((s) => Math.max(0, s - 1))}
                   >
@@ -959,7 +1360,7 @@ function CreateWizard() {
                     السابق
                   </Button>
                   <Button
-                    className="rounded-full px-8 font-bold shadow-md"
+                    className="rounded-full px-8 font-bold shadow-md min-h-11"
                     disabled={!canNext()}
                     onClick={() => setStep((s) => s + 1)}
                   >
@@ -980,40 +1381,6 @@ function CreateWizard() {
               )}
             </div>
           </>
-        )}
-
-        {/* Print version */}
-        {result && (
-          <div className="hidden print:block" dir={result.language === "en" ? "ltr" : "rtl"}>
-            <div className="print-page min-h-screen flex-col items-center justify-center p-8 text-center">
-              <h1 className="font-display text-5xl font-extrabold">{result.title}</h1>
-              <p className="mt-6 text-2xl">
-                {result.language === "en" ? "Hero:" : "بطل الحكاية:"} {childName.trim()} ⭐
-              </p>
-              {result.moral && <p className="mt-4 text-lg">{result.moral}</p>}
-            </div>
-            {result.pages.map(withEdits).map((p) => (
-              <div
-                key={p.n}
-                className="print-page min-h-screen flex-col items-center justify-center gap-5 p-8"
-              >
-                {p.title && (
-                  <h2 className="font-display text-3xl font-extrabold">{p.title}</h2>
-                )}
-                {pageImages[p.n] && (
-                  <img
-                    src={pageImages[p.n]}
-                    alt={p.title ?? `صفحة ${p.n}`}
-                    className="max-h-[55vh] rounded-2xl object-contain"
-                  />
-                )}
-                <p className="max-w-2xl text-center font-display text-2xl leading-relaxed">
-                  {personalize(p.text)}
-                </p>
-                <span className="text-sm text-muted-foreground">— {p.n} —</span>
-              </div>
-            ))}
-          </div>
         )}
       </main>
       <Footer />
