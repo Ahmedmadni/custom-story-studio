@@ -104,20 +104,6 @@ function BooksPage() {
           />
         )}
 
-        <div className="mt-14 rounded-3xl border-2 border-dashed border-primary/40 bg-secondary/30 p-8 text-center">
-          <h2 className="font-display text-2xl font-extrabold">
-            تريد كتاباً عن موضوع آخر؟
-          </h2>
-          <p className="mt-2 text-muted-foreground">
-            أنشئ كتاباً تعليمياً مخصصاً عن أي موضوع بالذكاء الاصطناعي خلال دقيقة
-          </p>
-          <Button asChild size="lg" className="mt-4 rounded-full px-8 font-bold shadow-lg">
-            <Link to="/create">
-              <Wand2 className="ms-2 h-5 w-5" />
-              أنشئ كتاباً الآن
-            </Link>
-          </Button>
-        </div>
       </main>
       <Footer />
     </div>

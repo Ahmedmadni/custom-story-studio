@@ -4,6 +4,7 @@ import {
   BookOpen,
   GraduationCap,
   Share2,
+  ShoppingBag,
   Sparkles,
   UserRound,
   Wand2,
@@ -31,21 +32,21 @@ export const Route = createFileRoute("/")({
 
 const steps = [
   {
-    icon: UserRound,
-    title: "١. أدخل بيانات طفلك",
-    desc: "الاسم والعمر واللغة، وصورة الطفل اختيارياً ليصبح بطلاً كرتونياً ثلاثي الأبعاد",
+    icon: BookOpen,
+    title: "١. اختر القصة",
+    desc: "تصفّح المكتبة واختر القصص أو الكتب التي تحبّها لطفلك",
     color: "bg-candy text-candy-foreground",
   },
   {
-    icon: Wand2,
-    title: "٢. اختر وولّد المحتوى",
-    desc: "قصة مصورة أو كتاب تعليمي — يؤلفه الذكاء الاصطناعي خلال لحظات",
+    icon: UserRound,
+    title: "٢. أرسل بياناتك مع الدفع",
+    desc: "اسم وصورة الطفل + 100 جنيه فودافون كاش لكل قصة + إيصال السداد",
     color: "bg-primary text-primary-foreground",
   },
   {
     icon: Share2,
-    title: "٣. عاين وصدّر وشارك",
-    desc: "معاينة تفاعلية للنتيجة، تصدير PDF بضغطة، ومشاركة عبر الواتساب",
+    title: "٣. استلم القصة على واتساب",
+    desc: "نراجع الإيصال ونرسم طفلك في كل صفحة، ثم نرسل لك ملف PDF جاهز",
     color: "bg-grass text-grass-foreground",
   },
 ];
@@ -103,9 +104,9 @@ function Index() {
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3 md:justify-start">
               <Button asChild size="lg" className="rounded-full px-8 text-base font-bold shadow-lg">
-                <Link to="/create">
-                  <Wand2 className="ms-2 h-5 w-5" />
-                  أنشئ الآن خطوة بخطوة
+                <Link to="/stories">
+                  <ShoppingBag className="ms-2 h-5 w-5" />
+                  تصفّح القصص واطلب الآن
                 </Link>
               </Button>
               <Button
@@ -114,7 +115,7 @@ function Index() {
                 variant="outline"
                 className="rounded-full border-2 border-accent px-8 text-base font-bold text-accent hover:bg-accent hover:text-accent-foreground"
               >
-                <Link to="/stories">تصفح المكتبة</Link>
+                <Link to="/books">الكتب التعليمية</Link>
               </Button>
             </div>
           </div>

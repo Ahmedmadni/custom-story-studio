@@ -90,15 +90,7 @@ function StoriesPage() {
             className="mt-12"
             icon={<BookOpen className="h-7 w-7" />}
             title="لا توجد قصص في هذا التصنيف بعد"
-            description="جرّب تصنيفاً آخر، أو أنشئ قصة مخصصة لطفلك بالذكاء الاصطناعي."
-            action={
-              <Button asChild size="lg" className="rounded-full font-bold">
-                <Link to="/create">
-                  <Wand2 className="ms-2 h-5 w-5" />
-                  أنشئ قصة الآن
-                </Link>
-              </Button>
-            }
+            description="جرّب تصنيفاً آخر."
           />
         )}
       </main>
