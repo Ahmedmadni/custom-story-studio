@@ -128,6 +128,8 @@ export type Database = {
       }
       story_templates: {
         Row: {
+          admin_approved_at: string | null
+          admin_approved_by: string | null
           age_range: string
           approved_at: string | null
           book_meta: Json | null
@@ -148,6 +150,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_approved_at?: string | null
+          admin_approved_by?: string | null
           age_range?: string
           approved_at?: string | null
           book_meta?: Json | null
@@ -168,6 +172,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_approved_at?: string | null
+          admin_approved_by?: string | null
           age_range?: string
           approved_at?: string | null
           book_meta?: Json | null
