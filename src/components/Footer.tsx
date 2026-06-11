@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { BookOpen, MessageCircle } from "lucide-react";
 
-import { adminWaLink } from "@/lib/whatsapp";
+import { adminWaLink } from "@/features/orders/whatsapp";
 
 export function Footer() {
   return (

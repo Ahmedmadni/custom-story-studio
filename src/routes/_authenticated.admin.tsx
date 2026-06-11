@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge } from "@/features/orders/StatusBadge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,13 +30,13 @@ import {
   adminGetOrderPages,
   adminListOrders,
   adminSetStatus,
-} from "@/lib/admin.functions";
+} from "@/features/admin/admin.functions";
 import {
   adminApproveTemplate,
   adminListPendingTemplates,
   adminRejectTemplate,
-} from "@/lib/ai.functions";
-import { waLink } from "@/lib/whatsapp";
+} from "@/features/ai/ai.functions";
+import { waLink } from "@/features/orders/whatsapp";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({

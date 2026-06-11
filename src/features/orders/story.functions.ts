@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { parsePages, personalize } from "@/lib/storyTypes";
+import { parsePages, personalize } from "@/features/ai/storyTypes";
 
 const OrderIdInput = z.object({ orderId: z.string().uuid() });
 

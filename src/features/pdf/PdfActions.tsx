@@ -4,9 +4,9 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { saveStoryPdf } from "@/lib/pdf.functions";
-import { generateStoryPdf, type PdfStoryPage } from "@/lib/storyPdf";
-import { shareWaLink } from "@/lib/whatsapp";
+import { saveStoryPdf } from "@/features/pdf/pdf.functions";
+import { generateStoryPdf, type PdfStoryPage } from "@/features/pdf/storyPdf";
+import { shareWaLink } from "@/features/orders/whatsapp";
 
 interface PdfActionsProps {
   title: string;

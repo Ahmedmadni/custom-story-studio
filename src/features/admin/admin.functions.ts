@@ -2,8 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { STORY_STYLE_PROMPT, STYLE_NEGATIVE, ageStylePrompt } from "@/lib/storyStyle";
-import { parsePages, personalize } from "@/lib/storyTypes";
+import { STORY_STYLE_PROMPT, STYLE_NEGATIVE, ageStylePrompt } from "@/features/ai/storyStyle";
+import { parsePages, personalize } from "@/features/ai/storyTypes";
 
 type AuthedContext = {
   supabase: {
