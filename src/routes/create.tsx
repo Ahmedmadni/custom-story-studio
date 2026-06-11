@@ -770,23 +770,6 @@ function CreateWizard() {
                       <div className="mt-3 grid gap-3 md:grid-cols-2">
                         <button
                           type="button"
-                          onClick={() => setPhotoMode("cartoon")}
-                          className={`rounded-2xl border-2 p-4 text-start transition-colors ${
-                            photoMode === "cartoon"
-                              ? "border-primary bg-primary/10"
-                              : "border-border hover:border-primary/50"
-                          }`}
-                        >
-                          <span className="flex items-center gap-2 font-display text-lg font-bold">
-                            <Wand2 className="h-5 w-5 text-candy" />
-                            شخصية كرتونية
-                          </span>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            نحوّل صورة طفلك إلى شخصية كرتونية ثلاثية الأبعاد متناسقة مع أسلوب القصة، مع الحفاظ على ملامحه
-                          </p>
-                        </button>
-                        <button
-                          type="button"
                           onClick={() => setPhotoMode("real")}
                           className={`rounded-2xl border-2 p-4 text-start transition-colors ${
                             photoMode === "real"
@@ -796,10 +779,27 @@ function CreateWizard() {
                         >
                           <span className="flex items-center gap-2 font-display text-lg font-bold">
                             <Camera className="h-5 w-5 text-grass" />
-                            الصورة الحقيقية
+                            وجه طفلك الحقيقي داخل مشهد كرتوني ✨ (موصى به)
                           </span>
                           <p className="mt-1 text-sm text-muted-foreground">
-                            نُبقي ملامح طفلك الأصلية مع تحسين الجودة والوضوح ودمجها داخل مشاهد الكتاب
+                            نُبقي وجه طفلك الحقيقي تماماً (كما في الصورة) ونضعه داخل مشهد كرتوني سينمائي مع شخصيات كرتونية — تماماً مثل ملصقات أفلام Tom &amp; Jerry وSuperman
+                          </p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPhotoMode("cartoon")}
+                          className={`rounded-2xl border-2 p-4 text-start transition-colors ${
+                            photoMode === "cartoon"
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2 font-display text-lg font-bold">
+                            <Wand2 className="h-5 w-5 text-candy" />
+                            شخصية كرتونية بالكامل
+                          </span>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            نحوّل طفلك إلى شخصية كرتونية 3D متناسقة مع باقي شخصيات القصة
                           </p>
                         </button>
                       </div>
