@@ -436,7 +436,7 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
       throw new Error("فشل توليد الصورة من جميع المزودات المُهيأة، تحقق من الرصيد والمفاتيح");
     }
 
-    const bytes = Buffer.from(base64, "base64");
+    let bytes = Buffer.from(base64, "base64");
     console.log(`[generate-page] provider=${providerUsed} order=${data.orderId} page=${data.pageNumber}`);
     const imagePath = `${data.orderId}/page-${data.pageNumber}.png`;
 
@@ -446,6 +446,75 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
     if (uploadErr) {
       console.error("upload error", uploadErr);
       throw new Error("تعذر حفظ الصورة");
+    }
+
+    // ====== مرحلة استبدال الوجه (Face Swap) عبر Replicate ======
+    // تأخذ وجه الطفل الحقيقي من صورته وتحلّه محل وجه البطل في المشهد المولّد.
+    const replicateKey = process.env.REPLICATE_API_KEY || process.env.LOVABLE_CONNECTOR_REPLICATE_API_KEY;
+    if (replicateKey && process.env.LOVABLE_API_KEY) {
+      try {
+        const { data: signedScene } = await supabaseAdmin.storage
+          .from("story-pages")
+          .createSignedUrl(imagePath, 600);
+        if (signedScene?.signedUrl) {
+          const GW = "https://connector-gateway.lovable.dev/replicate/v1";
+          const headers = {
+            Authorization: `Bearer ${process.env.LOVABLE_API_KEY}`,
+            "X-Connection-Api-Key": replicateKey,
+            "Content-Type": "application/json",
+          };
+          const createRes = await fetch(`${GW}/models/cdingram/face-swap/predictions`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              input: {
+                input_image: signedScene.signedUrl,
+                swap_image: signedPhoto.signedUrl,
+              },
+            }),
+          });
+          if (createRes.ok) {
+            const created = (await createRes.json()) as { id?: string };
+            const predId = created.id;
+            if (predId) {
+              let swappedUrl: string | null = null;
+              for (let i = 0; i < 40; i++) {
+                await new Promise((r) => setTimeout(r, i < 4 ? 1500 : 3000));
+                const pollRes = await fetch(`${GW}/predictions/${predId}`, { headers });
+                if (!pollRes.ok) continue;
+                const pj = (await pollRes.json()) as {
+                  status?: string;
+                  output?: string | string[];
+                  error?: unknown;
+                };
+                if (pj.status === "succeeded") {
+                  swappedUrl = Array.isArray(pj.output) ? pj.output[0] : (pj.output ?? null);
+                  break;
+                }
+                if (pj.status === "failed" || pj.status === "canceled") {
+                  console.error("Face swap failed", pj.error);
+                  break;
+                }
+              }
+              if (swappedUrl) {
+                const imgRes = await fetch(swappedUrl);
+                if (imgRes.ok) {
+                  bytes = Buffer.from(await imgRes.arrayBuffer());
+                  const { error: reErr } = await supabaseAdmin.storage
+                    .from("story-pages")
+                    .upload(imagePath, bytes, { contentType: "image/png", upsert: true });
+                  if (reErr) console.error("face-swap re-upload error", reErr);
+                  else console.log(`[face-swap] applied order=${data.orderId} page=${data.pageNumber}`);
+                }
+              }
+            }
+          } else {
+            console.warn("Face swap create failed", createRes.status, await createRes.text().catch(() => ""));
+          }
+        }
+      } catch (e) {
+        console.warn("Face swap skipped", e);
+      }
     }
 
     await supabaseAdmin
