@@ -12,7 +12,9 @@ import {
   ChevronLeft,
   ChevronRight,
   GraduationCap,
+  Hourglass,
   Loader2,
+  MessageCircle,
   Pencil,
   RotateCcw,
   Save,
@@ -1349,6 +1351,124 @@ function CreateWizard() {
         )}
       </main>
       <Footer />
+    </div>
+  );
+}
+
+// ============================================================
+// الخطوة 7: اعتماد المسؤول + تحميل PDF
+// لا يُسمح بالتحميل قبل أن يضغط المسؤول "اعتماد" من لوحة التحكم.
+// ============================================================
+interface Step7Props {
+  result: {
+    id: string;
+    title: string;
+    moral?: string | null;
+    language: string;
+    contentType: string;
+    orderCreated?: boolean;
+  };
+  childName: string;
+  pdfPages: PdfStoryPage[];
+  personalize: (t: string) => string;
+  reset: () => void;
+}
+
+function Step7Approval({ result, childName, pdfPages, personalize, reset }: Step7Props) {
+  const approvalFn = useServerFn(getTemplateApproval);
+  const { data, refetch, isFetching } = useQuery({
+    queryKey: ["template-approval", result.id],
+    queryFn: () => approvalFn({ data: { templateId: result.id } }),
+    refetchInterval: 15000, // فحص كل 15 ثانية
+  });
+
+  const adminApproved = Boolean(data?.adminApprovedAt);
+
+  const remindAdmin = () => {
+    const msg = `مرحباً 👋\nأنشأت محتوى «${personalize(result.title)}» على منصة حكايتي وأنتظر اعتماده لتحميله 🌟\nمعرّف المحتوى: ${result.id}`;
+    const url = `https://wa.me/201120016502?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank", "noopener");
+  };
+
+  return (
+    <div className="text-center">
+      {adminApproved ? (
+        <>
+          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-grass/15">
+            <BadgeCheck className="h-9 w-9 text-grass" />
+          </span>
+          <h2 className="mt-3 font-display text-3xl font-extrabold">
+            تم اعتماد محتواك من الإدارة 🎉
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-muted-foreground">
+            «{personalize(result.title)}» جاهز — حمّل PDF عالي الجودة ثم شاركه عبر واتساب
+          </p>
+          <div className="mt-6">
+            <PdfActions
+              title={personalize(result.title)}
+              childName={childName || null}
+              moral={result.moral ? personalize(result.moral) : null}
+              language={result.language as LanguageMode}
+              contentType={result.contentType as "story" | "book"}
+              templateId={result.id}
+              pages={pdfPages}
+            />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            يحتوي الملف على غلاف وكل الصفحات وتحفظ نسخة في حسابك
+          </p>
+        </>
+      ) : (
+        <>
+          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sunny/30">
+            <Hourglass className="h-9 w-9 text-sunny-foreground" />
+          </span>
+          <h2 className="mt-3 font-display text-3xl font-extrabold">
+            محتواك قيد المراجعة من الإدارة ⏳
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-muted-foreground">
+            «{personalize(result.title)}» وصلنا بنجاح — سنعتمده خلال وقت قصير وسيُفعَّل
+            تحميل PDF تلقائياً هنا فور الموافقة.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Button
+              size="lg"
+              className="rounded-full bg-grass px-7 font-bold text-grass-foreground hover:bg-grass/90"
+              onClick={remindAdmin}
+            >
+              <MessageCircle className="ms-2 h-5 w-5" />
+              تذكير الإدارة عبر واتساب
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="rounded-full px-7 font-bold"
+              disabled={isFetching}
+              onClick={() => void refetch()}
+            >
+              {isFetching ? (
+                <Loader2 className="ms-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCcw className="ms-2 h-4 w-4" />
+              )}
+              تحديث الحالة
+            </Button>
+          </div>
+        </>
+      )}
+
+      {result.orderCreated && (
+        <p className="mt-5 rounded-2xl bg-grass/15 p-4 text-sm font-semibold text-grass">
+          🎉 طلب النسخة المصورة بصورة طفلك مستلم — سنرسلها عبر الواتساب
+        </p>
+      )}
+
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <Button variant="ghost" className="rounded-full font-bold" onClick={reset}>
+          <RotateCcw className="ms-2 h-4 w-4" />
+          إنشاء جديد
+        </Button>
+      </div>
     </div>
   );
 }
