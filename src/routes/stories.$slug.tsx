@@ -21,6 +21,8 @@ export const Route = createFileRoute("/stories/$slug")({
 
 function StoryPreview() {
   const { slug } = Route.useParams();
+  const { add, has, items } = useCart();
+  const navigate = useNavigate();
 
   const { data: story, isLoading } = useQuery({
     queryKey: ["story", slug],
@@ -33,6 +35,19 @@ function StoryPreview() {
       return data;
     },
   });
+
+  const inCart = story ? has(story.id) : false;
+  const addToCart = () => {
+    if (!story) return;
+    add({
+      templateId: story.id,
+      slug: story.slug,
+      title: story.title,
+      coverUrl: story.cover_url,
+      contentType: (story.content_type ?? "story") as "story" | "book",
+    });
+    toast.success(`أُضيف «${story.title}» للسلة — ${items.length + 1} عنصر`);
+  };
 
   const pages = parsePages(story?.pages);
 
