@@ -277,6 +277,30 @@ function CheckoutPage() {
                 </div>
 
                 <div className="mt-4">
+                  <Label className="font-bold">جنس البطل</Label>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {GENDER_OPTIONS.map((g) => (
+                      <button
+                        key={g.value}
+                        type="button"
+                        onClick={() => updateDraft(item.templateId, { gender: g.value })}
+                        className={`rounded-xl border-2 p-3 text-start transition-colors ${
+                          d.gender === g.value
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 font-bold">
+                          <span className="text-xl">{g.emoji}</span>
+                          {g.label}
+                        </span>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">{g.hint}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4">
                   <Label className="font-bold">ملاحظات (اختياري)</Label>
                   <Textarea
                     value={d.notes}
