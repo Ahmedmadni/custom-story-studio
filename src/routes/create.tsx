@@ -622,9 +622,9 @@ function CreateWizard() {
                   {/* Export & share */}
                   <div className="mt-6">
                     <PdfActions
-                      title={result.title}
+                      title={personalize(result.title)}
                       childName={childName.trim() || null}
-                      moral={result.moral}
+                      moral={result.moral ? personalize(result.moral) : null}
                       language={result.language}
                       contentType={result.contentType}
                       pages={result.pages.map((p) => ({
