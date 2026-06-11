@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
   ArrowRight,
+  BadgeCheck,
   BookOpen,
   Camera,
   Check,
@@ -11,9 +12,12 @@ import {
   ChevronRight,
   GraduationCap,
   Loader2,
+  Pencil,
   RotateCcw,
+  Save,
   Sparkles,
   Wand2,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -27,7 +31,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { generateAiStory, generatePageImage } from "@/lib/ai.functions";
+import { generateAiStory, generatePageImage, updatePageText } from "@/lib/ai.functions";
 import { CONTENT_TYPE_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/storyTypes";
 import { isValidEgyptianMobile } from "@/lib/whatsapp";
 
@@ -52,7 +56,8 @@ const STEPS = [
   "صورة الطفل",
   "نوع المحتوى",
   "التوليد",
-  "المعاينة والمشاركة",
+  "المعاينة والاعتماد",
+  "التصدير والمشاركة",
 ];
 
 const MAX_PHOTO_MB = 8;
@@ -61,6 +66,7 @@ function CreateWizard() {
   const { user, loading } = useAuth();
   const generateFn = useServerFn(generateAiStory);
   const imageFn = useServerFn(generatePageImage);
+  const updateFn = useServerFn(updatePageText);
 
   const [step, setStep] = useState(0);
   const [childName, setChildName] = useState("");
@@ -76,6 +82,13 @@ function CreateWizard() {
   const [imgGenActive, setImgGenActive] = useState(false);
   const [imgGenCount, setImgGenCount] = useState(0);
   const [imgGenTotal, setImgGenTotal] = useState(0);
+  // تعديلات المستخدم على نصوص الصفحات قبل الاعتماد
+  const [pageEdits, setPageEdits] = useState<Record<number, { title: string; text: string }>>({});
+  const [editingPage, setEditingPage] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editText, setEditText] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [regenPage, setRegenPage] = useState<number | null>(null);
 
   /** توليد صور الصفحات بالتتابع — كل صورة من مشهد نص صفحتها */
   const generateImages = async (
@@ -193,6 +206,68 @@ function CreateWizard() {
   const personalize = (t: string) =>
     t.replaceAll("{child}", childName.trim() || "بطلنا");
 
+  /** الصفحة بعد تطبيق تعديلات المستخدم عليها */
+  const withEdits = <T extends { n: number; title?: string; text: string }>(p: T): T =>
+    pageEdits[p.n]
+      ? { ...p, title: pageEdits[p.n].title || p.title, text: pageEdits[p.n].text }
+      : p;
+
+  const shownPage = currentPage ? withEdits(currentPage) : undefined;
+
+  const goToPage = (i: number) => {
+    setEditingPage(null);
+    setPageIndex(i);
+  };
+
+  const startEdit = () => {
+    if (!shownPage) return;
+    setEditTitle(shownPage.title ?? "");
+    setEditText(shownPage.text);
+    setEditingPage(shownPage.n);
+  };
+
+  const saveEdit = async () => {
+    if (!result || editingPage === null) return;
+    const pn = editingPage;
+    setSavingEdit(true);
+    try {
+      await updateFn({
+        data: {
+          templateId: result.id,
+          pageNumber: pn,
+          title: editTitle.trim() || undefined,
+          text: editText.trim(),
+        },
+      });
+      setPageEdits((m) => ({ ...m, [pn]: { title: editTitle.trim(), text: editText.trim() } }));
+      setEditingPage(null);
+      toast.success("تم حفظ التعديل ✏️");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "تعذر حفظ التعديل");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const regenerateImage = async (n: number) => {
+    if (!result) return;
+    setRegenPage(n);
+    try {
+      const r = await imageFn({ data: { templateId: result.id, pageNumber: n } });
+      if (r.imageUrl) {
+        const url = r.imageUrl;
+        setPageImages((m) => ({ ...m, [n]: url }));
+        toast.success("تم رسم صورة جديدة لهذه الصفحة 🎨");
+      } else {
+        toast.error("لم نحصل على صورة، حاول مرة أخرى");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "تعذر إعادة رسم الصورة");
+    } finally {
+      setRegenPage(null);
+    }
+  };
+
   const reset = () => {
     mutation.reset();
     setStep(0);
@@ -209,6 +284,11 @@ function CreateWizard() {
     setImgGenActive(false);
     setImgGenCount(0);
     setImgGenTotal(0);
+    setPageEdits({});
+    setEditingPage(null);
+    setEditTitle("");
+    setEditText("");
+    setRegenPage(null);
   };
 
 
