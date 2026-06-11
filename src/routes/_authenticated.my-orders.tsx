@@ -1,18 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpen, Eye, FileDown, Wand2 } from "lucide-react";
+import { BookOpen, Eye, FileDown, ShoppingCart } from "lucide-react";
 
 import { EmptyState } from "@/components/EmptyState";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { StatusBadge } from "@/features/orders/StatusBadge";
+import { PaymentBadge, StatusBadge } from "@/features/orders/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyPdfs } from "@/features/pdf/pdf.functions";
-
 
 export const Route = createFileRoute("/_authenticated/my-orders")({
   head: () => ({
@@ -31,20 +30,9 @@ function MyOrders() {
     queryFn: async () => {
       const { data } = await supabase
         .from("orders")
-        .select("id, status, child_name, created_at, story_templates(title, cover_url, slug)")
-        .order("created_at", { ascending: false });
-      return data ?? [];
-    },
-  });
-
-  const { data: customStories } = useQuery({
-    queryKey: ["my-custom-stories", user?.id],
-    enabled: Boolean(user),
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("story_templates")
-        .select("id, title, summary, created_at")
-        .eq("is_custom", true)
+        .select(
+          "id, status, payment_status, payment_rejection_reason, child_name, created_at, story_templates(title, cover_url, slug)",
+        )
         .order("created_at", { ascending: false });
       return data ?? [];
     },
@@ -74,11 +62,13 @@ function MyOrders() {
               description="تصفّح المكتبة واختر القصة التي تحبّها لطفلك."
               action={
                 <Button asChild className="rounded-full font-bold">
-                  <Link to="/stories">تصفح القصص</Link>
+                  <Link to="/stories">
+                    <ShoppingCart className="ms-1 h-4 w-4" />
+                    تصفح القصص
+                  </Link>
                 </Button>
               }
             />
-
           ) : (
             (orders ?? []).map((o) => (
               <div
@@ -104,9 +94,15 @@ function MyOrders() {
                     البطل: {o.child_name} ·{" "}
                     {new Date(o.created_at).toLocaleDateString("ar-EG")}
                   </p>
-                  <div className="mt-1">
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    <PaymentBadge status={(o.payment_status ?? "unpaid") as string} />
                     <StatusBadge status={o.status as string} />
                   </div>
+                  {o.payment_status === "rejected" && o.payment_rejection_reason && (
+                    <p className="mt-2 rounded-xl bg-destructive/10 p-2 text-xs text-destructive">
+                      سبب رفض الدفع: {o.payment_rejection_reason}
+                    </p>
+                  )}
                 </div>
                 {(o.status === "ready" || o.status === "sent") && (
                   <Button asChild className="rounded-full font-bold">
@@ -120,35 +116,6 @@ function MyOrders() {
             ))
           )}
         </div>
-
-        {(customStories ?? []).length > 0 && (
-          <div className="mt-12">
-            <h2 className="flex items-center gap-2 font-display text-2xl font-extrabold">
-              <Wand2 className="h-5 w-5 text-accent" />
-              قصصي المولدة بالذكاء الاصطناعي
-            </h2>
-            <div className="mt-4 space-y-3">
-              {(customStories ?? []).map((s) => (
-                <div
-                  key={s.id}
-                  className="flex flex-wrap items-center gap-4 rounded-3xl border-2 border-border bg-card p-5"
-                >
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-display text-lg font-bold">{s.title}</h3>
-                    <p className="line-clamp-1 text-sm text-muted-foreground">
-                      {s.summary}
-                    </p>
-                  </div>
-                  <Button asChild variant="outline" className="rounded-full font-bold">
-                    <Link to="/order/$templateId" params={{ templateId: s.id }}>
-                      اطلبها بصورة طفلك
-                    </Link>
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {(myPdfs ?? []).length > 0 && (
           <div className="mt-12">
