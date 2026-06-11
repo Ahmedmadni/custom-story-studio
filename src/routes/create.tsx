@@ -36,6 +36,7 @@ import {
   approveTemplate,
   generateAiStory,
   generatePageImage,
+  getTemplateApproval,
   reorderPages,
   updatePageText,
 } from "@/lib/ai.functions";
@@ -1302,49 +1303,13 @@ function CreateWizard() {
               )}
 
               {step === 7 && result && (
-                <div className="text-center">
-                  <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-grass/15">
-                    <BadgeCheck className="h-9 w-9 text-grass" />
-                  </span>
-                  <h2 className="mt-3 font-display text-3xl font-extrabold">
-                    تم اعتماد المحتوى 🎉
-                  </h2>
-                  <p className="mx-auto mt-2 max-w-md text-muted-foreground">
-                    «{personalize(result.title)}» جاهز — حمّل PDF عالي الجودة ثم شاركه عبر واتساب
-                  </p>
-
-                  <div className="mt-6">
-                    <PdfActions
-                      title={personalize(result.title)}
-                      childName={childName.trim() || null}
-                      moral={result.moral ? personalize(result.moral) : null}
-                      language={result.language as LanguageMode}
-                      contentType={result.contentType as "story" | "book"}
-                      templateId={result.id}
-                      pages={pdfPages}
-                      disabled={!approved}
-                      disabledReason={
-                        !approved ? "اعتمد المحتوى أولاً" : undefined
-                      }
-                    />
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    يحتوي الملف على غلاف وكل الصفحات وتحفظ نسخة في حسابك
-                  </p>
-
-                  {result.orderCreated && (
-                    <p className="mt-5 rounded-2xl bg-grass/15 p-4 text-sm font-semibold text-grass">
-                      🎉 طلب النسخة المصورة بصورة طفلك مستلم — سنرسلها عبر الواتساب
-                    </p>
-                  )}
-
-                  <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                    <Button variant="ghost" className="rounded-full font-bold" onClick={reset}>
-                      <RotateCcw className="ms-2 h-4 w-4" />
-                      إنشاء جديد
-                    </Button>
-                  </div>
-                </div>
+                <Step7Approval
+                  result={result}
+                  childName={childName.trim()}
+                  pdfPages={pdfPages}
+                  personalize={personalize}
+                  reset={reset}
+                />
               )}
 
               {/* Navigation */}
