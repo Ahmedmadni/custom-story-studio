@@ -32,7 +32,7 @@ export const getMyStory = createServerFn({ method: "POST" })
       templatePages.map(async (tp) => {
         const generated = (pageRows ?? []).find((r) => r.page_number === tp.n);
         let imageUrl: string | null = null;
-        if (generated) {
+        if (generated?.image_path) {
           const { data: signed } = await supabaseAdmin.storage
             .from("story-pages")
             .createSignedUrl(generated.image_path, 3600);
