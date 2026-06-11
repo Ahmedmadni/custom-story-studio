@@ -546,6 +546,8 @@ export const adminGetUsageStats = createServerFn({ method: "POST" })
         lovable: Boolean(process.env.LOVABLE_API_KEY),
         openai: Boolean(process.env.OPENAI_API_KEY),
         gemini: Boolean(process.env.GEMINI_API_KEY),
+        stability: Boolean(process.env.STABILITY_API_KEY),
+        replicate: Boolean(process.env.REPLICATE_API_KEY),
       },
     };
   });
