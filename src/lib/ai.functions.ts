@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { STORY_STYLE_PROMPT, STYLE_NEGATIVE, ageStylePrompt } from "@/lib/storyStyle";
+import { STORY_STYLE_PROMPT, STYLE_NEGATIVE, ageStylePrompt, photoModePrompt } from "@/lib/storyStyle";
 import { parsePages } from "@/lib/storyTypes";
 
 const GenerateInput = z.object({
@@ -173,6 +173,10 @@ export const generateAiStory = createServerFn({ method: "POST" })
 const PageImageInput = z.object({
   templateId: z.string().uuid(),
   pageNumber: z.number().int().min(1).max(12),
+  /** مسار صورة الطفل المرفوعة (اختياري) لاستخدامها كمرجع في الرسم */
+  childPhotoPath: z.string().trim().max(300).optional(),
+  /** cartoon = تحويل لشخصية كرتونية، real = إبقاء الملامح الحقيقية مع تحسين الجودة والدمج */
+  photoMode: z.enum(["cartoon", "real"]).optional(),
 });
 
 /**
@@ -205,11 +209,33 @@ export const generatePageImage = createServerFn({ method: "POST" })
     const page = pages.find((p) => p.n === data.pageNumber);
     if (!page) throw new Error("الصفحة غير موجودة");
 
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // صورة الطفل المرجعية (اختياري) — يجب أن تخص المستخدم نفسه
+    let photoDataUrl: string | null = null;
+    if (data.childPhotoPath) {
+      if (!data.childPhotoPath.startsWith(`${context.userId}/`)) {
+        throw new Error("غير مصرح لك باستخدام هذه الصورة");
+      }
+      const { data: file, error: dlErr } = await supabaseAdmin.storage
+        .from("child-photos")
+        .download(data.childPhotoPath);
+      if (dlErr || !file) {
+        console.error("download child photo", dlErr);
+      } else {
+        const buf = Buffer.from(await file.arrayBuffer());
+        photoDataUrl = `data:${file.type || "image/jpeg"};base64,${buf.toString("base64")}`;
+      }
+    }
+
     // ضمان تطبيق نمط العمر حتى للقوالب القديمة التي لا تحمله داخل المشهد
     const agePart = page.scene.includes("Age styling")
       ? ""
       : `\n${ageStylePrompt(template.age_range)}.`;
-    const prompt = `${STORY_STYLE_PROMPT}.${agePart}
+    const photoPart = photoDataUrl
+      ? `\n${photoModePrompt(data.photoMode ?? "cartoon")}.`
+      : "";
+    const prompt = `${STORY_STYLE_PROMPT}.${agePart}${photoPart}
 Children's storybook page illustration that literally depicts this exact written scene so the image feels like part of the text: ${page.scene}.
 Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
 
@@ -221,7 +247,17 @@ Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
       },
       body: JSON.stringify({
         model: "google/gemini-3.1-flash-image-preview",
-        messages: [{ role: "user", content: prompt }],
+        messages: [
+          {
+            role: "user",
+            content: photoDataUrl
+              ? [
+                  { type: "text", text: prompt },
+                  { type: "image_url", image_url: { url: photoDataUrl } },
+                ]
+              : prompt,
+          },
+        ],
         modalities: ["image", "text"],
       }),
     });
@@ -242,7 +278,6 @@ Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
     const bytes = Buffer.from(dataUrl.split("base64,")[1], "base64");
     const imagePath = `templates/${data.templateId}/page-${data.pageNumber}.png`;
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error: uploadErr } = await supabaseAdmin.storage
       .from("story-pages")
       .upload(imagePath, bytes, { contentType: "image/png", upsert: true });
