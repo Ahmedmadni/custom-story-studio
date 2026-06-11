@@ -286,6 +286,7 @@ function CreateWizard() {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      if (!gender) throw new Error("الرجاء اختيار جنس البطل");
       if (!language) throw new Error("الرجاء اختيار اللغة");
       if (contentType === "book" && !bookCategory)
         throw new Error("الرجاء اختيار فئة الكتاب التعليمي");
@@ -295,6 +296,7 @@ function CreateWizard() {
           childName: childName.trim(),
           theme: topic.trim() || undefined,
           age: age.trim() || undefined,
+          gender: gender as Gender,
           language: language as LanguageMode,
           contentType,
           bookMeta:
@@ -324,6 +326,7 @@ function CreateWizard() {
             template_id: res.id,
             child_name: childName.trim(),
             child_age: age ? Number(age) : null,
+            gender: gender as Gender,
             whatsapp: whatsapp.trim(),
             child_photo_path: path,
             notes:
@@ -370,7 +373,7 @@ function CreateWizard() {
   const canNext = (): boolean => {
     switch (step) {
       case 0:
-        return childName.trim().length > 0;
+        return childName.trim().length > 0 && gender !== "";
       case 1: {
         const n = Number(age);
         return age.trim().length > 0 && n >= 1 && n <= 14;
