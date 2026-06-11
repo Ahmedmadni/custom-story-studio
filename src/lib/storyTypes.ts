@@ -14,6 +14,8 @@ export interface StoryPage {
   text_en?: string;
   /** وصف المشهد بالإنجليزية لتوليد الصورة */
   scene: string;
+  /** عنوان قصير (1-3 كلمات إنجليزية) يُرسم داخل الصورة كتيتر بوستر */
+  image_title_en?: string;
   /** مسار صورة الصفحة المولدة داخل مخزن story-pages (إن وجدت) */
   image_path?: string | null;
 }
