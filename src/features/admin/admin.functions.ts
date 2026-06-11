@@ -190,14 +190,39 @@ export const adminGeneratePage = createServerFn({ method: "POST" })
     const agePart = page.scene.includes("Age styling")
       ? ""
       : `\n${ageStylePrompt(order.child_age)}.`;
+    const gender = (order.gender as "boy" | "girl" | null) ?? "boy";
+    const isGirl = gender === "girl";
+    const heroLabel = isGirl ? "girl" : "boy";
+    const pronoun = isGirl ? "she/her" : "he/him";
+
+    // جلب الصورة المرجعية للجنس (ولد/بنت) — تستخدم كـ "نموذج للشخصية" يتعلم منه الذكاء الاصطناعي شكل البطل المعتمد
+    const refFile = isGirl ? "girl.jpg" : "boy.png";
+    const { data: signedRef } = await supabaseAdmin.storage
+      .from("reference-children")
+      .createSignedUrl(refFile, 600);
+    const refUrl = signedRef?.signedUrl ?? null;
+
     const prompt = `${STORY_STYLE_PROMPT}.${agePart}
-Transform the real child from the attached photo into an adorable 3D cartoon hero character in this exact style. Keep the child's face clearly recognizable (same hair color and style, eye color, skin tone, facial features) but rendered as a beautiful enhanced 3D cartoon character like a Pixar movie star, with body proportions, outfit and overall maturity matching the child's real age.
+The hero is a ${heroLabel} child (${pronoun}). ${isGirl ? "Render her as an adorable little girl character with feminine styling appropriate for her age." : "Render him as an adorable little boy character with masculine styling appropriate for his age."}
+${refUrl ? `REFERENCE CHARACTER (image #2): use the cartoon ${heroLabel} in image #2 as the canonical visual style for the hero — same 3D cartoon aesthetic, body proportions, outfit vibe and overall mood. This is the "official" ${heroLabel} character of the platform.` : ""}
+Transform the real child from the attached PHOTO (image #1) into an adorable 3D cartoon hero ${heroLabel} character in this exact style. Keep the child's face clearly recognizable (same hair color and style, eye color, skin tone, facial features) but rendered as a beautiful enhanced 3D cartoon character like a Pixar movie star, with body proportions, outfit and overall maturity matching the child's real age.
 Scene to illustrate: ${page.scene}.
-The child is the main hero of the scene. Square children's storybook illustration, ${STYLE_NEGATIVE}.`;
+The ${heroLabel} child is the main hero of the scene. Square children's storybook illustration, ${STYLE_NEGATIVE}.`;
 
     // محاولة Lovable AI أولاً، ثم OpenAI، ثم Gemini تلقائياً عند الفشل
     let base64: string | null = null;
     let providerUsed: "lovable" | "openai" | "gemini" | "stability" | "replicate" = "lovable";
+
+    const lovableContent: Array<
+      | { type: "text"; text: string }
+      | { type: "image_url"; image_url: { url: string } }
+    > = [
+      { type: "text", text: prompt },
+      { type: "image_url", image_url: { url: signedPhoto.signedUrl } },
+    ];
+    if (refUrl) {
+      lovableContent.push({ type: "image_url", image_url: { url: refUrl } });
+    }
 
     const lovableRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -207,15 +232,7 @@ The child is the main hero of the scene. Square children's storybook illustratio
       },
       body: JSON.stringify({
         model: "google/gemini-3.1-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: signedPhoto.signedUrl } },
-            ],
-          },
-        ],
+        messages: [{ role: "user", content: lovableContent }],
         modalities: ["image", "text"],
       }),
     });

@@ -35,6 +35,7 @@ const GenerateInput = z.object({
   childName: z.string().trim().min(1, "اسم الطفل مطلوب").max(40),
   theme: z.string().trim().max(300).optional(),
   age: z.string().trim().max(10).optional(),
+  gender: z.enum(["boy", "girl"]).default("boy"),
   language: z.enum(["ar", "en", "bilingual"]).default("ar"),
   contentType: z.enum(["story", "book"]).default("story"),
   bookMeta: BookMetaInput.optional(),
@@ -220,9 +221,21 @@ export const generateAiStory = createServerFn({ method: "POST" })
         ? `موضوع الكتاب: ${BOOK_CATEGORIES.find((c) => c.value === data.bookMeta!.category)?.label}${data.theme ? ` — تخصيص: ${data.theme}` : ""}`
         : `اكتب ${typeLabel} عن: ${data.theme ?? ""}`;
 
+    const isGirl = data.gender === "girl";
+    const arabicGenderRule = isGirl
+      ? "البطل أنثى (بنت): استخدم صيغة المؤنث في كل النصوص العربية (هي، شجاعة، بطلة، ذكية، قالت، ذهبت…) — لا تستخدم صيغة المذكر مطلقاً."
+      : "البطل ذكر (ولد): استخدم صيغة المذكر في كل النصوص العربية (هو، شجاع، بطل، ذكي، قال، ذهب…) — لا تستخدم صيغة المؤنث مطلقاً.";
+    const englishGenderRule = isGirl
+      ? "The hero is a GIRL. Use she/her pronouns everywhere in English. Describe her as a girl child."
+      : "The hero is a BOY. Use he/him pronouns everywhere in English. Describe him as a boy child.";
+
     const userPrompt = `${themeLine}
 اسم الطفل سيكون: ${data.childName} (استخدم {child} في النص)
 عمر الطفل: ${data.age ?? "4-8"} سنوات
+جنس البطل: ${isGirl ? "بنت / Girl" : "ولد / Boy"}
+${arabicGenderRule}
+${englishGenderRule}
+في حقل character اذكر أن البطل ${isGirl ? "girl" : "boy"} child.
 لغة المحتوى: ${data.language === "ar" ? "العربية فقط" : data.language === "en" ? "English only" : "Bilingual Arabic + English"}`;
 
     const story = await callLlm(

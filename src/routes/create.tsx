@@ -59,7 +59,9 @@ import {
 } from "@/features/orders/draft.functions";
 import {
   CONTENT_TYPE_OPTIONS,
+  GENDER_OPTIONS,
   LANGUAGE_OPTIONS,
+  type Gender,
   type LanguageMode,
 } from "@/features/ai/storyTypes";
 import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
@@ -94,6 +96,7 @@ const MAX_PHOTO_MB = 8;
 interface DraftPayload {
   step?: number;
   childName?: string;
+  gender?: Gender;
   age?: string;
   language?: LanguageMode;
   whatsapp?: string;
@@ -118,6 +121,7 @@ function CreateWizard() {
 
   const [step, setStep] = useState(0);
   const [childName, setChildName] = useState("");
+  const [gender, setGender] = useState<Gender | "">("");
   const [age, setAge] = useState("");
   const [language, setLanguage] = useState<LanguageMode | "">("");
   const [photo, setPhoto] = useState<File | null>(null);
@@ -178,6 +182,7 @@ function CreateWizard() {
           label: "استئناف",
           onClick: () => {
             setChildName(p.childName ?? "");
+            setGender(p.gender ?? "");
             setAge(p.age ?? "");
             setLanguage(p.language ?? "");
             setWhatsapp(p.whatsapp ?? "");
@@ -207,6 +212,7 @@ function CreateWizard() {
     const payload: DraftPayload = {
       step,
       childName,
+      gender: gender || undefined,
       age,
       language: language || undefined,
       whatsapp,
@@ -227,7 +233,7 @@ function CreateWizard() {
     return () => {
       if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
     };
-  }, [user, step, childName, age, language, whatsapp, photoMode, contentType, topic, bookCategory, readingLevel, bookLength, saveDraftFn]);
+  }, [user, step, childName, gender, age, language, whatsapp, photoMode, contentType, topic, bookCategory, readingLevel, bookLength, saveDraftFn]);
 
   // Auto-derive reading level from age when book selected
   useEffect(() => {
@@ -280,6 +286,7 @@ function CreateWizard() {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      if (!gender) throw new Error("الرجاء اختيار جنس البطل");
       if (!language) throw new Error("الرجاء اختيار اللغة");
       if (contentType === "book" && !bookCategory)
         throw new Error("الرجاء اختيار فئة الكتاب التعليمي");
@@ -289,6 +296,7 @@ function CreateWizard() {
           childName: childName.trim(),
           theme: topic.trim() || undefined,
           age: age.trim() || undefined,
+          gender: gender as Gender,
           language: language as LanguageMode,
           contentType,
           bookMeta:
@@ -318,6 +326,7 @@ function CreateWizard() {
             template_id: res.id,
             child_name: childName.trim(),
             child_age: age ? Number(age) : null,
+            gender: gender as Gender,
             whatsapp: whatsapp.trim(),
             child_photo_path: path,
             notes:
@@ -364,7 +373,7 @@ function CreateWizard() {
   const canNext = (): boolean => {
     switch (step) {
       case 0:
-        return childName.trim().length > 0;
+        return childName.trim().length > 0 && gender !== "";
       case 1: {
         const n = Number(age);
         return age.trim().length > 0 && n >= 1 && n <= 14;
@@ -530,6 +539,7 @@ function CreateWizard() {
     mutation.reset();
     setStep(0);
     setChildName("");
+    setGender("");
     setAge("");
     setLanguage("");
     setPhoto(null);
@@ -648,6 +658,33 @@ function CreateWizard() {
                   <p className="mt-2 text-xs text-muted-foreground">
                     سيكون طفلك هو بطل القصة أو رفيق التعلم في الكتاب
                   </p>
+
+                  <div className="mt-6">
+                    <Label className="font-bold">جنس البطل</Label>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      نستخدم هذا لكتابة النصوص بالصيغة الصحيحة (مذكر/مؤنث) ولاختيار شكل الشخصية المرجعية.
+                    </p>
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      {GENDER_OPTIONS.map((g) => (
+                        <button
+                          key={g.value}
+                          type="button"
+                          onClick={() => setGender(g.value)}
+                          className={`rounded-2xl border-2 p-4 text-start transition-colors ${
+                            gender === g.value
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2 font-display text-xl font-bold">
+                            <span className="text-2xl">{g.emoji}</span>
+                            {g.label}
+                          </span>
+                          <p className="mt-1 text-xs text-muted-foreground">{g.hint}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 

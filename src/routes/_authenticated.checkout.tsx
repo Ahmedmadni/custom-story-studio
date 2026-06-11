@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { PRICE_PER_ITEM_EGP, useCart } from "@/features/cart/CartContext";
 import { submitCheckout } from "@/features/orders/checkout.functions";
+import { GENDER_OPTIONS, type Gender } from "@/features/ai/storyTypes";
 import {
   ADMIN_WHATSAPP,
   isValidEgyptianMobile,
@@ -41,6 +42,7 @@ const VODAFONE_NUMBER = "01120016502";
 type ItemDraft = {
   childName: string;
   childAge: string;
+  gender: Gender | "";
   notes: string;
   photo: File | null;
   preview: string | null;
@@ -56,7 +58,7 @@ function CheckoutPage() {
     Object.fromEntries(
       items.map((i) => [
         i.templateId,
-        { childName: "", childAge: "", notes: "", photo: null, preview: null },
+        { childName: "", childAge: "", gender: "" as const, notes: "", photo: null, preview: null },
       ]),
     ),
   );
@@ -128,6 +130,8 @@ function CheckoutPage() {
       const d = drafts[item.templateId];
       if (!d?.childName.trim())
         return toast.error(`اكتب اسم الطفل لـ «${item.title}»`);
+      if (!d?.gender)
+        return toast.error(`اختر جنس البطل لـ «${item.title}»`);
       if (!d?.photo)
         return toast.error(`ارفع صورة الطفل لـ «${item.title}»`);
     }
@@ -156,6 +160,7 @@ function CheckoutPage() {
             templateId: item.templateId,
             childName: d.childName.trim(),
             childAge: d.childAge ? Number(d.childAge) : null,
+            gender: d.gender as Gender,
             childPhotoPath: path,
             notes: d.notes.trim() || null,
           };
@@ -268,6 +273,30 @@ function CheckoutPage() {
                       }
                       className="mt-2 rounded-xl"
                     />
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <Label className="font-bold">جنس البطل</Label>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {GENDER_OPTIONS.map((g) => (
+                      <button
+                        key={g.value}
+                        type="button"
+                        onClick={() => updateDraft(item.templateId, { gender: g.value })}
+                        className={`rounded-xl border-2 p-3 text-start transition-colors ${
+                          d.gender === g.value
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 font-bold">
+                          <span className="text-xl">{g.emoji}</span>
+                          {g.label}
+                        </span>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">{g.hint}</p>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
