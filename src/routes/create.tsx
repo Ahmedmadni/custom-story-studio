@@ -539,6 +539,7 @@ function CreateWizard() {
     mutation.reset();
     setStep(0);
     setChildName("");
+    setGender("");
     setAge("");
     setLanguage("");
     setPhoto(null);
