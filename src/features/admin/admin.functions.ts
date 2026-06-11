@@ -271,7 +271,7 @@ export const adminGeneratePage = createServerFn({ method: "POST" })
 
     const { data: order, error: orderErr } = await supabaseAdmin
       .from("orders")
-      .select("*, story_templates(pages, title)")
+      .select("*, story_templates(id, pages, title)")
       .eq("id", data.orderId)
       .single();
     if (orderErr || !order) throw new Error("الطلب غير موجود");
@@ -308,6 +308,73 @@ ${refUrl ? `REFERENCE CHARACTER (image #2): use the cartoon ${heroLabel} in imag
 Transform the real child from the attached PHOTO (image #1) into an adorable 3D cartoon hero ${heroLabel} character in this exact style. Keep the child's face clearly recognizable (same hair color and style, eye color, skin tone, facial features) but rendered as a beautiful enhanced 3D cartoon character like a Pixar movie star, with body proportions, outfit and overall maturity matching the child's real age.
 Scene to illustrate: ${page.scene}.
 The ${heroLabel} child is the main hero of the scene. Square children's storybook illustration, ${STYLE_NEGATIVE}.`;
+
+    const imagePath = `${data.orderId}/page-${data.pageNumber}.png`;
+    const providerErrors: string[] = [];
+    const replicateKey = process.env.REPLICATE_API_KEY || process.env.LOVABLE_CONNECTOR_REPLICATE_API_KEY;
+
+    if (page.image_path && replicateKey && key) {
+      const { data: signedTemplateScene } = await supabaseAdmin.storage
+        .from("story-pages")
+        .createSignedUrl(page.image_path, 600);
+      if (signedTemplateScene?.signedUrl) {
+        const swapped = await runReplicateFaceSwap({
+          sceneUrl: signedTemplateScene.signedUrl,
+          photoUrl: signedPhoto.signedUrl,
+          lovableKey: key,
+          replicateKey,
+        });
+
+        if (swapped.bytes) {
+          const { error: uploadErr } = await supabaseAdmin.storage
+            .from("story-pages")
+            .upload(imagePath, swapped.bytes, { contentType: "image/png", upsert: true });
+          if (uploadErr) {
+            console.error("upload swapped scene error", uploadErr);
+            throw new Error("تعذر حفظ الصورة");
+          }
+          console.log(`[face-swap] template-scene order=${data.orderId} page=${data.pageNumber}`);
+
+          await supabaseAdmin
+            .from("generated_pages")
+            .delete()
+            .eq("order_id", data.orderId)
+            .eq("page_number", data.pageNumber);
+          const { error: insertErr } = await supabaseAdmin.from("generated_pages").insert({
+            order_id: data.orderId,
+            page_number: data.pageNumber,
+            image_path: imagePath,
+            page_text: personalize(page.text, order.child_name),
+          });
+          if (insertErr) throw new Error("تعذر تسجيل الصفحة");
+
+          const { count } = await supabaseAdmin
+            .from("generated_pages")
+            .select("id", { count: "exact", head: true })
+            .eq("order_id", data.orderId);
+
+          const allDone = (count ?? 0) >= pages.length;
+          await supabaseAdmin
+            .from("orders")
+            .update({ status: allDone ? "ready" : "generating" })
+            .eq("id", data.orderId);
+
+          const { data: signedPage } = await supabaseAdmin.storage
+            .from("story-pages")
+            .createSignedUrl(imagePath, 3600);
+
+          return {
+            pageNumber: data.pageNumber,
+            imageUrl: signedPage?.signedUrl ?? null,
+            done: count ?? 0,
+            total: pages.length,
+            allDone,
+          };
+        }
+
+        if (swapped.reason) providerErrors.push(swapped.reason);
+      }
+    }
 
     // محاولة Lovable AI أولاً، ثم OpenAI، ثم Gemini تلقائياً عند الفشل
     let base64: string | null = null;
@@ -350,7 +417,9 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
         base64 = dataUrl.split("base64,")[1];
       }
     } else {
-      console.warn("Lovable AI failed", lovableRes.status, await lovableRes.text().catch(() => ""));
+      const body = await lovableRes.text().catch(() => "");
+      console.warn("Lovable AI failed", lovableRes.status, body);
+      providerErrors.push(summarizeProviderFailure("lovable", lovableRes.status, body));
     }
 
     // Fallback 1: OpenAI gpt-image-1
@@ -378,10 +447,13 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
           const oj = (await openaiRes.json()) as { data?: { b64_json?: string }[] };
           base64 = oj.data?.[0]?.b64_json ?? null;
         } else {
-          console.warn("OpenAI fallback failed", openaiRes.status, await openaiRes.text().catch(() => ""));
+          const body = await openaiRes.text().catch(() => "");
+          console.warn("OpenAI fallback failed", openaiRes.status, body);
+          providerErrors.push(summarizeProviderFailure("openai", openaiRes.status, body));
         }
       } catch (e) {
         console.warn("OpenAI fallback error", e);
+        providerErrors.push("تعذر الاتصال بـ OpenAI");
       }
     }
 
@@ -429,10 +501,13 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
             }
           }
         } else {
-          console.error("Gemini fallback failed", geminiRes.status, await geminiRes.text().catch(() => ""));
+          const body = await geminiRes.text().catch(() => "");
+          console.error("Gemini fallback failed", geminiRes.status, body);
+          providerErrors.push(summarizeProviderFailure("gemini", geminiRes.status, body));
         }
       } catch (e) {
         console.error("Gemini fallback error", e);
+        providerErrors.push("تعذر الاتصال بـ Gemini");
       }
     }
 
@@ -462,10 +537,13 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
           const buf = Buffer.from(await stabRes.arrayBuffer());
           base64 = buf.toString("base64");
         } else {
-          console.error("Stability fallback failed", stabRes.status, await stabRes.text().catch(() => ""));
+          const body = await stabRes.text().catch(() => "");
+          console.error("Stability fallback failed", stabRes.status, body);
+          providerErrors.push(summarizeProviderFailure("stability", stabRes.status, body));
         }
       } catch (e) {
         console.error("Stability fallback error", e);
+        providerErrors.push("تعذر الاتصال بـ Stability");
       }
     }
 
@@ -492,7 +570,9 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
         );
 
         if (!createRes.ok) {
-          console.error("Replicate create failed", createRes.status, await createRes.text().catch(() => ""));
+          const body = await createRes.text().catch(() => "");
+          console.error("Replicate create failed", createRes.status, body);
+          providerErrors.push(summarizeProviderFailure("replicate", createRes.status, body));
         } else {
           const created = (await createRes.json()) as { id?: string; status?: string };
           const predId = created.id;
@@ -516,6 +596,7 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
               }
               if (pj.status === "failed" || pj.status === "canceled") {
                 console.error("Replicate failed", pj.error);
+                providerErrors.push("فشل توليد الصورة عبر Replicate");
                 break;
               }
             }
@@ -529,16 +610,23 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
         }
       } catch (e) {
         console.error("Replicate fallback error", e);
+        providerErrors.push("تعذر الاتصال بـ Replicate");
       }
     }
 
     if (!base64) {
-      throw new Error("فشل توليد الصورة من جميع المزودات المُهيأة، تحقق من الرصيد والمفاتيح");
+      if (page.image_path && !replicateKey) {
+        throw new Error("صورة القالب موجودة لكن أداة استبدال الوجه غير مرتبطة حالياً");
+      }
+      throw new Error(
+        providerErrors.length
+          ? `تعذر إنشاء الصفحة حالياً: ${Array.from(new Set(providerErrors)).join(" — ")}`
+          : "فشل توليد الصورة من جميع المزودات المُهيأة، تحقق من الرصيد والمفاتيح",
+      );
     }
 
     let bytes = Buffer.from(base64, "base64");
     console.log(`[generate-page] provider=${providerUsed} order=${data.orderId} page=${data.pageNumber}`);
-    const imagePath = `${data.orderId}/page-${data.pageNumber}.png`;
 
     const { error: uploadErr } = await supabaseAdmin.storage
       .from("story-pages")
@@ -550,66 +638,27 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
 
     // ====== مرحلة استبدال الوجه (Face Swap) عبر Replicate ======
     // تأخذ وجه الطفل الحقيقي من صورته وتحلّه محل وجه البطل في المشهد المولّد.
-    const replicateKey = process.env.REPLICATE_API_KEY || process.env.LOVABLE_CONNECTOR_REPLICATE_API_KEY;
     if (replicateKey && process.env.LOVABLE_API_KEY) {
       try {
         const { data: signedScene } = await supabaseAdmin.storage
           .from("story-pages")
           .createSignedUrl(imagePath, 600);
         if (signedScene?.signedUrl) {
-          const GW = "https://connector-gateway.lovable.dev/replicate/v1";
-          const headers = {
-            Authorization: `Bearer ${process.env.LOVABLE_API_KEY}`,
-            "X-Connection-Api-Key": replicateKey,
-            "Content-Type": "application/json",
-          };
-          const createRes = await fetch(`${GW}/models/cdingram/face-swap/predictions`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              input: {
-                input_image: signedScene.signedUrl,
-                swap_image: signedPhoto.signedUrl,
-              },
-            }),
+          const swapped = await runReplicateFaceSwap({
+            sceneUrl: signedScene.signedUrl,
+            photoUrl: signedPhoto.signedUrl,
+            lovableKey: process.env.LOVABLE_API_KEY,
+            replicateKey,
           });
-          if (createRes.ok) {
-            const created = (await createRes.json()) as { id?: string };
-            const predId = created.id;
-            if (predId) {
-              let swappedUrl: string | null = null;
-              for (let i = 0; i < 40; i++) {
-                await new Promise((r) => setTimeout(r, i < 4 ? 1500 : 3000));
-                const pollRes = await fetch(`${GW}/predictions/${predId}`, { headers });
-                if (!pollRes.ok) continue;
-                const pj = (await pollRes.json()) as {
-                  status?: string;
-                  output?: string | string[];
-                  error?: unknown;
-                };
-                if (pj.status === "succeeded") {
-                  swappedUrl = Array.isArray(pj.output) ? pj.output[0] : (pj.output ?? null);
-                  break;
-                }
-                if (pj.status === "failed" || pj.status === "canceled") {
-                  console.error("Face swap failed", pj.error);
-                  break;
-                }
-              }
-              if (swappedUrl) {
-                const imgRes = await fetch(swappedUrl);
-                if (imgRes.ok) {
-                  bytes = Buffer.from(await imgRes.arrayBuffer());
-                  const { error: reErr } = await supabaseAdmin.storage
-                    .from("story-pages")
-                    .upload(imagePath, bytes, { contentType: "image/png", upsert: true });
-                  if (reErr) console.error("face-swap re-upload error", reErr);
-                  else console.log(`[face-swap] applied order=${data.orderId} page=${data.pageNumber}`);
-                }
-              }
-            }
-          } else {
-            console.warn("Face swap create failed", createRes.status, await createRes.text().catch(() => ""));
+          if (swapped.bytes) {
+            bytes = swapped.bytes;
+            const { error: reErr } = await supabaseAdmin.storage
+              .from("story-pages")
+              .upload(imagePath, bytes, { contentType: "image/png", upsert: true });
+            if (reErr) console.error("face-swap re-upload error", reErr);
+            else console.log(`[face-swap] applied order=${data.orderId} page=${data.pageNumber}`);
+          } else if (swapped.reason) {
+            console.warn("Face swap skipped", swapped.reason);
           }
         }
       } catch (e) {
