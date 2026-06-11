@@ -28,6 +28,13 @@ export function parsePages(pages: unknown): StoryPage[] {
   );
 }
 
+export type Gender = "boy" | "girl";
+
+export const GENDER_OPTIONS: { value: Gender; label: string; emoji: string; hint: string }[] = [
+  { value: "boy", label: "ولد", emoji: "👦", hint: "نصوص بصيغة المذكر — هو، شجاع، بطل…" },
+  { value: "girl", label: "بنت", emoji: "👧", hint: "نصوص بصيغة المؤنث — هي، شجاعة، بطلة…" },
+];
+
 export function personalize(text: string, childName: string): string {
   return text.replaceAll("{child}", childName);
 }
