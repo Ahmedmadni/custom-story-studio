@@ -509,7 +509,7 @@ export const approveTemplate = createServerFn({ method: "POST" })
 
 const TemplateIdInput = z.object({ templateId: z.string().uuid() });
 
-/** قراءة حالة الاعتماد لاستخدامها في واجهات أخرى */
+/** قراءة حالة الاعتماد (المستخدم + المسؤول) لاستخدامها في الواجهات */
 export const getTemplateApproval = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => TemplateIdInput.parse(input))
@@ -518,11 +518,78 @@ export const getTemplateApproval = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
       .from("story_templates")
-      .select("approved_at")
+      .select("approved_at, admin_approved_at")
       .eq("id", data.templateId)
       .single();
+    const r = row as {
+      approved_at?: string | null;
+      admin_approved_at?: string | null;
+    } | null;
     return {
-      approvedAt:
-        (row as { approved_at?: string | null } | null)?.approved_at ?? null,
+      approvedAt: r?.approved_at ?? null,
+      adminApprovedAt: r?.admin_approved_at ?? null,
     };
+  });
+
+/** [مسؤول] قائمة المحتوى المعتمد من المستخدم والمنتظر اعتماد المسؤول */
+export const adminListPendingTemplates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("غير مصرح لك");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("story_templates")
+      .select("id, title, content_type, language, approved_at, admin_approved_at, created_by, created_at, age_range")
+      .eq("is_custom", true)
+      .not("approved_at", "is", null)
+      .is("admin_approved_at", null)
+      .order("approved_at", { ascending: false })
+      .limit(60);
+    if (error) throw new Error("تعذر تحميل المحتوى المنتظر");
+    return data ?? [];
+  });
+
+/** [مسؤول] اعتماد نهائي للمحتوى — يفعّل تحميل PDF للمستخدم */
+export const adminApproveTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => TemplateIdInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("غير مصرح لك");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("story_templates")
+      .update({
+        admin_approved_at: new Date().toISOString(),
+        admin_approved_by: context.userId,
+      } as never)
+      .eq("id", data.templateId);
+    if (error) throw new Error("تعذر اعتماد المحتوى");
+    return { ok: true };
+  });
+
+/** [مسؤول] رفض / إعادة محتوى للمستخدم للتعديل (يلغي approved_at) */
+export const adminRejectTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => TemplateIdInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("غير مصرح لك");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("story_templates")
+      .update({ approved_at: null } as never)
+      .eq("id", data.templateId);
+    if (error) throw new Error("تعذر إعادة المحتوى");
+    return { ok: true };
   });
