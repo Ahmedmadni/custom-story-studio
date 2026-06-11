@@ -16,6 +16,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoriesSlugRouteImport } from './routes/stories.$slug'
 import { Route as AuthenticatedMyOrdersRouteImport } from './routes/_authenticated.my-orders'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedStoryOrderIdRouteImport } from './routes/_authenticated.story.$orderId'
 import { Route as AuthenticatedOrderTemplateIdRouteImport } from './routes/_authenticated.order.$templateId'
 
@@ -53,6 +54,11 @@ const AuthenticatedMyOrdersRoute = AuthenticatedMyOrdersRouteImport.update({
   path: '/my-orders',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedStoryOrderIdRoute =
   AuthenticatedStoryOrderIdRouteImport.update({
     id: '/story/$orderId',
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
   '/stories': typeof StoriesRouteWithChildren
+  '/admin': typeof AuthenticatedAdminRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
   '/stories': typeof StoriesRouteWithChildren
+  '/admin': typeof AuthenticatedAdminRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/create': typeof CreateRoute
   '/stories': typeof StoriesRouteWithChildren
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/my-orders': typeof AuthenticatedMyOrdersRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/_authenticated/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/create'
     | '/stories'
+    | '/admin'
     | '/my-orders'
     | '/stories/$slug'
     | '/order/$templateId'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/create'
     | '/stories'
+    | '/admin'
     | '/my-orders'
     | '/stories/$slug'
     | '/order/$templateId'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/create'
     | '/stories'
+    | '/_authenticated/admin'
     | '/_authenticated/my-orders'
     | '/stories/$slug'
     | '/_authenticated/order/$templateId'
@@ -191,6 +203,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMyOrdersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/story/$orderId': {
       id: '/_authenticated/story/$orderId'
       path: '/story/$orderId'
@@ -209,12 +228,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedMyOrdersRoute: typeof AuthenticatedMyOrdersRoute
   AuthenticatedOrderTemplateIdRoute: typeof AuthenticatedOrderTemplateIdRoute
   AuthenticatedStoryOrderIdRoute: typeof AuthenticatedStoryOrderIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedMyOrdersRoute: AuthenticatedMyOrdersRoute,
   AuthenticatedOrderTemplateIdRoute: AuthenticatedOrderTemplateIdRoute,
   AuthenticatedStoryOrderIdRoute: AuthenticatedStoryOrderIdRoute,
