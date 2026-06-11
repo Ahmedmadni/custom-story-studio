@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
   ArrowRight,
+  BadgeCheck,
   BookOpen,
   Camera,
   Check,
@@ -11,9 +12,12 @@ import {
   ChevronRight,
   GraduationCap,
   Loader2,
+  Pencil,
   RotateCcw,
+  Save,
   Sparkles,
   Wand2,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -27,7 +31,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { generateAiStory, generatePageImage } from "@/lib/ai.functions";
+import { generateAiStory, generatePageImage, updatePageText } from "@/lib/ai.functions";
 import { CONTENT_TYPE_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/storyTypes";
 import { isValidEgyptianMobile } from "@/lib/whatsapp";
 
@@ -52,7 +56,8 @@ const STEPS = [
   "صورة الطفل",
   "نوع المحتوى",
   "التوليد",
-  "المعاينة والمشاركة",
+  "المعاينة والاعتماد",
+  "التصدير والمشاركة",
 ];
 
 const MAX_PHOTO_MB = 8;
@@ -61,6 +66,7 @@ function CreateWizard() {
   const { user, loading } = useAuth();
   const generateFn = useServerFn(generateAiStory);
   const imageFn = useServerFn(generatePageImage);
+  const updateFn = useServerFn(updatePageText);
 
   const [step, setStep] = useState(0);
   const [childName, setChildName] = useState("");
@@ -76,6 +82,13 @@ function CreateWizard() {
   const [imgGenActive, setImgGenActive] = useState(false);
   const [imgGenCount, setImgGenCount] = useState(0);
   const [imgGenTotal, setImgGenTotal] = useState(0);
+  // تعديلات المستخدم على نصوص الصفحات قبل الاعتماد
+  const [pageEdits, setPageEdits] = useState<Record<number, { title: string; text: string }>>({});
+  const [editingPage, setEditingPage] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editText, setEditText] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [regenPage, setRegenPage] = useState<number | null>(null);
 
   /** توليد صور الصفحات بالتتابع — كل صورة من مشهد نص صفحتها */
   const generateImages = async (
@@ -193,6 +206,68 @@ function CreateWizard() {
   const personalize = (t: string) =>
     t.replaceAll("{child}", childName.trim() || "بطلنا");
 
+  /** الصفحة بعد تطبيق تعديلات المستخدم عليها */
+  const withEdits = <T extends { n: number; title?: string; text: string }>(p: T): T =>
+    pageEdits[p.n]
+      ? { ...p, title: pageEdits[p.n].title || p.title, text: pageEdits[p.n].text }
+      : p;
+
+  const shownPage = currentPage ? withEdits(currentPage) : undefined;
+
+  const goToPage = (i: number) => {
+    setEditingPage(null);
+    setPageIndex(i);
+  };
+
+  const startEdit = () => {
+    if (!shownPage) return;
+    setEditTitle(shownPage.title ?? "");
+    setEditText(shownPage.text);
+    setEditingPage(shownPage.n);
+  };
+
+  const saveEdit = async () => {
+    if (!result || editingPage === null) return;
+    const pn = editingPage;
+    setSavingEdit(true);
+    try {
+      await updateFn({
+        data: {
+          templateId: result.id,
+          pageNumber: pn,
+          title: editTitle.trim() || undefined,
+          text: editText.trim(),
+        },
+      });
+      setPageEdits((m) => ({ ...m, [pn]: { title: editTitle.trim(), text: editText.trim() } }));
+      setEditingPage(null);
+      toast.success("تم حفظ التعديل ✏️");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "تعذر حفظ التعديل");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const regenerateImage = async (n: number) => {
+    if (!result) return;
+    setRegenPage(n);
+    try {
+      const r = await imageFn({ data: { templateId: result.id, pageNumber: n } });
+      if (r.imageUrl) {
+        const url = r.imageUrl;
+        setPageImages((m) => ({ ...m, [n]: url }));
+        toast.success("تم رسم صورة جديدة لهذه الصفحة 🎨");
+      } else {
+        toast.error("لم نحصل على صورة، حاول مرة أخرى");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "تعذر إعادة رسم الصورة");
+    } finally {
+      setRegenPage(null);
+    }
+  };
+
   const reset = () => {
     mutation.reset();
     setStep(0);
@@ -209,6 +284,11 @@ function CreateWizard() {
     setImgGenActive(false);
     setImgGenCount(0);
     setImgGenTotal(0);
+    setPageEdits({});
+    setEditingPage(null);
+    setEditTitle("");
+    setEditText("");
+    setRegenPage(null);
   };
 
 
@@ -496,6 +576,9 @@ function CreateWizard() {
                         {result.moral}
                       </p>
                     )}
+                    <p className="mx-auto mt-3 inline-block rounded-full bg-secondary/60 px-4 py-1.5 text-xs font-bold text-secondary-foreground">
+                      👀 راجع كل صفحة — يمكنك تعديل النص أو إعادة رسم الصورة قبل الاعتماد
+                    </p>
                   </div>
 
                   {/* Page viewer: عنوان + صورة + نص + رقم الصفحة */}
@@ -504,10 +587,10 @@ function CreateWizard() {
                     className="mt-6 overflow-hidden rounded-2xl border-2 border-secondary bg-card shadow-sm"
                   >
                     <div className="relative aspect-square w-full bg-secondary/30 md:aspect-[4/3]">
-                      {currentPage && pageImages[currentPage.n] ? (
+                      {shownPage && pageImages[shownPage.n] ? (
                         <img
-                          src={pageImages[currentPage.n]}
-                          alt={currentPage.title ?? `صورة الصفحة ${currentPage.n}`}
+                          src={pageImages[shownPage.n]}
+                          alt={shownPage.title ?? `صورة الصفحة ${shownPage.n}`}
                           className="h-full w-full object-cover"
                         />
                       ) : (
@@ -526,28 +609,118 @@ function CreateWizard() {
                           )}
                         </div>
                       )}
+                      {shownPage && regenPage === shownPage.n && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/70 backdrop-blur-sm">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                          <span className="text-sm font-bold">🎨 جارٍ رسم صورة جديدة…</span>
+                        </div>
+                      )}
                       <span className="absolute bottom-3 start-3 rounded-full bg-primary px-3.5 py-1 text-xs font-extrabold text-primary-foreground shadow-md">
-                        {result.language === "en" ? "Page" : "صفحة"} {currentPage?.n}
+                        {result.language === "en" ? "Page" : "صفحة"} {shownPage?.n}
                       </span>
                     </div>
                     <div className="p-6 text-center">
-                      {currentPage?.title && (
-                        <h3 className="font-display text-2xl font-extrabold text-primary">
-                          {currentPage.title}
-                        </h3>
+                      {shownPage && editingPage === shownPage.n ? (
+                        <div dir="rtl" className="text-start">
+                          <Label htmlFor="editTitle" className="font-bold">
+                            عنوان الصفحة
+                          </Label>
+                          <Input
+                            id="editTitle"
+                            dir={result.language === "en" ? "ltr" : "rtl"}
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            maxLength={80}
+                            className="mt-1 rounded-xl"
+                          />
+                          <Label htmlFor="editText" className="mt-4 block font-bold">
+                            نص الصفحة
+                          </Label>
+                          <Textarea
+                            id="editText"
+                            dir={result.language === "en" ? "ltr" : "rtl"}
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            rows={4}
+                            maxLength={1000}
+                            className="mt-1 rounded-xl"
+                          />
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            💡 اكتب {"{child}"} ليظهر اسم الطفل تلقائياً مكانها
+                          </p>
+                          <div className="mt-4 flex flex-wrap justify-center gap-2">
+                            <Button
+                              size="sm"
+                              disabled={savingEdit || editText.trim().length === 0}
+                              onClick={() => void saveEdit()}
+                              className="rounded-full px-6 font-bold"
+                            >
+                              {savingEdit ? (
+                                <Loader2 className="ms-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Save className="ms-2 h-4 w-4" />
+                              )}
+                              حفظ التعديل
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={savingEdit}
+                              onClick={() => setEditingPage(null)}
+                              className="rounded-full px-6 font-bold"
+                            >
+                              <X className="ms-2 h-4 w-4" />
+                              إلغاء
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {shownPage?.title && (
+                            <h3 className="font-display text-2xl font-extrabold text-primary">
+                              {shownPage.title}
+                            </h3>
+                          )}
+                          <p className="mt-2 min-h-16 font-display text-xl font-semibold leading-relaxed">
+                            {personalize(shownPage?.text ?? "")}
+                          </p>
+                        </>
                       )}
-                      <p className="mt-2 min-h-16 font-display text-xl font-semibold leading-relaxed">
-                        {personalize(currentPage?.text ?? "")}
-                      </p>
                     </div>
                   </div>
+
+                  {/* أدوات الصفحة الحالية: تعديل النص / إعادة رسم الصورة */}
+                  {shownPage && editingPage === null && (
+                    <div dir="rtl" className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full font-bold"
+                        onClick={startEdit}
+                      >
+                        <Pencil className="ms-2 h-4 w-4" />
+                        تعديل النص
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full font-bold"
+                        disabled={regenPage !== null || imgGenActive}
+                        onClick={() => void regenerateImage(shownPage.n)}
+                      >
+                        <RotateCcw className="ms-2 h-4 w-4" />
+                        إعادة رسم الصورة
+                      </Button>
+                    </div>
+                  )}
+
                   <div dir="rtl" className="mt-4 flex items-center justify-center gap-4">
                     <Button
                       variant="outline"
                       size="icon"
                       className="rounded-full"
                       disabled={pageIndex === 0}
-                      onClick={() => setPageIndex((i) => Math.max(0, i - 1))}
+                      onClick={() => goToPage(Math.max(0, pageIndex - 1))}
                       aria-label="الصفحة السابقة"
                     >
                       <ChevronRight className="h-5 w-5" />
@@ -556,7 +729,7 @@ function CreateWizard() {
                       {result.pages.map((p, i) => (
                         <button
                           key={p.n}
-                          onClick={() => setPageIndex(i)}
+                          onClick={() => goToPage(i)}
                           aria-label={`صفحة ${p.n}`}
                           className={`h-2.5 rounded-full transition-all ${
                             i === pageIndex ? "w-7 bg-primary" : "w-2.5 bg-border"
@@ -569,9 +742,7 @@ function CreateWizard() {
                       size="icon"
                       className="rounded-full"
                       disabled={pageIndex === result.pages.length - 1}
-                      onClick={() =>
-                        setPageIndex((i) => Math.min(result.pages.length - 1, i + 1))
-                      }
+                      onClick={() => goToPage(Math.min(result.pages.length - 1, pageIndex + 1))}
                       aria-label="الصفحة التالية"
                     >
                       <ChevronLeft className="h-5 w-5" />
@@ -599,8 +770,6 @@ function CreateWizard() {
                       </div>
                     )}
 
-
-
                   {result.orderCreated ? (
                     <p className="mt-6 rounded-2xl bg-grass/15 p-4 text-center text-sm font-semibold text-grass">
                       🎉 تم استلام طلبك! بعد الموافقة سنولّد الصفحات المصورة بصورة
@@ -619,6 +788,49 @@ function CreateWizard() {
                     </p>
                   )}
 
+                  {/* اعتماد المحتوى */}
+                  <div className="mt-8 rounded-2xl border-2 border-grass/40 bg-grass/10 p-5 text-center">
+                    <p className="text-sm font-semibold">
+                      راضٍ عن كل الصفحات؟ اعتمد المحتوى للانتقال إلى خطوة التصدير والمشاركة
+                    </p>
+                    <Button
+                      size="lg"
+                      disabled={imgGenActive || regenPage !== null || editingPage !== null}
+                      onClick={() => setStep(7)}
+                      className="mt-4 rounded-full bg-grass px-10 text-base font-bold text-grass-foreground shadow-lg hover:bg-grass/90"
+                    >
+                      <BadgeCheck className="ms-2 h-5 w-5" />
+                      اعتماد المحتوى
+                    </Button>
+                    {!imgGenActive && result.pages.some((p) => !pageImages[p.n]) && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        ⚠️ بعض الصور ناقصة — الأفضل إعادة توليدها قبل الاعتماد ليكون الملف كاملاً
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-3 text-center">
+                    <Button variant="ghost" className="rounded-full font-bold" onClick={reset}>
+                      <RotateCcw className="ms-2 h-4 w-4" />
+                      إنشاء جديد
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {step === 7 && result && (
+                <div className="text-center">
+                  <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-grass/15">
+                    <BadgeCheck className="h-9 w-9 text-grass" />
+                  </span>
+                  <h2 className="mt-3 font-display text-3xl font-extrabold">
+                    تم اعتماد المحتوى 🎉
+                  </h2>
+                  <p className="mx-auto mt-2 max-w-md text-muted-foreground">
+                    «{personalize(result.title)}» جاهز الآن — حمّل ملف PDF عالي الجودة ثم
+                    شاركه عبر واتساب
+                  </p>
+
                   {/* Export & share */}
                   <div className="mt-6">
                     <PdfActions
@@ -627,28 +839,42 @@ function CreateWizard() {
                       moral={result.moral ? personalize(result.moral) : null}
                       language={result.language}
                       contentType={result.contentType}
-                      pages={result.pages.map((p) => ({
-                        n: p.n,
-                        title: p.title ?? null,
-                        text: p.text,
-                        imageUrl: pageImages[p.n] ?? null,
-                      }))}
-                      disabled={imgGenActive}
+                      pages={result.pages.map((p) => {
+                        const v = withEdits(p);
+                        return {
+                          n: v.n,
+                          title: v.title || null,
+                          text: v.text,
+                          imageUrl: pageImages[v.n] ?? null,
+                        };
+                      })}
                     />
-                    <div className="mt-3 text-center">
-                      <Button
-                        size="lg"
-                        variant="ghost"
-                        className="rounded-full font-bold"
-                        onClick={reset}
-                      >
-                        <RotateCcw className="ms-2 h-4 w-4" />
-                        إنشاء جديد
-                      </Button>
-                    </div>
-                    <p className="mt-1 text-center text-xs text-muted-foreground">
-                      يحتوي الملف على غلاف وجميع الصفحات بالنص والصورة، وتحفظ نسخة في حسابك
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    يحتوي الملف على غلاف وجميع الصفحات بالنص والصورة، وتحفظ نسخة تلقائياً في
+                    حسابك
+                  </p>
+
+                  {result.orderCreated && (
+                    <p className="mt-5 rounded-2xl bg-grass/15 p-4 text-sm font-semibold text-grass">
+                      🎉 طلب النسخة المصورة بصورة طفلك مستلم — سنرسلها لك عبر الواتساب بعد
+                      الموافقة
                     </p>
+                  )}
+
+                  <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                    <Button
+                      variant="outline"
+                      className="rounded-full px-6 font-bold"
+                      onClick={() => setStep(6)}
+                    >
+                      <ArrowRight className="ms-1 h-4 w-4" />
+                      العودة للمعاينة والتعديل
+                    </Button>
+                    <Button variant="ghost" className="rounded-full font-bold" onClick={reset}>
+                      <RotateCcw className="ms-2 h-4 w-4" />
+                      إنشاء جديد
+                    </Button>
                   </div>
                 </div>
               )}
@@ -699,7 +925,7 @@ function CreateWizard() {
               </p>
               {result.moral && <p className="mt-4 text-lg">{result.moral}</p>}
             </div>
-            {result.pages.map((p) => (
+            {result.pages.map(withEdits).map((p) => (
               <div
                 key={p.n}
                 className="print-page min-h-screen flex-col items-center justify-center gap-5 p-8"
