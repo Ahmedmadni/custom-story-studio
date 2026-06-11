@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { BookOpen, Wand2 } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { BookOpen } from "lucide-react";
 import { useState } from "react";
 
 import { CardShimmer } from "@/components/CardShimmer";
@@ -10,7 +10,6 @@ import { FilterChips } from "@/components/FilterChips";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { StoryCard } from "@/features/library/StoryCard";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { CATEGORIES } from "@/features/ai/storyTypes";
 
