@@ -3,6 +3,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, Eye, FileDown, Wand2 } from "lucide-react";
 
+import { EmptyState } from "@/components/EmptyState";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -11,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyPdfs } from "@/lib/pdf.functions";
+
 
 export const Route = createFileRoute("/_authenticated/my-orders")({
   head: () => ({
@@ -66,15 +68,17 @@ function MyOrders() {
               <Skeleton key={i} className="h-28 rounded-3xl" />
             ))
           ) : (orders ?? []).length === 0 ? (
-            <div className="rounded-3xl border-2 border-dashed border-border p-10 text-center">
-              <BookOpen className="mx-auto h-10 w-10 text-muted-foreground" />
-              <p className="mt-3 font-semibold text-muted-foreground">
-                لا توجد طلبات بعد
-              </p>
-              <Button asChild className="mt-4 rounded-full font-bold">
-                <Link to="/stories">تصفح القصص</Link>
-              </Button>
-            </div>
+            <EmptyState
+              icon={<BookOpen className="h-7 w-7" />}
+              title="لا توجد طلبات بعد"
+              description="تصفّح المكتبة واختر القصة التي تحبّها لطفلك."
+              action={
+                <Button asChild className="rounded-full font-bold">
+                  <Link to="/stories">تصفح القصص</Link>
+                </Button>
+              }
+            />
+
           ) : (
             (orders ?? []).map((o) => (
               <div
