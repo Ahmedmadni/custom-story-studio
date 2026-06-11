@@ -7,7 +7,6 @@ import {
   ShoppingBag,
   Sparkles,
   UserRound,
-  Wand2,
 } from "lucide-react";
 
 import { Footer } from "@/components/Footer";
