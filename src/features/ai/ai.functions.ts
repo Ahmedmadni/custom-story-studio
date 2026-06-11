@@ -375,7 +375,7 @@ export const generatePageImage = createServerFn({ method: "POST" })
       ? ""
       : `\n${ageStylePrompt(tpl.age_range)}.`;
     const photoPart = photoDataUrl
-      ? `\n${photoModePrompt(data.photoMode ?? "cartoon")}.`
+      ? `\n${photoModePrompt(data.photoMode ?? "real")}.`
       : "";
     const titlePart = page.image_title_en ? `\n${bakedTitlePrompt(page.image_title_en)}` : "";
     const prompt = `${STORY_STYLE_PROMPT}.${agePart}${photoPart}${titlePart}
