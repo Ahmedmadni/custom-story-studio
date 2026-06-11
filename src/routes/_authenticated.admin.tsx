@@ -660,8 +660,10 @@ function UsagePanel() {
           <ProviderChip name="Lovable AI Gateway" active={stats.providers.lovable} primary />
           <ProviderChip name="OpenAI (مزود بديل)" active={stats.providers.openai} />
           <ProviderChip name="Google Gemini (مزود بديل)" active={stats.providers.gemini} />
+          <ProviderChip name="Stability AI (مزود بديل)" active={stats.providers.stability} />
+          <ProviderChip name="Replicate / FLUX (مزود بديل)" active={stats.providers.replicate} />
         </div>
-        {!stats.providers.openai && !stats.providers.gemini && (
+        {!stats.providers.openai && !stats.providers.gemini && !stats.providers.stability && !stats.providers.replicate && (
           <details className="mt-3 text-xs">
             <summary className="cursor-pointer font-bold text-primary hover:underline">
               كيف أُفعّل مزوّداً بديلاً عند نفاد رصيد Lovable؟

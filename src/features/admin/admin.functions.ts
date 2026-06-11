@@ -197,7 +197,7 @@ The child is the main hero of the scene. Square children's storybook illustratio
 
     // محاولة Lovable AI أولاً، ثم OpenAI، ثم Gemini تلقائياً عند الفشل
     let base64: string | null = null;
-    let providerUsed: "lovable" | "openai" | "gemini" = "lovable";
+    let providerUsed: "lovable" | "openai" | "gemini" | "stability" | "replicate" = "lovable";
 
     const lovableRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -316,6 +316,102 @@ The child is the main hero of the scene. Square children's storybook illustratio
         }
       } catch (e) {
         console.error("Gemini fallback error", e);
+      }
+    }
+
+    // Fallback 3: Stability AI (Stable Diffusion 3) — text-to-image (لا يقبل صورة الطفل كمدخل في هذا المسار)
+    if (!base64 && process.env.STABILITY_API_KEY) {
+      providerUsed = "stability";
+      try {
+        const form = new FormData();
+        form.append("prompt", prompt);
+        form.append("output_format", "png");
+        form.append("aspect_ratio", "1:1");
+        form.append("model", "sd3.5-large");
+
+        const stabRes = await fetch(
+          "https://api.stability.ai/v2beta/stable-image/generate/sd3",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
+              Accept: "image/*",
+            },
+            body: form,
+          },
+        );
+
+        if (stabRes.ok) {
+          const buf = Buffer.from(await stabRes.arrayBuffer());
+          base64 = buf.toString("base64");
+        } else {
+          console.error("Stability fallback failed", stabRes.status, await stabRes.text().catch(() => ""));
+        }
+      } catch (e) {
+        console.error("Stability fallback error", e);
+      }
+    }
+
+    // Fallback 4: Replicate (FLUX schnell) عبر بوابة Lovable
+    if (!base64 && process.env.LOVABLE_API_KEY && process.env.REPLICATE_API_KEY) {
+      providerUsed = "replicate";
+      try {
+        const GW = "https://connector-gateway.lovable.dev/replicate/v1";
+        const headers = {
+          Authorization: `Bearer ${process.env.LOVABLE_API_KEY}`,
+          "X-Connection-Api-Key": process.env.REPLICATE_API_KEY as string,
+          "Content-Type": "application/json",
+        };
+
+        const createRes = await fetch(
+          `${GW}/models/black-forest-labs/flux-schnell/predictions`,
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              input: { prompt, aspect_ratio: "1:1", output_format: "png", num_outputs: 1 },
+            }),
+          },
+        );
+
+        if (!createRes.ok) {
+          console.error("Replicate create failed", createRes.status, await createRes.text().catch(() => ""));
+        } else {
+          const created = (await createRes.json()) as { id?: string; status?: string };
+          const predId = created.id;
+          if (predId) {
+            let outputUrl: string | null = null;
+            for (let i = 0; i < 60; i++) {
+              await new Promise((r) => setTimeout(r, i < 5 ? 2000 : 4000));
+              const pollRes = await fetch(`${GW}/predictions/${predId}`, {
+                headers: { ...headers, "Content-Type": "application/json" },
+              });
+              if (!pollRes.ok) continue;
+              const pj = (await pollRes.json()) as {
+                status?: string;
+                output?: string | string[];
+                error?: unknown;
+              };
+              if (pj.status === "succeeded") {
+                const out = Array.isArray(pj.output) ? pj.output[0] : pj.output;
+                if (typeof out === "string") outputUrl = out;
+                break;
+              }
+              if (pj.status === "failed" || pj.status === "canceled") {
+                console.error("Replicate failed", pj.error);
+                break;
+              }
+            }
+            if (outputUrl) {
+              const imgRes = await fetch(outputUrl);
+              if (imgRes.ok) {
+                base64 = Buffer.from(await imgRes.arrayBuffer()).toString("base64");
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Replicate fallback error", e);
       }
     }
 
@@ -450,6 +546,8 @@ export const adminGetUsageStats = createServerFn({ method: "POST" })
         lovable: Boolean(process.env.LOVABLE_API_KEY),
         openai: Boolean(process.env.OPENAI_API_KEY),
         gemini: Boolean(process.env.GEMINI_API_KEY),
+        stability: Boolean(process.env.STABILITY_API_KEY),
+        replicate: Boolean(process.env.REPLICATE_API_KEY),
       },
     };
   });
