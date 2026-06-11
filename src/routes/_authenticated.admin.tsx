@@ -35,10 +35,16 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   adminGeneratePage,
   adminGetOrderPages,
+  adminGetTemplate,
   adminGetUsageStats,
   adminListOrders,
+  adminListTemplates,
+  adminRegenerateTemplatePageImage,
+  adminRegenerateTemplatePageText,
   adminRejectPayment,
   adminSetStatus,
+  adminUpdateTemplatePage,
+  adminUploadTemplatePageImage,
   adminVerifyPayment,
 } from "@/features/admin/admin.functions";
 
@@ -102,6 +108,7 @@ function AdminPage() {
         </p>
         <UsagePanel />
         <PendingTemplatesList />
+        <TemplatesManager />
 
         <OrdersList />
       </main>
