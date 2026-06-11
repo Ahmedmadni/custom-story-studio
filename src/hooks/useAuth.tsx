@@ -34,8 +34,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
+    // Fire-and-forget role lookup — never await inside auth callbacks.
     const loadRole = (userId: string) => {
-      void supabase
+      supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
@@ -46,27 +47,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
     };
 
-    // 1) سجّل المستمع أولاً لئلا تُفقد أحداث الجلسة
-    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+    // 1) Register listener FIRST so we don't miss SIGNED_IN.
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       if (cancelled) return;
-      // تجاهل الأحداث الدورية التي قد تجمّد الواجهة
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED" && event !== "INITIAL_SESSION") {
-        return;
-      }
       setSession(s);
       setUser(s?.user ?? null);
+      setIsAdmin(false);
       if (s?.user) loadRole(s.user.id);
-      else setIsAdmin(false);
-    });
-
-    // 2) ثم اقرأ الجلسة الحالية وارفع loading فوراً
-    void supabase.auth.getSession().then(({ data }) => {
-      if (cancelled) return;
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) loadRole(data.session.user.id);
+      // Any auth event means we're hydrated.
       setLoading(false);
     });
+
+    // 2) Then read the current session to hydrate on first load.
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+        if (data.session?.user) loadRole(data.session.user.id);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
     return () => {
       cancelled = true;
@@ -76,6 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
+    setIsAdmin(false);
   };
 
   return (

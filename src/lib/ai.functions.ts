@@ -132,19 +132,19 @@ ${jsonShape(language)}`;
   // توجيهات مشهد غنيّ لكل فئة كتاب — تجعل الصفحة الواحدة تحوي عناصر متعددة
   const richSceneByCategory: Record<string, string> = {
     animals:
-      "Each scene must be a single dense educational POSTER showing AT LEAST 8 different cute animals arranged in a neat grid or scene, each animal clearly separated and labeled with its name written next to it (use the page's image_title_en plus the animal names baked into the artwork). The hero child stands among them pointing or interacting.",
+      "Each scene is a dense educational POSTER showing AT LEAST 8 COMPLETELY DIFFERENT animal SPECIES on the same page — every animal must be a unique species, NO duplicates and NO multiple of the same animal (e.g. lion + elephant + giraffe + monkey + zebra + penguin + dolphin + owl). Arrange them in a clear grid or jungle scene, each animal clearly separated and labeled with its name written next to it. The hero child stands among them pointing or interacting.",
     fruits:
-      "Each scene is a colorful poster grid with AT LEAST 8 distinct fruits clearly separated, each labeled with its name. The hero child appears as a friendly guide.",
+      "Each scene is a colorful poster showing AT LEAST 8 COMPLETELY DIFFERENT fruit TYPES on the same page — every fruit must be a unique kind, NO repeats (e.g. apple + banana + grape + orange + strawberry + watermelon + pineapple + kiwi + mango). Each fruit clearly separated and labeled. The hero child appears as a friendly guide.",
     colors:
-      "Each scene is a vibrant color-wheel or grid poster showing multiple distinct color swatches with an everyday object of that color next to each, labeled. The hero child appears as a friendly guide.",
+      "Each scene shows AT LEAST 8 DIFFERENT colors on the same page, each color swatch paired with a unique everyday object of that color (red apple, blue sky, yellow sun, green leaf, orange carrot, purple grape, pink flower, brown bear...). All clearly labeled. The hero child appears as a friendly guide.",
     arabic_letters:
-      "Alternate page TYPES across the book: (A) huge single-letter showcase page with the Arabic letter rendered enormously plus 3-4 example objects starting with it; (B) practical scene where objects whose names start with the letter fill the page (e.g. letter ب → باب، بطة، بيت...); (C) tracing/coloring page rendered as pure black outline on plain white background, no fills, dotted guide lines. Vary types across pages.",
+      "Alternate page TYPES across the book: (A) huge single-letter showcase page with the Arabic letter rendered enormously plus 4-6 DIFFERENT example objects whose names start with it; (B) practical scene where 6+ DIFFERENT objects whose names start with the letter fill the page (e.g. letter ب → باب، بطة، بيت، بطيخ، بقرة...) — every object unique; (C) tracing/coloring page rendered as pure black outline on plain white background, no fills, dotted guide lines. Vary types across pages.",
     english_letters:
-      "Alternate page TYPES across the book: (A) huge single-letter showcase with 3-4 example objects; (B) practical scene filled with objects starting with that letter; (C) tracing/coloring page (black outline on white, dotted guides). Vary types across pages.",
+      "Alternate page TYPES across the book: (A) huge single-letter showcase with 4-6 DIFFERENT example objects starting with that letter; (B) practical scene filled with 6+ DIFFERENT objects starting with that letter, every object unique; (C) tracing/coloring page (black outline on white, dotted guides). Vary types across pages.",
     mathematics:
-      "For counting pages, the scene must literally contain the depicted quantity (page about number 1 → exactly 1 cute object; number 2 → exactly 2 of the same object; etc.). Mix: counting pages, shape-recognition grids (multiple shapes labeled), simple addition visual stories, and one coloring/practice page (black outline on white).",
+      "For counting pages, the scene must literally contain the depicted quantity (page about number 1 → exactly 1 cute object; number 2 → exactly 2 of the same kind of object; number 5 → exactly 5; etc. — count must match exactly). Mix: counting pages, shape-recognition grids with 6+ DIFFERENT shapes labeled, simple addition visual stories, and one coloring/practice page (black outline on white).",
     science:
-      "Each scene is a rich educational poster (water cycle, plant parts, solar system, body parts...) with multiple labeled elements arranged clearly. The hero child appears as an explorer/scientist.",
+      "Each scene is a rich educational poster (water cycle, plant parts, solar system, body parts...) with 6+ DIFFERENT labeled elements arranged clearly. The hero child appears as an explorer/scientist.",
     programming:
       "Each scene is a friendly step-by-step visual (numbered cards or flow) showing a concept (sequence, loop, condition) with everyday objects. The hero child appears as the little coder.",
   };
