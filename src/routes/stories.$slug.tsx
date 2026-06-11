@@ -115,21 +115,42 @@ function StoryPreview() {
                 </div>
               )}
 
-              <div className="mt-8">
-                <Button
-                  asChild
-                  size="lg"
-                  className="rounded-full px-10 text-base font-bold shadow-lg"
-                >
-                  <Link to="/order/$templateId" params={{ templateId: story.id }}>
-                    <Camera className="ms-2 h-5 w-5" />
-                    اطلبها بصورة طفلك
-                  </Link>
-                </Button>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  سيتحول طفلك إلى بطل كرتوني ثلاثي الأبعاد في كل صفحات القصة ✨
-                </p>
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                {inCart ? (
+                  <>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="rounded-full px-8 text-base font-bold"
+                      disabled
+                    >
+                      <Check className="ms-2 h-5 w-5 text-grass" />
+                      في السلة
+                    </Button>
+                    <Button
+                      size="lg"
+                      className="rounded-full px-8 text-base font-bold shadow-lg"
+                      onClick={() => void navigate({ to: "/cart" })}
+                    >
+                      <ShoppingCart className="ms-2 h-5 w-5" />
+                      اذهب للسلة
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    size="lg"
+                    className="rounded-full px-10 text-base font-bold shadow-lg"
+                    onClick={addToCart}
+                  >
+                    <ShoppingCart className="ms-2 h-5 w-5" />
+                    أضف للسلة — {PRICE_PER_ITEM_EGP} ج
+                  </Button>
+                )}
               </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                ادفع عبر فودافون كاش، ارفع صورة طفلك وإيصال السداد، وستصلك القصة على واتساب كملف PDF ✨
+              </p>
+
 
               {pages.length > 0 && (
                 <div className="mt-10">
