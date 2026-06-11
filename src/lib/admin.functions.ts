@@ -235,13 +235,17 @@ export const adminGetOrderPages = createServerFn({ method: "POST" })
 
     return Promise.all(
       (rows ?? []).map(async (r) => {
-        const { data: signed } = await supabaseAdmin.storage
-          .from("story-pages")
-          .createSignedUrl(r.image_path, 3600);
+        let imageUrl: string | null = null;
+        if (r.image_path) {
+          const { data: signed } = await supabaseAdmin.storage
+            .from("story-pages")
+            .createSignedUrl(r.image_path, 3600);
+          imageUrl = signed?.signedUrl ?? null;
+        }
         return {
           pageNumber: r.page_number,
           text: r.page_text,
-          imageUrl: signed?.signedUrl ?? null,
+          imageUrl,
         };
       }),
     );
