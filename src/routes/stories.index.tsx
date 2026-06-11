@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { CATEGORIES } from "@/lib/storyTypes";
 
-export const Route = createFileRoute("/stories")({
+export const Route = createFileRoute("/stories/")({
   head: () => ({
     meta: [
       { title: "مكتبة القصص — حكايتي" },
