@@ -14,7 +14,9 @@ export const getMyStory = createServerFn({ method: "POST" })
     // RLS يضمن أن المستخدم يرى طلبه فقط (أو المدير)
     const { data: order, error } = await context.supabase
       .from("orders")
-      .select("id, child_name, status, story_templates(title, moral, pages)")
+      .select(
+        "id, child_name, status, story_templates(title, moral, pages, language, content_type)",
+      )
       .eq("id", data.orderId)
       .single();
     if (error || !order) throw new Error("الطلب غير موجود");
