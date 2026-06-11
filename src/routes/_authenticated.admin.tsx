@@ -6,6 +6,7 @@ import {
   ImageIcon,
   Loader2,
   MessageCircle,
+  Receipt,
   ShieldAlert,
   Wand2,
   X,
@@ -15,7 +16,7 @@ import { toast } from "sonner";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { StatusBadge } from "@/features/orders/StatusBadge";
+import { PaymentBadge, StatusBadge } from "@/features/orders/StatusBadge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,13 +24,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import {
   adminGeneratePage,
   adminGetOrderPages,
   adminListOrders,
+  adminRejectPayment,
   adminSetStatus,
+  adminVerifyPayment,
 } from "@/features/admin/admin.functions";
 import {
   adminApproveTemplate,
@@ -48,6 +52,9 @@ export const Route = createFileRoute("/_authenticated/admin")({
 type AdminOrder = {
   id: string;
   status: string;
+  paymentStatus: string;
+  priceEgp: number;
+  paymentRejectionReason: string | null;
   childName: string;
   childAge: number | null;
   whatsapp: string;
@@ -57,6 +64,7 @@ type AdminOrder = {
   storyTitle: string;
   templateId: string | null;
   photoUrl: string | null;
+  receiptUrl: string | null;
   totalPages: number;
   donePages: number;
 };
