@@ -30,8 +30,13 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <Link to="/create" className="text-muted-foreground hover:text-primary">
-                أنشئ قصة جديدة بالذكاء الاصطناعي
+              <Link to="/books" className="text-muted-foreground hover:text-primary">
+                الكتب التعليمية
+              </Link>
+            </li>
+            <li>
+              <Link to="/cart" className="text-muted-foreground hover:text-primary">
+                سلة المشتريات
               </Link>
             </li>
             <li>

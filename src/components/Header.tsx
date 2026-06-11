@@ -1,19 +1,20 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { BookOpen, LogOut, Menu, Shield, Sparkles, X } from "lucide-react";
+import { BookOpen, LogOut, Menu, Shield, ShoppingCart, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/features/cart/CartContext";
 
 const navLinks = [
   { to: "/", label: "الرئيسية" },
   { to: "/stories", label: "القصص" },
   { to: "/books", label: "الكتب التعليمية" },
-  { to: "/create", label: "أنشئ الآن" },
 ];
 
 export function Header() {
   const { user, isAdmin, signOut } = useAuth();
+  const { count } = useCart();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -50,17 +51,37 @@ export function Header() {
             </Link>
           )}
           {isAdmin && (
-            <Link
-              to="/admin"
-              className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-secondary"
-            >
-              <Shield className="h-4 w-4" />
-              لوحة التحكم
-            </Link>
+            <>
+              <Link
+                to="/admin"
+                className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-secondary"
+              >
+                <Shield className="h-4 w-4" />
+                لوحة التحكم
+              </Link>
+              <Link
+                to="/create"
+                className="rounded-full px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-secondary"
+              >
+                إدارة القوالب
+              </Link>
+            </>
           )}
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <Link
+            to="/cart"
+            className="relative inline-flex items-center gap-1 rounded-full bg-secondary px-4 py-2 text-sm font-bold transition-colors hover:bg-secondary/80"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            السلة
+            {count > 0 && (
+              <span className="ms-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-extrabold text-primary-foreground">
+                {count}
+              </span>
+            )}
+          </Link>
           {user ? (
             <Button
               variant="outline"
@@ -83,13 +104,23 @@ export function Header() {
           )}
         </div>
 
-        <button
-          className="md:hidden"
-          onClick={() => setOpen(!open)}
-          aria-label="القائمة"
-        >
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          <Link to="/cart" className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-secondary">
+            <ShoppingCart className="h-4 w-4" />
+            {count > 0 && (
+              <span className="absolute -end-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-extrabold text-primary-foreground">
+                {count}
+              </span>
+            )}
+          </Link>
+          <button
+            onClick={() => setOpen(!open)}
+            aria-label="القائمة"
+            className="inline-flex h-9 w-9 items-center justify-center"
+          >
+            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -115,13 +146,22 @@ export function Header() {
               </Link>
             )}
             {isAdmin && (
-              <Link
-                to="/admin"
-                onClick={() => setOpen(false)}
-                className="rounded-xl px-4 py-3 font-semibold text-accent hover:bg-secondary"
-              >
-                لوحة التحكم
-              </Link>
+              <>
+                <Link
+                  to="/admin"
+                  onClick={() => setOpen(false)}
+                  className="rounded-xl px-4 py-3 font-semibold text-accent hover:bg-secondary"
+                >
+                  لوحة التحكم
+                </Link>
+                <Link
+                  to="/create"
+                  onClick={() => setOpen(false)}
+                  className="rounded-xl px-4 py-3 font-semibold text-accent hover:bg-secondary"
+                >
+                  إدارة القوالب
+                </Link>
+              </>
             )}
             {user ? (
               <Button
