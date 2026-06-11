@@ -983,10 +983,10 @@ export const adminRegenerateTemplatePageImage = createServerFn({ method: "POST" 
     if (!page) throw new Error("الصفحة غير موجودة");
 
     const titleP = page.image_title_en ? `\n${bakedTitlePrompt(page.image_title_en)}` : "";
-    const ageP = page.scene.includes("Age styling") ? "" : `\n${agePart(tpl.age_range)}.`;
-    const prompt = `${STYLE_P}.${ageP}${titleP}
+    const ageP = page.scene.includes("Age styling") ? "" : `\n${ageStylePrompt(tpl.age_range)}.`;
+    const prompt = `${STORY_STYLE_PROMPT}.${ageP}${titleP}
 Children's storybook page illustration that literally depicts this exact scene: ${page.scene}.
-Square composition, rich storytelling details, ${STYLE_N}.`;
+Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
