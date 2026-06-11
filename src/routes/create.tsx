@@ -182,6 +182,7 @@ function CreateWizard() {
           label: "استئناف",
           onClick: () => {
             setChildName(p.childName ?? "");
+            setGender(p.gender ?? "");
             setAge(p.age ?? "");
             setLanguage(p.language ?? "");
             setWhatsapp(p.whatsapp ?? "");
@@ -211,6 +212,7 @@ function CreateWizard() {
     const payload: DraftPayload = {
       step,
       childName,
+      gender: gender || undefined,
       age,
       language: language || undefined,
       whatsapp,
@@ -231,7 +233,7 @@ function CreateWizard() {
     return () => {
       if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
     };
-  }, [user, step, childName, age, language, whatsapp, photoMode, contentType, topic, bookCategory, readingLevel, bookLength, saveDraftFn]);
+  }, [user, step, childName, gender, age, language, whatsapp, photoMode, contentType, topic, bookCategory, readingLevel, bookLength, saveDraftFn]);
 
   // Auto-derive reading level from age when book selected
   useEffect(() => {
