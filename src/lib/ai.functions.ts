@@ -15,6 +15,7 @@ const GenerateInput = z.object({
 
 interface AiStoryPage {
   n: number;
+  title: string;
   text: string;
   scene: string;
 }
@@ -24,6 +25,8 @@ interface AiStoryResult {
   summary: string;
   moral: string;
   category: string;
+  /** وصف ثابت بالإنجليزية لشكل البطل لضمان اتساق الصور بين الصفحات */
+  character: string;
   pages: AiStoryPage[];
 }
 
