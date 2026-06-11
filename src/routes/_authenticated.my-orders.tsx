@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { BookOpen, Eye, Wand2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { BookOpen, Eye, FileDown, Wand2 } from "lucide-react";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { listMyPdfs } from "@/lib/pdf.functions";
 
 export const Route = createFileRoute("/_authenticated/my-orders")({
   head: () => ({
@@ -19,6 +21,7 @@ export const Route = createFileRoute("/_authenticated/my-orders")({
 
 function MyOrders() {
   const { user } = useAuth();
+  const fetchPdfs = useServerFn(listMyPdfs);
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["my-orders", user?.id],
@@ -43,6 +46,12 @@ function MyOrders() {
         .order("created_at", { ascending: false });
       return data ?? [];
     },
+  });
+
+  const { data: myPdfs } = useQuery({
+    queryKey: ["my-pdfs", user?.id],
+    enabled: Boolean(user),
+    queryFn: () => fetchPdfs(),
   });
 
   return (
@@ -131,6 +140,49 @@ function MyOrders() {
                       اطلبها بصورة طفلك
                     </Link>
                   </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(myPdfs ?? []).length > 0 && (
+          <div className="mt-12">
+            <h2 className="flex items-center gap-2 font-display text-2xl font-extrabold">
+              <FileDown className="h-5 w-5 text-grass" />
+              ملفاتي PDF المحفوظة 📄
+            </h2>
+            <div className="mt-4 space-y-3">
+              {(myPdfs ?? []).map((f) => (
+                <div
+                  key={f.name}
+                  className="flex flex-wrap items-center gap-4 rounded-3xl border-2 border-border bg-card p-5"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary text-xl">
+                    📕
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-display text-lg font-bold">
+                      {f.title}
+                    </h3>
+                    {f.createdAt && (
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(f.createdAt).toLocaleDateString("ar-EG", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </p>
+                    )}
+                  </div>
+                  {f.url && (
+                    <Button asChild className="rounded-full font-bold">
+                      <a href={f.url} target="_blank" rel="noopener noreferrer">
+                        <FileDown className="ms-1 h-4 w-4" />
+                        تحميل
+                      </a>
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

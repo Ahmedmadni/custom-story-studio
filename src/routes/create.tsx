@@ -11,8 +11,6 @@ import {
   ChevronRight,
   GraduationCap,
   Loader2,
-  MessageCircle,
-  Printer,
   RotateCcw,
   Sparkles,
   Wand2,
@@ -22,6 +20,7 @@ import { toast } from "sonner";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { PdfActions } from "@/components/PdfActions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,7 +29,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { generateAiStory, generatePageImage } from "@/lib/ai.functions";
 import { CONTENT_TYPE_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/storyTypes";
-import { isValidEgyptianMobile, shareWaLink } from "@/lib/whatsapp";
+import { isValidEgyptianMobile } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -212,13 +211,6 @@ function CreateWizard() {
     setImgGenTotal(0);
   };
 
-  const shareWhatsapp = () => {
-    if (!result) return;
-    const typeLabel = result.contentType === "book" ? "كتاباً تعليمياً" : "قصة";
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const msg = `أنشأت ${typeLabel} بعنوان «${result.title}» لطفلي ${childName.trim()} عبر منصة حكايتي ✨\n${origin}`;
-    window.open(shareWaLink(msg), "_blank", "noopener");
-  };
 
   return (
     <div className="min-h-screen">
@@ -628,37 +620,36 @@ function CreateWizard() {
                   )}
 
                   {/* Export & share */}
-                  <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                    <Button
-                      size="lg"
-                      className="rounded-full px-7 font-bold shadow-lg"
-                      onClick={() => window.print()}
-                    >
-                      <Printer className="ms-2 h-5 w-5" />
-                      تصدير PDF
-                    </Button>
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="rounded-full border-2 border-grass px-7 font-bold text-grass hover:bg-grass hover:text-grass-foreground"
-                      onClick={shareWhatsapp}
-                    >
-                      <MessageCircle className="ms-2 h-5 w-5" />
-                      مشاركة عبر واتساب
-                    </Button>
-                    <Button
-                      size="lg"
-                      variant="ghost"
-                      className="rounded-full font-bold"
-                      onClick={reset}
-                    >
-                      <RotateCcw className="ms-2 h-4 w-4" />
-                      إنشاء جديد
-                    </Button>
+                  <div className="mt-6">
+                    <PdfActions
+                      title={personalize(result.title)}
+                      childName={childName.trim() || null}
+                      moral={result.moral ? personalize(result.moral) : null}
+                      language={result.language}
+                      contentType={result.contentType}
+                      pages={result.pages.map((p) => ({
+                        n: p.n,
+                        title: p.title ?? null,
+                        text: p.text,
+                        imageUrl: pageImages[p.n] ?? null,
+                      }))}
+                      disabled={imgGenActive}
+                    />
+                    <div className="mt-3 text-center">
+                      <Button
+                        size="lg"
+                        variant="ghost"
+                        className="rounded-full font-bold"
+                        onClick={reset}
+                      >
+                        <RotateCcw className="ms-2 h-4 w-4" />
+                        إنشاء جديد
+                      </Button>
+                    </div>
+                    <p className="mt-1 text-center text-xs text-muted-foreground">
+                      يحتوي الملف على غلاف وجميع الصفحات بالنص والصورة، وتحفظ نسخة في حسابك
+                    </p>
                   </div>
-                  <p className="mt-2 text-center text-xs text-muted-foreground">
-                    عند التصدير اختر «حفظ كـ PDF» من نافذة الطباعة
-                  </p>
                 </div>
               )}
 

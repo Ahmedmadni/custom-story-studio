@@ -1,17 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  Printer,
-  Sparkles,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { PdfActions } from "@/components/PdfActions";
 import { Button } from "@/components/ui/button";
 import { getMyStory } from "@/lib/story.functions";
 
@@ -133,17 +128,22 @@ function StoryViewer() {
           </div>
         </div>
 
-        <div className="no-print mt-6 text-center">
-          <Button
-            size="lg"
-            className="rounded-full px-8 font-bold shadow-lg"
-            onClick={() => window.print()}
-          >
-            <Printer className="ms-2 h-5 w-5" />
-            تحميل الكتاب PDF
-          </Button>
-          <p className="mt-2 text-xs text-muted-foreground">
-            اختر «حفظ كـ PDF» من نافذة الطباعة
+        <div className="no-print mt-6">
+          <PdfActions
+            title={story.title}
+            childName={story.childName}
+            moral={story.moral}
+            language={story.language}
+            contentType={story.contentType}
+            pages={pages.map((p) => ({
+              n: p.n,
+              title: p.title,
+              text: p.text,
+              imageUrl: p.imageUrl,
+            }))}
+          />
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            ملف PDF عالي الجودة بغلاف وجميع الصفحات — وتحفظ نسخة في حسابك تلقائياً
           </p>
         </div>
 
