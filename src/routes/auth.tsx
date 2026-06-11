@@ -68,11 +68,10 @@ function AuthPage() {
   };
 
   const googleSignIn = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
     });
-    if (error) toast.error("تعذر الدخول عبر جوجل");
+    if (result.error) toast.error("تعذر الدخول عبر جوجل");
   };
 
   return (
