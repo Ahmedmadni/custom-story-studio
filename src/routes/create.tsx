@@ -544,7 +544,7 @@ function CreateWizard() {
     setLanguage("");
     setPhoto(null);
     setPhotoPreview(null);
-    setPhotoMode("cartoon");
+    setPhotoMode("real");
     setWhatsapp("");
     setContentType("story");
     setTopic("");
