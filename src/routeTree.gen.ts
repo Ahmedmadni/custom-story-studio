@@ -51,9 +51,9 @@ const StoriesIndexRoute = StoriesIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoriesSlugRoute = StoriesSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => StoriesRoute,
+  id: '/stories/$slug',
+  path: '/stories/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedMyOrdersRoute = AuthenticatedMyOrdersRouteImport.update({
   id: '/my-orders',
@@ -162,6 +162,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BooksRoute: typeof BooksRoute
   CreateRoute: typeof CreateRoute
+  StoriesSlugRoute: typeof StoriesSlugRoute
   StoriesIndexRoute: typeof StoriesIndexRoute
 }
 
@@ -211,10 +212,10 @@ declare module '@tanstack/react-router' {
     }
     '/stories/$slug': {
       id: '/stories/$slug'
-      path: '/$slug'
+      path: '/stories/$slug'
       fullPath: '/stories/$slug'
       preLoaderRoute: typeof StoriesSlugRouteImport
-      parentRoute: typeof StoriesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/my-orders': {
       id: '/_authenticated/my-orders'
@@ -271,6 +272,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BooksRoute: BooksRoute,
   CreateRoute: CreateRoute,
+  StoriesSlugRoute: StoriesSlugRoute,
   StoriesIndexRoute: StoriesIndexRoute,
 }
 export const routeTree = rootRouteImport
