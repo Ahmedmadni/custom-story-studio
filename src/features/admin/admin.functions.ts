@@ -310,3 +310,53 @@ export const adminGetOrderPages = createServerFn({ method: "POST" })
       }),
     );
   });
+
+// تكلفة تقديرية بالدولار حسب موديل توليد الصور المستخدم حالياً (gemini-3.1-flash-image-preview)
+// ملاحظة: التكلفة الفعلية تُخصم من رصيد Lovable AI وتُحسب بدقة في Settings → Workspace → Usage
+const COST_PER_IMAGE_USD = 0.04;
+const COST_PER_TEXT_GENERATION_USD = 0.005;
+
+/** إحصائيات الاستخدام والتكلفة التقديرية + حالة المزودات المُهيأة */
+export const adminGetUsageStats = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const [{ count: imagesAll }, { count: images30d }, { count: ordersAll }, { count: templatesAll }] =
+      await Promise.all([
+        supabaseAdmin.from("generated_pages").select("id", { count: "exact", head: true }),
+        supabaseAdmin
+          .from("generated_pages")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", since30d),
+        supabaseAdmin.from("orders").select("id", { count: "exact", head: true }),
+        supabaseAdmin.from("story_templates").select("id", { count: "exact", head: true }),
+      ]);
+
+    const totalImages = imagesAll ?? 0;
+    const imagesLast30d = images30d ?? 0;
+    const estimatedCostUsdTotal = +(totalImages * COST_PER_IMAGE_USD).toFixed(2);
+    const estimatedCostUsd30d = +(imagesLast30d * COST_PER_IMAGE_USD).toFixed(2);
+
+    return {
+      totalImages,
+      imagesLast30d,
+      totalOrders: ordersAll ?? 0,
+      totalTemplates: templatesAll ?? 0,
+      costPerImageUsd: COST_PER_IMAGE_USD,
+      costPerTextUsd: COST_PER_TEXT_GENERATION_USD,
+      estimatedCostUsdTotal,
+      estimatedCostUsd30d,
+      currentImageModel: "google/gemini-3.1-flash-image-preview",
+      currentTextModel: "google/gemini-3-flash-preview",
+      providers: {
+        lovable: Boolean(process.env.LOVABLE_API_KEY),
+        openai: Boolean(process.env.OPENAI_API_KEY),
+        gemini: Boolean(process.env.GEMINI_API_KEY),
+      },
+    };
+  });
+

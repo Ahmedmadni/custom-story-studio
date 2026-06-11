@@ -3,14 +3,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Check,
+  CreditCard,
+  ExternalLink,
   ImageIcon,
+  KeyRound,
   Loader2,
   MessageCircle,
   Receipt,
   ShieldAlert,
+  Sparkles,
   Wand2,
   X,
 } from "lucide-react";
+
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -30,11 +35,13 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   adminGeneratePage,
   adminGetOrderPages,
+  adminGetUsageStats,
   adminListOrders,
   adminRejectPayment,
   adminSetStatus,
   adminVerifyPayment,
 } from "@/features/admin/admin.functions";
+
 import {
   adminApproveTemplate,
   adminListPendingTemplates,
@@ -93,7 +100,9 @@ function AdminPage() {
         <p className="mt-1 text-muted-foreground">
           اعتماد المحتوى المُنشَأ من المستخدمين + إدارة الطلبات
         </p>
+        <UsagePanel />
         <PendingTemplatesList />
+
         <OrdersList />
       </main>
       <Footer />
@@ -579,3 +588,144 @@ function OrderDialog({
     </Dialog>
   );
 }
+
+function UsagePanel() {
+  const statsFn = useServerFn(adminGetUsageStats);
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["admin-usage-stats"],
+    queryFn: () => statsFn(),
+    refetchInterval: 60000,
+  });
+
+  if (isLoading || !stats) {
+    return <Skeleton className="mt-6 h-40 rounded-3xl" />;
+  }
+
+  return (
+    <section className="mt-8 rounded-3xl border-2 border-primary/30 bg-gradient-to-bl from-primary/5 to-sunny/10 p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="flex items-center gap-2 font-display text-xl font-extrabold">
+            <Sparkles className="h-5 w-5 text-primary" />
+            رصيد الاستخدام والتكلفة
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            التكلفة تقديرية — الرصيد الفعلي يُدار من إعدادات Lovable
+          </p>
+        </div>
+        <Button asChild variant="outline" className="rounded-full font-bold">
+          <a
+            href="https://lovable.dev/projects"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <CreditCard className="ms-1 h-4 w-4" />
+            شحن رصيد Lovable AI
+            <ExternalLink className="me-1 h-3 w-3" />
+          </a>
+        </Button>
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <StatCard label="إجمالي الصور المولّدة" value={stats.totalImages.toLocaleString("ar-EG")} />
+        <StatCard label="آخر 30 يوماً" value={stats.imagesLast30d.toLocaleString("ar-EG")} />
+        <StatCard label="إجمالي الطلبات" value={stats.totalOrders.toLocaleString("ar-EG")} />
+        <StatCard label="عدد القوالب" value={stats.totalTemplates.toLocaleString("ar-EG")} />
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <StatCard
+          label="تكلفة الصورة الواحدة"
+          value={`~$${stats.costPerImageUsd.toFixed(3)}`}
+          hint={stats.currentImageModel}
+        />
+        <StatCard
+          label="تكلفة آخر 30 يوماً"
+          value={`~$${stats.estimatedCostUsd30d.toFixed(2)}`}
+          hint="تقديري"
+        />
+        <StatCard
+          label="إجمالي التكلفة"
+          value={`~$${stats.estimatedCostUsdTotal.toFixed(2)}`}
+          hint="منذ بداية المشروع"
+        />
+      </div>
+
+      <div className="mt-5 rounded-2xl border-2 border-border bg-card/60 p-4">
+        <h3 className="flex items-center gap-2 font-display text-sm font-bold">
+          <KeyRound className="h-4 w-4 text-grass" />
+          مزودات الذكاء الاصطناعي المُهيأة
+        </h3>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
+          <ProviderChip name="Lovable AI Gateway" active={stats.providers.lovable} primary />
+          <ProviderChip name="OpenAI (مزود بديل)" active={stats.providers.openai} />
+          <ProviderChip name="Google Gemini (مزود بديل)" active={stats.providers.gemini} />
+        </div>
+        {!stats.providers.openai && !stats.providers.gemini && (
+          <details className="mt-3 text-xs">
+            <summary className="cursor-pointer font-bold text-primary hover:underline">
+              كيف أُفعّل مزوّداً بديلاً عند نفاد رصيد Lovable؟
+            </summary>
+            <ol className="mt-2 list-decimal space-y-1 ps-5 text-muted-foreground">
+              <li>
+                احصل على مفتاح API من{" "}
+                <a
+                  href="https://platform.openai.com/api-keys"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-bold text-primary hover:underline"
+                >
+                  OpenAI
+                </a>{" "}
+                أو{" "}
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-bold text-primary hover:underline"
+                >
+                  Google AI Studio
+                </a>
+                .
+              </li>
+              <li>
+                أضف المفتاح كسرّ (Secret) باسم <code className="rounded bg-secondary px-1">OPENAI_API_KEY</code>{" "}
+                أو <code className="rounded bg-secondary px-1">GEMINI_API_KEY</code> من خلال طلب ذلك في المحادثة.
+              </li>
+              <li>
+                بعد التفعيل سيتم استخدام المزوّد البديل تلقائياً عند فشل بوابة Lovable (يتطلب تعديلاً برمجياً صغيراً — اطلبه من المساعد).
+              </li>
+            </ol>
+          </details>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="rounded-2xl border-2 border-border bg-card p-3 text-center shadow-sm">
+      <p className="text-xs font-bold text-muted-foreground">{label}</p>
+      <p className="mt-1 font-display text-xl font-extrabold text-foreground">{value}</p>
+      {hint && <p className="mt-0.5 text-[10px] text-muted-foreground" dir="ltr">{hint}</p>}
+    </div>
+  );
+}
+
+function ProviderChip({ name, active, primary }: { name: string; active: boolean; primary?: boolean }) {
+  return (
+    <span
+      className={`rounded-full border-2 px-3 py-1 ${
+        active
+          ? primary
+            ? "border-primary bg-primary/15 text-primary"
+            : "border-grass bg-grass/15 text-grass"
+          : "border-border bg-muted text-muted-foreground"
+      }`}
+    >
+      {active ? "✓" : "○"} {name}
+    </span>
+  );
+}
+
