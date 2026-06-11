@@ -7,8 +7,9 @@ import { useAuth } from "@/hooks/useAuth";
 
 const navLinks = [
   { to: "/", label: "الرئيسية" },
-  { to: "/stories", label: "مكتبة القصص" },
-  { to: "/create", label: "أنشئ قصة بالذكاء الاصطناعي" },
+  { to: "/stories", label: "القصص" },
+  { to: "/books", label: "الكتب التعليمية" },
+  { to: "/create", label: "أنشئ الآن" },
 ];
 
 export function Header() {

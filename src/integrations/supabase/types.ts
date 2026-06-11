@@ -130,12 +130,14 @@ export type Database = {
         Row: {
           age_range: string
           category: string
+          content_type: string
           cover_url: string | null
           created_at: string
           created_by: string | null
           id: string
           is_custom: boolean
           is_published: boolean
+          language: string
           moral: string
           pages: Json
           slug: string
@@ -146,12 +148,14 @@ export type Database = {
         Insert: {
           age_range?: string
           category: string
+          content_type?: string
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           is_custom?: boolean
           is_published?: boolean
+          language?: string
           moral: string
           pages?: Json
           slug: string
@@ -162,12 +166,14 @@ export type Database = {
         Update: {
           age_range?: string
           category?: string
+          content_type?: string
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           is_custom?: boolean
           is_published?: boolean
+          language?: string
           moral?: string
           pages?: Json
           slug?: string

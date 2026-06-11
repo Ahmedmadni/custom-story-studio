@@ -1,6 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Camera, Heart, MessageCircle, Sparkles, Wand2 } from "lucide-react";
+import {
+  BookOpen,
+  GraduationCap,
+  Share2,
+  Sparkles,
+  UserRound,
+  Wand2,
+} from "lucide-react";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
@@ -11,11 +18,11 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "حكايتي — قصص أطفال مخصصة بصورة طفلك" },
+      { title: "حكايتي — قصص وكتب تعليمية مخصصة لطفلك" },
       {
         name: "description",
         content:
-          "اختر من أكثر من 20 قصة نبيلة أو أنشئ قصة جديدة بالذكاء الاصطناعي، وسيصبح طفلك بطل الحكاية بأسلوب كرتوني ثلاثي الأبعاد.",
+          "منصة متكاملة لإنشاء قصص أطفال وكتب تعليمية مخصصة: اختر من المكتبة أو أنشئ محتوى جديداً بالذكاء الاصطناعي وطفلك هو البطل.",
       },
     ],
   }),
@@ -24,35 +31,50 @@ export const Route = createFileRoute("/")({
 
 const steps = [
   {
-    icon: Heart,
-    title: "١. اختر الحكاية",
-    desc: "أكثر من 20 قصة نبيلة تزرع القيم، أو أنشئ قصة جديدة بالذكاء الاصطناعي",
+    icon: UserRound,
+    title: "١. أدخل بيانات طفلك",
+    desc: "الاسم والعمر واللغة، وصورة الطفل اختيارياً ليصبح بطلاً كرتونياً ثلاثي الأبعاد",
     color: "bg-candy text-candy-foreground",
   },
   {
-    icon: Camera,
-    title: "٢. ارفع صورة طفلك",
-    desc: "نحوّل طفلك إلى بطل كرتوني ثلاثي الأبعاد رائع داخل كل صفحات القصة",
+    icon: Wand2,
+    title: "٢. اختر وولّد المحتوى",
+    desc: "قصة مصورة أو كتاب تعليمي — يؤلفه الذكاء الاصطناعي خلال لحظات",
     color: "bg-primary text-primary-foreground",
   },
   {
-    icon: MessageCircle,
-    title: "٣. استلم الحكاية",
-    desc: "كتاب مصور تفاعلي + ملف PDF يصلك على الواتساب بعد الموافقة",
+    icon: Share2,
+    title: "٣. عاين وصدّر وشارك",
+    desc: "معاينة تفاعلية للنتيجة، تصدير PDF بضغطة، ومشاركة عبر الواتساب",
     color: "bg-grass text-grass-foreground",
   },
 ];
 
 function Index() {
-  const { data: featured } = useQuery({
-    queryKey: ["featured-stories"],
+  const { data: featuredStories } = useQuery({
+    queryKey: ["featured", "story"],
     queryFn: async () => {
       const { data } = await supabase
         .from("story_templates")
         .select("id, slug, title, summary, category, age_range, cover_url")
         .eq("is_published", true)
         .eq("is_custom", false)
-        .limit(8);
+        .eq("content_type", "story")
+        .limit(4);
+      return data ?? [];
+    },
+  });
+
+  const { data: featuredBooks } = useQuery({
+    queryKey: ["featured", "book"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("story_templates")
+        .select("id, slug, title, summary, category, age_range, cover_url")
+        .eq("is_published", true)
+        .eq("is_custom", false)
+        .eq("content_type", "book")
+        .limit(4);
       return data ?? [];
     },
   });
@@ -68,20 +90,23 @@ function Index() {
           <div className="text-center md:text-start">
             <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-1.5 text-sm font-bold text-secondary-foreground">
               <Sparkles className="h-4 w-4" />
-              بأسلوب كرتوني ثلاثي الأبعاد ساحر
+              قصص + كتب تعليمية بأسلوب كرتوني ثلاثي الأبعاد
             </span>
             <h1 className="mt-5 font-display text-4xl font-extrabold leading-tight text-foreground md:text-6xl">
               طفلك هو <span className="text-primary">بطل</span>
               <br />
-              الحكاية! 📖✨
+              الحكاية والتعلم! 📖✨
             </h1>
             <p className="mx-auto mt-5 max-w-md text-lg leading-relaxed text-muted-foreground md:mx-0">
-              قصص نبيلة وإنسانية تزرع القيم الجميلة، نرسم فيها طفلك بطلاً
-              كرتونياً ثلاثي الأبعاد بملامحه الحقيقية المحسّنة.
+              قصص نبيلة تزرع القيم، وكتب تعليمية ممتعة تعلّم الحروف والأرقام
+              والعلوم — نرسم فيها طفلك بطلاً كرتونياً بملامحه الحقيقية المحسّنة.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3 md:justify-start">
               <Button asChild size="lg" className="rounded-full px-8 text-base font-bold shadow-lg">
-                <Link to="/stories">تصفح القصص</Link>
+                <Link to="/create">
+                  <Wand2 className="ms-2 h-5 w-5" />
+                  أنشئ الآن خطوة بخطوة
+                </Link>
               </Button>
               <Button
                 asChild
@@ -89,10 +114,7 @@ function Index() {
                 variant="outline"
                 className="rounded-full border-2 border-accent px-8 text-base font-bold text-accent hover:bg-accent hover:text-accent-foreground"
               >
-                <Link to="/create">
-                  <Wand2 className="ms-2 h-5 w-5" />
-                  أنشئ قصة بالذكاء الاصطناعي
-                </Link>
+                <Link to="/stories">تصفح المكتبة</Link>
               </Button>
             </div>
           </div>
@@ -107,10 +129,67 @@ function Index() {
         </div>
       </section>
 
+      {/* Sections */}
+      <section className="container mx-auto px-4 py-10">
+        <div className="grid gap-6 md:grid-cols-2">
+          <Link
+            to="/stories"
+            className="group flex items-center gap-5 overflow-hidden rounded-3xl border-2 border-border bg-card p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-primary hover:shadow-xl"
+          >
+            <img
+              src="/covers/treasure-of-honesty.jpg"
+              alt="قسم القصص"
+              loading="lazy"
+              width={768}
+              height={1024}
+              className="h-32 w-24 shrink-0 rounded-2xl object-cover shadow-md transition-transform group-hover:scale-105"
+            />
+            <div>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-candy/15 px-3 py-1 text-xs font-bold text-candy">
+                <BookOpen className="h-3.5 w-3.5" />
+                قسم القصص
+              </span>
+              <h2 className="mt-2 font-display text-2xl font-extrabold">
+                قصص مصورة نبيلة
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                أكثر من 20 حكاية تزرع القيم الجميلة وطفلك بطلها
+              </p>
+            </div>
+          </Link>
+
+          <Link
+            to="/books"
+            className="group flex items-center gap-5 overflow-hidden rounded-3xl border-2 border-border bg-card p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-primary hover:shadow-xl"
+          >
+            <img
+              src="/covers/book-arabic-letters.jpg"
+              alt="قسم الكتب التعليمية"
+              loading="lazy"
+              width={768}
+              height={1024}
+              className="h-32 w-24 shrink-0 rounded-2xl object-cover shadow-md transition-transform group-hover:scale-105"
+            />
+            <div>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-grass/15 px-3 py-1 text-xs font-bold text-grass">
+                <GraduationCap className="h-3.5 w-3.5" />
+                قسم الكتب التعليمية
+              </span>
+              <h2 className="mt-2 font-display text-2xl font-extrabold">
+                كتب تعليمية ممتعة
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                الحروف والأرقام والألوان والعلوم بطريقة شيقة ومرحة
+              </p>
+            </div>
+          </Link>
+        </div>
+      </section>
+
       {/* How it works */}
       <section className="container mx-auto px-4 py-14">
         <h2 className="text-center font-display text-3xl font-extrabold md:text-4xl">
-          كيف تصنع حكاية طفلك؟
+          ثلاث خطوات بسيطة
         </h2>
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {steps.map((s) => (
@@ -133,7 +212,7 @@ function Index() {
       </section>
 
       {/* Featured stories */}
-      <section className="container mx-auto px-4 py-14">
+      <section className="container mx-auto px-4 py-10">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-3xl font-extrabold md:text-4xl">
             حكايات مميزة
@@ -143,8 +222,25 @@ function Index() {
           </Button>
         </div>
         <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-          {(featured ?? []).map((s) => (
+          {(featuredStories ?? []).map((s) => (
             <StoryCard key={s.id} story={s} />
+          ))}
+        </div>
+      </section>
+
+      {/* Featured books */}
+      <section className="container mx-auto px-4 py-10 pb-16">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-3xl font-extrabold md:text-4xl">
+            كتب تعليمية مميزة
+          </h2>
+          <Button asChild variant="ghost" className="rounded-full font-bold text-primary">
+            <Link to="/books">عرض الكل ←</Link>
+          </Button>
+        </div>
+        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+          {(featuredBooks ?? []).map((b) => (
+            <StoryCard key={b.id} story={b} />
           ))}
         </div>
       </section>
