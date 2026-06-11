@@ -34,3 +34,18 @@ export function ageStylePrompt(age?: string | number | null): string {
   }
   return "Age styling (pre-teen 10+ years): a taller, visibly more mature kid with realistic child proportions and expressive detailed features, trendy age-appropriate outfit, detailed sophisticated cinematic environments, adventurous inspiring atmosphere while staying wholesome and kid-friendly";
 }
+
+/**
+ * طريقة استخدام صورة الطفل المرفوعة داخل الصور المولدة:
+ * - cartoon: تحويل الطفل إلى شخصية كرتونية ثلاثية الأبعاد متناسقة مع أسلوب القصة مع الحفاظ على ملامحه.
+ * - real: الإبقاء على ملامح الطفل الحقيقية مع تحسين الجودة والوضوح ودمجها بصرياً داخل المشهد المرسوم.
+ * تنطبق على صور القصص والكتب التعليمية معاً.
+ */
+export type PhotoMode = "cartoon" | "real";
+
+export function photoModePrompt(mode: PhotoMode): string {
+  if (mode === "real") {
+    return "A reference photo of the real hero child is attached. KEEP THE CHILD'S REAL FACE: preserve the child's true facial features, identity, skin tone, eyes and hairstyle exactly as in the photo. First enhance the photo quality (sharpness, clarity, clean lighting, noise removal), then seamlessly composite the realistic child into the illustrated scene — match the scene's lighting direction, color palette, scale and perspective so the real child looks naturally and beautifully integrated into the storybook artwork";
+  }
+  return "A reference photo of the real hero child is attached. Transform this exact child into an adorable 3D cartoon character fully consistent with the story art style: keep the child clearly recognizable (same face shape, hairstyle, hair color, skin tone and eye color) but render them entirely as a Children's Cartoon Style 3D character matching all other illustrations in the book";
+}
