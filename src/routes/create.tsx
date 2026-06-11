@@ -51,6 +51,7 @@ import {
   type BookLength,
   type ReadingLevel,
 } from "@/lib/bookCategories";
+import type { PdfStoryPage } from "@/lib/storyPdf";
 import {
   clearWizardDraft,
   loadWizardDraft,
