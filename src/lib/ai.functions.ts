@@ -41,13 +41,17 @@ function extractJson(raw: string): AiStoryResult {
   return JSON.parse(cleaned.slice(start, end + 1)) as AiStoryResult;
 }
 
-const JSON_SHAPE = `{"title":"...","summary":"...","moral":"...","category":"...","pages":[{"n":1,"text":"...","scene":"english scene description featuring the hero child"}]}`;
+const JSON_SHAPE = `{"title":"...","summary":"...","moral":"...","category":"...","character":"consistent english visual description of the hero child (hair, eyes, skin, outfit)","pages":[{"n":1,"title":"short page title","text":"...","scene":"english scene description featuring the hero child, directly matching the page text"}]}`;
 
 function buildSystemPrompt(contentType: "story" | "book", language: "ar" | "en"): string {
   const langRule =
     language === "ar"
-      ? "اكتب نصوص الصفحات والعنوان والملخص بلغة عربية فصحى بسيطة ومشوقة تناسب الأطفال."
-      : "Write the page texts, title and summary in simple, engaging English suitable for young children. Keep the category in Arabic.";
+      ? "اكتب نصوص الصفحات وعناوينها والعنوان والملخص بلغة عربية فصحى بسيطة ومشوقة تناسب الأطفال."
+      : "Write the page texts, page titles, title and summary in simple, engaging English suitable for young children. Keep the category in Arabic.";
+
+  const pageRules = `- لكل صفحة: عنوان قصير جذاب (title من 2 إلى 4 كلمات بلغة المحتوى) + نص (جملتان إلى ثلاث جمل) + وصف مشهد بالإنجليزية للرسام (scene).
+- character: وصف بصري ثابت بالإنجليزية لشكل البطل الطفل (الشعر، العينان، البشرة، الملابس) يبقى نفسه في كل الصفحات.
+- scene يجب أن يصور حرفياً ما يحدث في نص نفس الصفحة (نفس المكان، نفس الفعل، نفس الشخصيات) حتى يشعر القارئ أن الصورة جزء من المشهد المكتوب، ويذكر "the hero child" دائماً.`;
 
   if (contentType === "story") {
     return `أنت كاتب قصص أطفال محترف متخصص في القصص النبيلة والإنسانية والقيم الأخلاقية.
@@ -55,7 +59,7 @@ function buildSystemPrompt(contentType: "story" | "book", language: "ar" | "en")
 قواعد صارمة:
 - ${langRule}
 - استخدم {child} ككلمة بديلة لاسم بطل القصة في النص (لا تكتب الاسم الحقيقي أبداً).
-- لكل صفحة: نص (جملتان إلى ثلاث جمل) + وصف مشهد بالإنجليزية للرسام (scene) يصف ما يفعله البطل الطفل "the hero child".
+${pageRules}
 - القصة يجب أن تزرع قيمة نبيلة وتنتهي نهاية سعيدة ملهمة.
 - category بالعربية من: قيم وأخلاق، الصداقة، الأسرة والمحبة، مغامرات وشجاعة، عادات وحياة، الطبيعة والحيوان.
 أعد فقط JSON صالحاً بهذا الشكل دون أي نص إضافي:
@@ -67,7 +71,8 @@ ${JSON_SHAPE}`;
 قواعد صارمة:
 - ${langRule}
 - استخدم {child} ككلمة بديلة لاسم الطفل المتعلم في النص (لا تكتب الاسم الحقيقي أبداً)، واجعله مشاركاً في التعلم.
-- كل صفحة تعلّم فكرة أو معلومة واحدة بسيطة ومتدرجة (جملتان إلى ثلاث جمل) + وصف مشهد بالإنجليزية للرسام (scene) يصف ما يفعله الطفل المتعلم "the hero child".
+- كل صفحة تعلّم فكرة أو معلومة واحدة بسيطة ومتدرجة.
+${pageRules}
 - الصفحة الأخيرة تلخص ما تعلمه الطفل وتشجعه.
 - moral هي المهارة أو المعرفة المكتسبة.
 - category بالعربية من: الحروف والأرقام، الألوان والأشكال، علوم وطبيعة، مهارات وحياة.
