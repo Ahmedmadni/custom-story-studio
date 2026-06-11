@@ -1,29 +1,155 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { Camera, Heart, MessageCircle, Sparkles, Wand2 } from "lucide-react";
+
+import { Footer } from "@/components/Footer";
+import { Header } from "@/components/Header";
+import { StoryCard } from "@/components/StoryCard";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "حكايتي — قصص أطفال مخصصة بصورة طفلك" },
+      {
+        name: "description",
+        content:
+          "اختر من أكثر من 20 قصة نبيلة أو أنشئ قصة جديدة بالذكاء الاصطناعي، وسيصبح طفلك بطل الحكاية بأسلوب كرتوني ثلاثي الأبعاد.",
+      },
     ],
   }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
+const steps = [
+  {
+    icon: Heart,
+    title: "١. اختر الحكاية",
+    desc: "أكثر من 20 قصة نبيلة تزرع القيم، أو أنشئ قصة جديدة بالذكاء الاصطناعي",
+    color: "bg-candy text-candy-foreground",
+  },
+  {
+    icon: Camera,
+    title: "٢. ارفع صورة طفلك",
+    desc: "نحوّل طفلك إلى بطل كرتوني ثلاثي الأبعاد رائع داخل كل صفحات القصة",
+    color: "bg-primary text-primary-foreground",
+  },
+  {
+    icon: MessageCircle,
+    title: "٣. استلم الحكاية",
+    desc: "كتاب مصور تفاعلي + ملف PDF يصلك على الواتساب بعد الموافقة",
+    color: "bg-grass text-grass-foreground",
+  },
+];
+
 function Index() {
+  const { data: featured } = useQuery({
+    queryKey: ["featured-stories"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("story_templates")
+        .select("id, slug, title, summary, category, age_range, cover_url")
+        .eq("is_published", true)
+        .eq("is_custom", false)
+        .limit(8);
+      return data ?? [];
+    },
+  });
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen">
+      <Header />
+
+      {/* Hero */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-background to-background" />
+        <div className="container relative mx-auto grid items-center gap-10 px-4 py-16 md:grid-cols-2 md:py-24">
+          <div className="text-center md:text-start">
+            <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-1.5 text-sm font-bold text-secondary-foreground">
+              <Sparkles className="h-4 w-4" />
+              بأسلوب كرتوني ثلاثي الأبعاد ساحر
+            </span>
+            <h1 className="mt-5 font-display text-4xl font-extrabold leading-tight text-foreground md:text-6xl">
+              طفلك هو <span className="text-primary">بطل</span>
+              <br />
+              الحكاية! 📖✨
+            </h1>
+            <p className="mx-auto mt-5 max-w-md text-lg leading-relaxed text-muted-foreground md:mx-0">
+              قصص نبيلة وإنسانية تزرع القيم الجميلة، نرسم فيها طفلك بطلاً
+              كرتونياً ثلاثي الأبعاد بملامحه الحقيقية المحسّنة.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3 md:justify-start">
+              <Button asChild size="lg" className="rounded-full px-8 text-base font-bold shadow-lg">
+                <Link to="/stories">تصفح القصص</Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="rounded-full border-2 border-accent px-8 text-base font-bold text-accent hover:bg-accent hover:text-accent-foreground"
+              >
+                <Link to="/create">
+                  <Wand2 className="ms-2 h-5 w-5" />
+                  أنشئ قصة بالذكاء الاصطناعي
+                </Link>
+              </Button>
+            </div>
+          </div>
+          <div className="relative mx-auto w-full max-w-md">
+            <div className="absolute -inset-4 rounded-[3rem] bg-gradient-to-tr from-primary/30 via-secondary to-accent/30 blur-2xl" />
+            <img
+              src="/hero.jpg"
+              alt="طفل كرتوني ثلاثي الأبعاد يقرأ كتاباً سحرياً"
+              className="relative aspect-square w-full rounded-[2.5rem] border-4 border-card object-cover shadow-2xl"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="container mx-auto px-4 py-14">
+        <h2 className="text-center font-display text-3xl font-extrabold md:text-4xl">
+          كيف تصنع حكاية طفلك؟
+        </h2>
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
+          {steps.map((s) => (
+            <div
+              key={s.title}
+              className="rounded-3xl border-2 border-border bg-card p-7 text-center shadow-sm transition-transform hover:-translate-y-1"
+            >
+              <span
+                className={`mx-auto flex h-14 w-14 items-center justify-center rounded-2xl shadow-md ${s.color}`}
+              >
+                <s.icon className="h-7 w-7" />
+              </span>
+              <h3 className="mt-4 font-display text-xl font-bold">{s.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {s.desc}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Featured stories */}
+      <section className="container mx-auto px-4 py-14">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-3xl font-extrabold md:text-4xl">
+            حكايات مميزة
+          </h2>
+          <Button asChild variant="ghost" className="rounded-full font-bold text-primary">
+            <Link to="/stories">عرض الكل ←</Link>
+          </Button>
+        </div>
+        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+          {(featured ?? []).map((s) => (
+            <StoryCard key={s.id} story={s} />
+          ))}
+        </div>
+      </section>
+
+      <Footer />
     </div>
   );
 }

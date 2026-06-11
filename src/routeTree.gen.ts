@@ -9,38 +9,179 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StoriesRouteImport } from './routes/stories'
+import { Route as CreateRouteImport } from './routes/create'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StoriesSlugRouteImport } from './routes/stories.$slug'
+import { Route as AuthenticatedMyOrdersRouteImport } from './routes/_authenticated.my-orders'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
+import { Route as AuthenticatedStoryOrderIdRouteImport } from './routes/_authenticated.story.$orderId'
+import { Route as AuthenticatedOrderTemplateIdRouteImport } from './routes/_authenticated.order.$templateId'
 
+const StoriesRoute = StoriesRouteImport.update({
+  id: '/stories',
+  path: '/stories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateRoute = CreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StoriesSlugRoute = StoriesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => StoriesRoute,
+} as any)
+const AuthenticatedMyOrdersRoute = AuthenticatedMyOrdersRouteImport.update({
+  id: '/my-orders',
+  path: '/my-orders',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedStoryOrderIdRoute =
+  AuthenticatedStoryOrderIdRouteImport.update({
+    id: '/story/$orderId',
+    path: '/story/$orderId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedOrderTemplateIdRoute =
+  AuthenticatedOrderTemplateIdRouteImport.update({
+    id: '/order/$templateId',
+    path: '/order/$templateId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/create': typeof CreateRoute
+  '/stories': typeof StoriesRouteWithChildren
+  '/admin': typeof AuthenticatedAdminRoute
+  '/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/stories/$slug': typeof StoriesSlugRoute
+  '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
+  '/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/create': typeof CreateRoute
+  '/stories': typeof StoriesRouteWithChildren
+  '/admin': typeof AuthenticatedAdminRoute
+  '/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/stories/$slug': typeof StoriesSlugRoute
+  '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
+  '/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/create': typeof CreateRoute
+  '/stories': typeof StoriesRouteWithChildren
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/stories/$slug': typeof StoriesSlugRoute
+  '/_authenticated/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
+  '/_authenticated/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/create'
+    | '/stories'
+    | '/admin'
+    | '/my-orders'
+    | '/stories/$slug'
+    | '/order/$templateId'
+    | '/story/$orderId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/create'
+    | '/stories'
+    | '/admin'
+    | '/my-orders'
+    | '/stories/$slug'
+    | '/order/$templateId'
+    | '/story/$orderId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/create'
+    | '/stories'
+    | '/_authenticated/admin'
+    | '/_authenticated/my-orders'
+    | '/stories/$slug'
+    | '/_authenticated/order/$templateId'
+    | '/_authenticated/story/$orderId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  CreateRoute: typeof CreateRoute
+  StoriesRoute: typeof StoriesRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/stories': {
+      id: '/stories'
+      path: '/stories'
+      fullPath: '/stories'
+      preLoaderRoute: typeof StoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create': {
+      id: '/create'
+      path: '/create'
+      fullPath: '/create'
+      preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,12 +189,90 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stories/$slug': {
+      id: '/stories/$slug'
+      path: '/$slug'
+      fullPath: '/stories/$slug'
+      preLoaderRoute: typeof StoriesSlugRouteImport
+      parentRoute: typeof StoriesRoute
+    }
+    '/_authenticated/my-orders': {
+      id: '/_authenticated/my-orders'
+      path: '/my-orders'
+      fullPath: '/my-orders'
+      preLoaderRoute: typeof AuthenticatedMyOrdersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/story/$orderId': {
+      id: '/_authenticated/story/$orderId'
+      path: '/story/$orderId'
+      fullPath: '/story/$orderId'
+      preLoaderRoute: typeof AuthenticatedStoryOrderIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/order/$templateId': {
+      id: '/_authenticated/order/$templateId'
+      path: '/order/$templateId'
+      fullPath: '/order/$templateId'
+      preLoaderRoute: typeof AuthenticatedOrderTemplateIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedMyOrdersRoute: typeof AuthenticatedMyOrdersRoute
+  AuthenticatedOrderTemplateIdRoute: typeof AuthenticatedOrderTemplateIdRoute
+  AuthenticatedStoryOrderIdRoute: typeof AuthenticatedStoryOrderIdRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedMyOrdersRoute: AuthenticatedMyOrdersRoute,
+  AuthenticatedOrderTemplateIdRoute: AuthenticatedOrderTemplateIdRoute,
+  AuthenticatedStoryOrderIdRoute: AuthenticatedStoryOrderIdRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
+interface StoriesRouteChildren {
+  StoriesSlugRoute: typeof StoriesSlugRoute
+}
+
+const StoriesRouteChildren: StoriesRouteChildren = {
+  StoriesSlugRoute: StoriesSlugRoute,
+}
+
+const StoriesRouteWithChildren =
+  StoriesRoute._addFileChildren(StoriesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  AuthRoute: AuthRoute,
+  CreateRoute: CreateRoute,
+  StoriesRoute: StoriesRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
