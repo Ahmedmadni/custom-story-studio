@@ -56,6 +56,7 @@ export type Database = {
           child_name: string
           child_photo_path: string
           created_at: string
+          gender: Database["public"]["Enums"]["child_gender"]
           id: string
           notes: string | null
           paid_at: string | null
@@ -77,6 +78,7 @@ export type Database = {
           child_name: string
           child_photo_path: string
           created_at?: string
+          gender?: Database["public"]["Enums"]["child_gender"]
           id?: string
           notes?: string | null
           paid_at?: string | null
@@ -98,6 +100,7 @@ export type Database = {
           child_name?: string
           child_photo_path?: string
           created_at?: string
+          gender?: Database["public"]["Enums"]["child_gender"]
           id?: string
           notes?: string | null
           paid_at?: string | null
@@ -267,6 +270,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      child_gender: "boy" | "girl"
       order_status:
         | "pending"
         | "approved"
@@ -403,6 +407,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      child_gender: ["boy", "girl"],
       order_status: [
         "pending",
         "approved",
