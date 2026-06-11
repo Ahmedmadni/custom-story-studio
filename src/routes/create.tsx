@@ -28,7 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { generateAiStory } from "@/lib/ai.functions";
+import { generateAiStory, generatePageImage } from "@/lib/ai.functions";
 import { CONTENT_TYPE_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/storyTypes";
 import { isValidEgyptianMobile, shareWaLink } from "@/lib/whatsapp";
 
@@ -61,6 +61,7 @@ const MAX_PHOTO_MB = 8;
 function CreateWizard() {
   const { user, loading } = useAuth();
   const generateFn = useServerFn(generateAiStory);
+  const imageFn = useServerFn(generatePageImage);
 
   const [step, setStep] = useState(0);
   const [childName, setChildName] = useState("");
@@ -72,6 +73,40 @@ function CreateWizard() {
   const [contentType, setContentType] = useState<"story" | "book">("story");
   const [topic, setTopic] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
+  const [pageImages, setPageImages] = useState<Record<number, string>>({});
+  const [imgGenActive, setImgGenActive] = useState(false);
+  const [imgGenCount, setImgGenCount] = useState(0);
+  const [imgGenTotal, setImgGenTotal] = useState(0);
+
+  /** توليد صور الصفحات بالتتابع — كل صورة من مشهد نص صفحتها */
+  const generateImages = async (
+    res: { id: string; pages: { n: number }[] },
+    existing: Record<number, string>,
+  ) => {
+    const todo = res.pages.filter((p) => !existing[p.n]);
+    if (todo.length === 0) return;
+    setImgGenActive(true);
+    setImgGenTotal(todo.length);
+    setImgGenCount(0);
+    let failed = 0;
+    for (const p of todo) {
+      try {
+        const r = await imageFn({ data: { templateId: res.id, pageNumber: p.n } });
+        if (r.imageUrl) {
+          const url = r.imageUrl;
+          setPageImages((m) => ({ ...m, [p.n]: url }));
+        } else {
+          failed++;
+        }
+      } catch {
+        failed++;
+      }
+      setImgGenCount((c) => c + 1);
+    }
+    setImgGenActive(false);
+    if (failed > 0)
+      toast.error("تعذر رسم بعض الصور — اضغط «إعادة توليد الصور الناقصة»");
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -111,14 +146,17 @@ function CreateWizard() {
       }
       return { ...res, orderCreated };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setPageIndex(0);
+      setPageImages({});
       setStep(6);
+      void generateImages(data, {});
     },
     onError: (e: Error) => toast.error(e.message || "تعذر التوليد"),
   });
 
   const result = mutation.data;
+  const currentPage = result?.pages[pageIndex];
 
   const onPhotoChange = (file: File | null) => {
     if (!file) return;
@@ -168,6 +206,10 @@ function CreateWizard() {
     setContentType("story");
     setTopic("");
     setPageIndex(0);
+    setPageImages({});
+    setImgGenActive(false);
+    setImgGenCount(0);
+    setImgGenTotal(0);
   };
 
   const shareWhatsapp = () => {
@@ -464,18 +506,48 @@ function CreateWizard() {
                     )}
                   </div>
 
-                  {/* Page viewer */}
+                  {/* Page viewer: عنوان + صورة + نص + رقم الصفحة */}
                   <div
                     dir={result.language === "en" ? "ltr" : "rtl"}
-                    className="mt-6 rounded-2xl border-2 border-secondary bg-secondary/30 p-6 text-center"
+                    className="mt-6 overflow-hidden rounded-2xl border-2 border-secondary bg-card shadow-sm"
                   >
-                    <span className="text-xs font-bold text-accent">
-                      {result.language === "en" ? "Page" : "الصفحة"}{" "}
-                      {result.pages[pageIndex]?.n}
-                    </span>
-                    <p className="mt-2 min-h-20 font-display text-xl font-semibold leading-relaxed">
-                      {personalize(result.pages[pageIndex]?.text ?? "")}
-                    </p>
+                    <div className="relative aspect-square w-full bg-secondary/30 md:aspect-[4/3]">
+                      {currentPage && pageImages[currentPage.n] ? (
+                        <img
+                          src={pageImages[currentPage.n]}
+                          alt={currentPage.title ?? `صورة الصفحة ${currentPage.n}`}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                          {imgGenActive ? (
+                            <>
+                              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                              <span className="text-sm font-semibold">
+                                🎨 جارٍ رسم صورة هذا المشهد…
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-sm font-semibold">
+                              الصورة غير متوفرة لهذه الصفحة
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <span className="absolute bottom-3 start-3 rounded-full bg-primary px-3.5 py-1 text-xs font-extrabold text-primary-foreground shadow-md">
+                        {result.language === "en" ? "Page" : "صفحة"} {currentPage?.n}
+                      </span>
+                    </div>
+                    <div className="p-6 text-center">
+                      {currentPage?.title && (
+                        <h3 className="font-display text-2xl font-extrabold text-primary">
+                          {currentPage.title}
+                        </h3>
+                      )}
+                      <p className="mt-2 min-h-16 font-display text-xl font-semibold leading-relaxed">
+                        {personalize(currentPage?.text ?? "")}
+                      </p>
+                    </div>
                   </div>
                   <div dir="rtl" className="mt-4 flex items-center justify-center gap-4">
                     <Button
@@ -513,6 +585,29 @@ function CreateWizard() {
                       <ChevronLeft className="h-5 w-5" />
                     </Button>
                   </div>
+
+                  {imgGenActive && (
+                    <p className="mt-4 text-center text-sm font-semibold text-muted-foreground">
+                      🎨 جارٍ توليد الصور المتناسقة مع نص كل صفحة… {imgGenCount}/
+                      {imgGenTotal}
+                    </p>
+                  )}
+                  {!imgGenActive &&
+                    result.pages.some((p) => !pageImages[p.n]) && (
+                      <div className="mt-4 text-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full font-bold"
+                          onClick={() => void generateImages(result, pageImages)}
+                        >
+                          <RotateCcw className="ms-2 h-4 w-4" />
+                          إعادة توليد الصور الناقصة
+                        </Button>
+                      </div>
+                    )}
+
+
 
                   {result.orderCreated ? (
                     <p className="mt-6 rounded-2xl bg-grass/15 p-4 text-center text-sm font-semibold text-grass">
@@ -616,8 +711,18 @@ function CreateWizard() {
             {result.pages.map((p) => (
               <div
                 key={p.n}
-                className="print-page min-h-screen flex-col items-center justify-center gap-6 p-8"
+                className="print-page min-h-screen flex-col items-center justify-center gap-5 p-8"
               >
+                {p.title && (
+                  <h2 className="font-display text-3xl font-extrabold">{p.title}</h2>
+                )}
+                {pageImages[p.n] && (
+                  <img
+                    src={pageImages[p.n]}
+                    alt={p.title ?? `صفحة ${p.n}`}
+                    className="max-h-[55vh] rounded-2xl object-contain"
+                  />
+                )}
                 <p className="max-w-2xl text-center font-display text-2xl leading-relaxed">
                   {personalize(p.text)}
                 </p>

@@ -31,15 +31,18 @@ export const getMyStory = createServerFn({ method: "POST" })
     const pages = await Promise.all(
       templatePages.map(async (tp) => {
         const generated = (pageRows ?? []).find((r) => r.page_number === tp.n);
+        // صورة الطفل المخصصة أولاً، وإلا صورة المشهد الأصلية للقالب
+        const imagePath = generated?.image_path ?? tp.image_path ?? null;
         let imageUrl: string | null = null;
-        if (generated?.image_path) {
+        if (imagePath) {
           const { data: signed } = await supabaseAdmin.storage
             .from("story-pages")
-            .createSignedUrl(generated.image_path, 3600);
+            .createSignedUrl(imagePath, 3600);
           imageUrl = signed?.signedUrl ?? null;
         }
         return {
           n: tp.n,
+          title: tp.title ?? null,
           text: generated?.page_text ?? personalize(tp.text, order.child_name),
           imageUrl,
         };

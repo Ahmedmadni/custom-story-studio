@@ -75,7 +75,7 @@ function StoryViewer() {
             {page?.imageUrl ? (
               <img
                 src={page.imageUrl}
-                alt={`صفحة ${page.n}`}
+                alt={page.title ?? `صفحة ${page.n}`}
                 className="h-full w-full object-contain"
               />
             ) : (
@@ -83,9 +83,17 @@ function StoryViewer() {
                 الصورة قيد التجهيز…
               </div>
             )}
+            <span className="absolute bottom-3 start-3 rounded-full bg-primary px-3.5 py-1 text-xs font-extrabold text-primary-foreground shadow-md">
+              صفحة {page?.n}
+            </span>
           </div>
           <div className="bg-card p-6 text-center">
-            <p className="font-display text-xl font-semibold leading-relaxed md:text-2xl">
+            {page?.title && (
+              <h2 className="font-display text-2xl font-extrabold text-primary">
+                {page.title}
+              </h2>
+            )}
+            <p className="mt-2 font-display text-xl font-semibold leading-relaxed md:text-2xl">
               {page?.text}
             </p>
             <div className="mt-5 flex items-center justify-center gap-4">
@@ -149,13 +157,16 @@ function StoryViewer() {
           {pages.map((p) => (
             <div
               key={p.n}
-              className="print-page hidden min-h-screen flex-col items-center justify-center gap-6 p-8"
+              className="print-page hidden min-h-screen flex-col items-center justify-center gap-5 p-8"
             >
+              {p.title && (
+                <h2 className="font-display text-3xl font-extrabold">{p.title}</h2>
+              )}
               {p.imageUrl && (
                 <img
                   src={p.imageUrl}
-                  alt={`صفحة ${p.n}`}
-                  className="max-h-[70vh] rounded-2xl object-contain"
+                  alt={p.title ?? `صفحة ${p.n}`}
+                  className="max-h-[60vh] rounded-2xl object-contain"
                 />
               )}
               <p className="max-w-2xl text-center font-display text-2xl leading-relaxed">

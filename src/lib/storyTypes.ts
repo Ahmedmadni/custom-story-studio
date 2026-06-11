@@ -1,9 +1,13 @@
 export interface StoryPage {
   n: number;
+  /** عنوان قصير للصفحة بلغة المحتوى */
+  title?: string;
   /** النص العربي للصفحة، يحتوي {child} كاسم البطل */
   text: string;
   /** وصف المشهد بالإنجليزية لتوليد الصورة */
   scene: string;
+  /** مسار صورة الصفحة المولدة داخل مخزن story-pages (إن وجدت) */
+  image_path?: string | null;
 }
 
 export function parsePages(pages: unknown): StoryPage[] {
