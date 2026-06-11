@@ -95,7 +95,9 @@ function AdminPage() {
         <p className="mt-1 text-muted-foreground">
           اعتماد المحتوى المُنشَأ من المستخدمين + إدارة الطلبات
         </p>
+        <UsagePanel />
         <PendingTemplatesList />
+
         <OrdersList />
       </main>
       <Footer />
