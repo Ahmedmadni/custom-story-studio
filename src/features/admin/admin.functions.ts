@@ -2,8 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { STORY_STYLE_PROMPT, STYLE_NEGATIVE, ageStylePrompt } from "@/features/ai/storyStyle";
-import { parsePages, personalize } from "@/features/ai/storyTypes";
+import { STORY_STYLE_PROMPT, STYLE_NEGATIVE, ageStylePrompt, bakedTitlePrompt } from "@/features/ai/storyStyle";
+import { parsePages, personalize, type StoryPage } from "@/features/ai/storyTypes";
 
 type AuthedContext = {
   supabase: {
@@ -787,3 +787,337 @@ export const adminGetUsageStats = createServerFn({ method: "POST" })
     };
   });
 
+
+// ============================================================
+// إدارة القوالب من لوحة التحكم — قراءة، تعديل، ورفع/توليد الصور
+// ============================================================
+
+
+export const adminListTemplates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("story_templates")
+      .select("id, slug, title, summary, category, age_range, content_type, language, is_published, is_custom, approved_at, admin_approved_at, cover_url, pages, created_at")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error("تعذر تحميل القوالب");
+    return (data ?? []).map((t) => ({
+      id: t.id,
+      slug: t.slug,
+      title: t.title,
+      summary: t.summary,
+      category: t.category,
+      ageRange: t.age_range,
+      contentType: t.content_type as string,
+      language: t.language as string,
+      isPublished: Boolean(t.is_published),
+      isCustom: Boolean(t.is_custom),
+      approvedAt: t.approved_at as string | null,
+      adminApprovedAt: t.admin_approved_at as string | null,
+      coverUrl: t.cover_url as string | null,
+      pageCount: parsePages(t.pages).length,
+      createdAt: t.created_at,
+    }));
+  });
+
+const TplId = z.object({ templateId: z.string().uuid() });
+
+export const adminGetTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => TplId.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: tpl, error } = await supabaseAdmin
+      .from("story_templates")
+      .select("*")
+      .eq("id", data.templateId)
+      .single();
+    if (error || !tpl) throw new Error("القالب غير موجود");
+    const pages = parsePages(tpl.pages);
+    const pagesWithUrls = await Promise.all(
+      pages.map(async (p) => {
+        let imageUrl: string | null = null;
+        if (p.image_path) {
+          const { data: s } = await supabaseAdmin.storage
+            .from("story-pages")
+            .createSignedUrl(p.image_path, 3600);
+          imageUrl = s?.signedUrl ?? null;
+        }
+        return { ...p, imageUrl };
+      }),
+    );
+    return {
+      id: tpl.id,
+      slug: tpl.slug,
+      title: tpl.title,
+      summary: tpl.summary,
+      category: tpl.category,
+      ageRange: tpl.age_range,
+      contentType: tpl.content_type as string,
+      language: (tpl.language as string) ?? "ar",
+      coverUrl: tpl.cover_url as string | null,
+      pages: pagesWithUrls,
+    };
+  });
+
+const UpdatePageInput = z.object({
+  templateId: z.string().uuid(),
+  pageNumber: z.number().int().min(1).max(30),
+  title: z.string().trim().max(120).optional(),
+  text: z.string().trim().max(2000).optional(),
+  title_ar: z.string().trim().max(120).optional(),
+  title_en: z.string().trim().max(120).optional(),
+  text_ar: z.string().trim().max(2000).optional(),
+  text_en: z.string().trim().max(2000).optional(),
+  image_title_en: z.string().trim().max(60).optional(),
+  scene: z.string().trim().max(1500).optional(),
+});
+
+export const adminUpdateTemplatePage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => UpdatePageInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: tpl } = await supabaseAdmin
+      .from("story_templates")
+      .select("pages")
+      .eq("id", data.templateId)
+      .single();
+    if (!tpl) throw new Error("القالب غير موجود");
+    const pages = parsePages(tpl.pages);
+    const updated = pages.map((p) =>
+      p.n === data.pageNumber
+        ? {
+            ...p,
+            ...(data.title !== undefined ? { title: data.title } : {}),
+            ...(data.text !== undefined ? { text: data.text } : {}),
+            ...(data.title_ar !== undefined ? { title_ar: data.title_ar } : {}),
+            ...(data.title_en !== undefined ? { title_en: data.title_en } : {}),
+            ...(data.text_ar !== undefined ? { text_ar: data.text_ar } : {}),
+            ...(data.text_en !== undefined ? { text_en: data.text_en } : {}),
+            ...(data.image_title_en !== undefined ? { image_title_en: data.image_title_en } : {}),
+            ...(data.scene !== undefined ? { scene: data.scene } : {}),
+          }
+        : p,
+    );
+    const { error } = await supabaseAdmin
+      .from("story_templates")
+      .update({ pages: updated as unknown as never })
+      .eq("id", data.templateId);
+    if (error) throw new Error("تعذر حفظ التعديل");
+    return { ok: true };
+  });
+
+const UploadImgInput = z.object({
+  templateId: z.string().uuid(),
+  pageNumber: z.number().int().min(1).max(30),
+  dataUrl: z.string().min(20),
+});
+
+export const adminUploadTemplatePageImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => UploadImgInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const m = data.dataUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+    if (!m) throw new Error("صيغة الصورة غير صحيحة");
+    const contentType = m[1];
+    const bytes = Buffer.from(m[2], "base64");
+    if (bytes.length > 8 * 1024 * 1024) throw new Error("الصورة أكبر من 8MB");
+
+    const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+    const imagePath = `templates/${data.templateId}/page-${data.pageNumber}.${ext}`;
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: upErr } = await supabaseAdmin.storage
+      .from("story-pages")
+      .upload(imagePath, bytes, { contentType, upsert: true });
+    if (upErr) throw new Error("تعذر رفع الصورة");
+
+    const { data: tpl } = await supabaseAdmin
+      .from("story_templates")
+      .select("pages")
+      .eq("id", data.templateId)
+      .single();
+    if (!tpl) throw new Error("القالب غير موجود");
+    const pages = parsePages(tpl.pages);
+    const updated = pages.map((p) =>
+      p.n === data.pageNumber ? { ...p, image_path: imagePath } : p,
+    );
+    await supabaseAdmin
+      .from("story_templates")
+      .update({ pages: updated as unknown as never })
+      .eq("id", data.templateId);
+
+    const { data: signed } = await supabaseAdmin.storage
+      .from("story-pages")
+      .createSignedUrl(imagePath, 3600);
+    return { imageUrl: signed?.signedUrl ?? null };
+  });
+
+const RegenImgInput = z.object({
+  templateId: z.string().uuid(),
+  pageNumber: z.number().int().min(1).max(30),
+});
+
+export const adminRegenerateTemplatePageImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => RegenImgInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("خدمة الذكاء الاصطناعي غير مهيأة");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: tpl } = await supabaseAdmin
+      .from("story_templates")
+      .select("pages, age_range")
+      .eq("id", data.templateId)
+      .single();
+    if (!tpl) throw new Error("القالب غير موجود");
+    const pages = parsePages(tpl.pages);
+    const page = pages.find((p) => p.n === data.pageNumber);
+    if (!page) throw new Error("الصفحة غير موجودة");
+
+    const titleP = page.image_title_en ? `\n${bakedTitlePrompt(page.image_title_en)}` : "";
+    const ageP = page.scene.includes("Age styling") ? "" : `\n${ageStylePrompt(tpl.age_range)}.`;
+    const prompt = `${STORY_STYLE_PROMPT}.${ageP}${titleP}
+Children's storybook page illustration that literally depicts this exact scene: ${page.scene}.
+Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3.1-flash-image-preview",
+        messages: [{ role: "user", content: prompt }],
+        modalities: ["image", "text"],
+      }),
+    });
+    if (res.status === 429) throw new Error("الخدمة مشغولة، حاول لاحقاً");
+    if (res.status === 402) throw new Error("نفد رصيد Lovable AI");
+    if (!res.ok) {
+      console.error("regen tpl image", res.status, await res.text());
+      throw new Error("تعذر التوليد");
+    }
+    const json = (await res.json()) as {
+      choices?: { message?: { images?: { image_url?: { url?: string } }[] } }[];
+    };
+    const dataUrl = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    if (!dataUrl?.includes("base64,")) throw new Error("لم تُرجع الصورة");
+    const bytes = Buffer.from(dataUrl.split("base64,")[1], "base64");
+    const imagePath = `templates/${data.templateId}/page-${data.pageNumber}.png`;
+    const { error: upErr } = await supabaseAdmin.storage
+      .from("story-pages")
+      .upload(imagePath, bytes, { contentType: "image/png", upsert: true });
+    if (upErr) throw new Error("تعذر حفظ الصورة");
+
+    const updated: StoryPage[] = pages.map((p) =>
+      p.n === data.pageNumber ? { ...p, image_path: imagePath } : p,
+    );
+    await supabaseAdmin
+      .from("story_templates")
+      .update({ pages: updated as unknown as never })
+      .eq("id", data.templateId);
+
+    const { data: signed } = await supabaseAdmin.storage
+      .from("story-pages")
+      .createSignedUrl(imagePath, 3600);
+    return { imageUrl: signed?.signedUrl ?? null };
+  });
+
+const RegenTextInput = z.object({
+  templateId: z.string().uuid(),
+  pageNumber: z.number().int().min(1).max(30),
+  instruction: z.string().trim().max(500).optional(),
+});
+
+export const adminRegenerateTemplatePageText = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => RegenTextInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("خدمة الذكاء الاصطناعي غير مهيأة");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: tpl } = await supabaseAdmin
+      .from("story_templates")
+      .select("pages, title, summary, language")
+      .eq("id", data.templateId)
+      .single();
+    if (!tpl) throw new Error("القالب غير موجود");
+    const pages = parsePages(tpl.pages);
+    const page = pages.find((p) => p.n === data.pageNumber);
+    if (!page) throw new Error("الصفحة غير موجودة");
+    const language = (tpl.language as string) ?? "ar";
+
+    const shape =
+      language === "bilingual"
+        ? `{"title_ar":"...","title_en":"...","text_ar":"...","text_en":"..."}`
+        : language === "en"
+          ? `{"title":"...","text":"..."}`
+          : `{"title":"...","text":"..."}`;
+    const langRule =
+      language === "ar"
+        ? "اكتب بالعربية الفصحى البسيطة المناسبة للأطفال."
+        : language === "en"
+          ? "Write in simple kid-friendly English."
+          : "Provide BOTH Arabic and English with matching meaning.";
+
+    const sys = `أنت كاتب محتوى أطفال محترف. أعد كتابة نص صفحة واحدة فقط من قصة/كتاب أطفال.
+- ${langRule}
+- استخدم {child} ككلمة بديلة لاسم الطفل البطل.
+- جملتان إلى ثلاث جمل، عنوان قصير 2-4 كلمات.
+- حافظ على نفس فكرة المشهد الأصلي.
+أعد JSON صالح فقط بهذا الشكل: ${shape}`;
+    const usr = `عنوان القالب: ${tpl.title}
+ملخص: ${tpl.summary ?? ""}
+رقم الصفحة: ${page.n} من ${pages.length}
+المشهد البصري: ${page.scene}
+النص الحالي: ${page.text ?? page.text_ar ?? ""}
+${data.instruction ? `تعليمات إضافية: ${data.instruction}` : ""}`;
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: usr },
+        ],
+      }),
+    });
+    if (res.status === 429) throw new Error("الخدمة مشغولة، حاول لاحقاً");
+    if (res.status === 402) throw new Error("نفد رصيد Lovable AI");
+    if (!res.ok) throw new Error("تعذر توليد النص");
+    const j = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const raw = j.choices?.[0]?.message?.content ?? "";
+    const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
+    const s = cleaned.indexOf("{"), e = cleaned.lastIndexOf("}");
+    if (s < 0 || e < 0) throw new Error("الرد غير صالح");
+    const parsed = JSON.parse(cleaned.slice(s, e + 1)) as Record<string, string>;
+
+    const updated = pages.map((p) =>
+      p.n === data.pageNumber
+        ? {
+            ...p,
+            ...(parsed.title !== undefined ? { title: parsed.title } : {}),
+            ...(parsed.text !== undefined ? { text: parsed.text } : {}),
+            ...(parsed.title_ar !== undefined ? { title_ar: parsed.title_ar } : {}),
+            ...(parsed.title_en !== undefined ? { title_en: parsed.title_en } : {}),
+            ...(parsed.text_ar !== undefined ? { text_ar: parsed.text_ar } : {}),
+            ...(parsed.text_en !== undefined ? { text_en: parsed.text_en } : {}),
+          }
+        : p,
+    );
+    await supabaseAdmin
+      .from("story_templates")
+      .update({ pages: updated as unknown as never })
+      .eq("id", data.templateId);
+
+    return { page: updated.find((p) => p.n === data.pageNumber) };
+  });

@@ -48,6 +48,7 @@ import {
   adminRejectTemplate,
 } from "@/features/ai/ai.functions";
 import { waLink } from "@/features/orders/whatsapp";
+import { TemplatesManager } from "@/features/admin/TemplatesManager";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -102,6 +103,7 @@ function AdminPage() {
         </p>
         <UsagePanel />
         <PendingTemplatesList />
+        <TemplatesManager />
 
         <OrdersList />
       </main>
