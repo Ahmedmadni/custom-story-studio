@@ -6,16 +6,15 @@ import { parsePages, personalize } from "@/lib/storyTypes";
 
 const OrderIdInput = z.object({ orderId: z.string().uuid() });
 
-/** القصة النهائية المخصصة لصاحب الطلب (صفحات + روابط صور موقعة) */
+/** القصة النهائية المخصصة لصاحب الطلب (صفحات + روابط صور موقعة + حالة الاعتماد) */
 export const getMyStory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => OrderIdInput.parse(input))
   .handler(async ({ data, context }) => {
-    // RLS يضمن أن المستخدم يرى طلبه فقط (أو المدير)
     const { data: order, error } = await context.supabase
       .from("orders")
       .select(
-        "id, child_name, status, story_templates(title, moral, pages, language, content_type)",
+        "id, child_name, status, template_id, story_templates(id, title, moral, pages, language, content_type, approved_at)",
       )
       .eq("id", data.orderId)
       .single();
@@ -29,11 +28,20 @@ export const getMyStory = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const templatePages = parsePages(order.story_templates?.pages);
+    const tpl = order.story_templates as
+      | {
+          id: string;
+          title: string;
+          moral?: string | null;
+          language?: string | null;
+          content_type?: string | null;
+          approved_at?: string | null;
+        }
+      | null;
 
     const pages = await Promise.all(
       templatePages.map(async (tp) => {
         const generated = (pageRows ?? []).find((r) => r.page_number === tp.n);
-        // صورة الطفل المخصصة أولاً، وإلا صورة المشهد الأصلية للقالب
         const imagePath = generated?.image_path ?? tp.image_path ?? null;
         let imageUrl: string | null = null;
         if (imagePath) {
@@ -45,7 +53,12 @@ export const getMyStory = createServerFn({ method: "POST" })
         return {
           n: tp.n,
           title: tp.title ?? null,
-          text: generated?.page_text ?? personalize(tp.text, order.child_name),
+          title_ar: tp.title_ar ?? null,
+          title_en: tp.title_en ?? null,
+          text:
+            generated?.page_text ?? personalize(tp.text ?? "", order.child_name),
+          text_ar: tp.text_ar ? personalize(tp.text_ar, order.child_name) : null,
+          text_en: tp.text_en ? personalize(tp.text_en, order.child_name) : null,
           imageUrl,
         };
       }),
@@ -53,14 +66,14 @@ export const getMyStory = createServerFn({ method: "POST" })
 
     return {
       orderId: order.id,
+      templateId: tpl?.id ?? order.template_id ?? null,
       childName: order.child_name,
       status: order.status as string,
-      title: personalize(order.story_templates?.title ?? "", order.child_name),
-      moral: order.story_templates?.moral ?? null,
-      language: (order.story_templates?.language ?? "ar") as "ar" | "en",
-      contentType: (order.story_templates?.content_type ?? "story") as
-        | "story"
-        | "book",
+      title: personalize(tpl?.title ?? "", order.child_name),
+      moral: tpl?.moral ?? null,
+      language: (tpl?.language ?? "ar") as "ar" | "en" | "bilingual",
+      contentType: (tpl?.content_type ?? "story") as "story" | "book",
+      approvedAt: tpl?.approved_at ?? null,
       pages,
     };
   });

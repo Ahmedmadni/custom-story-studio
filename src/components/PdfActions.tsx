@@ -12,11 +12,15 @@ interface PdfActionsProps {
   title: string;
   childName?: string | null;
   moral?: string | null;
-  language: "ar" | "en";
+  language: "ar" | "en" | "bilingual";
   contentType?: "story" | "book";
   pages: PdfStoryPage[];
-  /** تعطيل مؤقت (مثلاً أثناء توليد الصور) */
+  /** templateId يُرسل للخادم لإثبات اعتماد المحتوى قبل الحفظ */
+  templateId?: string;
+  /** تعطيل مؤقت (مثلاً قبل الاعتماد أو أثناء توليد الصور) */
   disabled?: boolean;
+  /** سبب التعطيل (يُعرض للمستخدم بدلاً من الرسالة الافتراضية) */
+  disabledReason?: string;
 }
 
 function blobToBase64(blob: Blob): Promise<string> {
@@ -28,7 +32,6 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-/** أزرار «تحميل PDF» و«مشاركة عبر واتساب» مع حفظ نسخة تلقائياً في حساب المستخدم */
 export function PdfActions({
   title,
   childName,
@@ -36,7 +39,9 @@ export function PdfActions({
   language,
   contentType = "story",
   pages,
+  templateId,
   disabled,
+  disabledReason,
 }: PdfActionsProps) {
   const saveFn = useServerFn(saveStoryPdf);
   const [busy, setBusy] = useState<"download" | "share" | null>(null);
@@ -45,7 +50,7 @@ export function PdfActions({
   const cacheRef = useRef<{ sig: string; blob: Blob } | null>(null);
   const savedSigRef = useRef<string | null>(null);
 
-  const sig = JSON.stringify([title, childName, ...pages.map((p) => [p.n, p.imageUrl ?? ""])]);
+  const sig = JSON.stringify([title, childName, language, ...pages.map((p) => [p.n, p.imageUrl ?? ""])]);
   const fileName = `${title.replace(/[\\/:*?"<>|]/g, "")}.pdf`;
 
   const ensurePdf = async (): Promise<Blob> => {
@@ -68,11 +73,13 @@ export function PdfActions({
     if (savedSigRef.current === sig) return;
     try {
       const pdfBase64 = await blobToBase64(blob);
-      await saveFn({ data: { title, pdfBase64 } });
+      await saveFn({ data: { title, pdfBase64, templateId } });
       savedSigRef.current = sig;
       toast.success("📁 تم حفظ نسخة PDF في حسابك");
-    } catch {
-      toast.error("تعذر حفظ النسخة في حسابك — الملف متاح للتحميل");
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "تعذر حفظ النسخة في حسابك — الملف متاح للتحميل",
+      );
     }
   };
 
@@ -107,7 +114,6 @@ export function PdfActions({
       if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title, text: msg });
       } else {
-        // المتصفح لا يدعم مشاركة الملفات: نحمّل الملف ونفتح واتساب
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -134,7 +140,7 @@ export function PdfActions({
           size="lg"
           disabled={disabled || busy !== null}
           onClick={handleDownload}
-          className="rounded-full px-7 font-bold shadow-lg"
+          className="rounded-full px-7 font-bold shadow-lg min-h-11"
         >
           {busy === "download" ? (
             <Loader2 className="ms-2 h-5 w-5 animate-spin" />
@@ -148,7 +154,7 @@ export function PdfActions({
           variant="outline"
           disabled={disabled || busy !== null}
           onClick={handleShare}
-          className="rounded-full border-2 border-grass px-7 font-bold text-grass hover:bg-grass hover:text-grass-foreground"
+          className="rounded-full border-2 border-grass px-7 font-bold text-grass hover:bg-grass hover:text-grass-foreground min-h-11"
         >
           {busy === "share" ? (
             <Loader2 className="ms-2 h-5 w-5 animate-spin" />
@@ -165,7 +171,7 @@ export function PdfActions({
       )}
       {disabled && (
         <p className="mt-2 text-xs text-muted-foreground">
-          انتظر اكتمال توليد الصور للحصول على ملف كامل ✨
+          {disabledReason ?? "انتظر اكتمال توليد الصور للحصول على ملف كامل ✨"}
         </p>
       )}
     </div>
