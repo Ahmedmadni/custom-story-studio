@@ -129,6 +129,8 @@ export type Database = {
       story_templates: {
         Row: {
           age_range: string
+          approved_at: string | null
+          book_meta: Json | null
           category: string
           content_type: string
           cover_url: string | null
@@ -147,6 +149,8 @@ export type Database = {
         }
         Insert: {
           age_range?: string
+          approved_at?: string | null
+          book_meta?: Json | null
           category: string
           content_type?: string
           cover_url?: string | null
@@ -165,6 +169,8 @@ export type Database = {
         }
         Update: {
           age_range?: string
+          approved_at?: string | null
+          book_meta?: Json | null
           category?: string
           content_type?: string
           cover_url?: string | null
@@ -197,6 +203,24 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wizard_drafts: {
+        Row: {
+          payload: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          payload: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          payload?: Json
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
