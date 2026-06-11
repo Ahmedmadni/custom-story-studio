@@ -32,29 +32,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    let cancelled = false;
+
+    const loadRole = (userId: string) => {
+      void supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle()
+        .then(({ data }) => {
+          if (!cancelled) setIsAdmin(Boolean(data));
+        });
+    };
+
+    // 1) سجّل المستمع أولاً لئلا تُفقد أحداث الجلسة
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (cancelled) return;
+      // تجاهل الأحداث الدورية التي قد تجمّد الواجهة
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED" && event !== "INITIAL_SESSION") {
+        return;
+      }
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) {
-        setTimeout(() => {
-          void supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", s.user.id)
-            .eq("role", "admin")
-            .maybeSingle()
-            .then(({ data }) => setIsAdmin(Boolean(data)));
-        }, 0);
-      } else {
-        setIsAdmin(false);
-      }
+      if (s?.user) loadRole(s.user.id);
+      else setIsAdmin(false);
     });
+
+    // 2) ثم اقرأ الجلسة الحالية وارفع loading فوراً
     void supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
       setSession(data.session);
       setUser(data.session?.user ?? null);
+      if (data.session?.user) loadRole(data.session.user.id);
       setLoading(false);
     });
-    return () => sub.subscription.unsubscribe();
+
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

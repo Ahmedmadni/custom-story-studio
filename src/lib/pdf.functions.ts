@@ -21,19 +21,27 @@ export const saveStoryPdf = createServerFn({ method: "POST" })
     if (bytes.byteLength < 1000) throw new Error("ملف غير صالح");
     if (bytes.byteLength > MAX_PDF_BYTES) throw new Error("حجم الملف كبير جداً");
 
-    // إذا أتى templateId نتحقق من اعتماد المحتوى الذي يخص هذا المستخدم
+    // التحقق المزدوج: اعتماد المستخدم للمعاينة + اعتماد المسؤول النهائي
     if (data.templateId) {
       const { data: tpl } = await context.supabase
         .from("story_templates")
-        .select("approved_at, created_by")
+        .select("approved_at, admin_approved_at, created_by")
         .eq("id", data.templateId)
         .single();
       if (!tpl) throw new Error("المحتوى غير موجود");
-      const row = tpl as { approved_at?: string | null; created_by?: string };
+      const row = tpl as {
+        approved_at?: string | null;
+        admin_approved_at?: string | null;
+        created_by?: string;
+      };
       if (row.created_by !== context.userId)
         throw new Error("غير مصرح لك بحفظ هذا المحتوى");
       if (!row.approved_at)
-        throw new Error("لا يمكن تصدير PDF قبل اعتماد المحتوى");
+        throw new Error("اعتمد المعاينة أولاً قبل تصدير PDF");
+      if (!row.admin_approved_at)
+        throw new Error(
+          "طلبك قيد المراجعة من إدارة المنصة — سيتم تفعيل التحميل فور اعتماده",
+        );
     }
 
     const encodedTitle = Buffer.from(data.title.slice(0, 40)).toString("base64url");

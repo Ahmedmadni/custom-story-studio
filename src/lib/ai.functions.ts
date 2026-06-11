@@ -11,6 +11,7 @@ import {
   STORY_STYLE_PROMPT,
   STYLE_NEGATIVE,
   ageStylePrompt,
+  bakedTitlePrompt,
   photoModePrompt,
 } from "@/lib/storyStyle";
 import { parsePages, type StoryPage } from "@/lib/storyTypes";
@@ -86,8 +87,8 @@ function jsonShape(language: "ar" | "en" | "bilingual"): string {
       : `"title":"..."`;
   const pageShape =
     language === "bilingual"
-      ? `{"n":1,"title_ar":"...","title_en":"...","text_ar":"...","text_en":"...","scene":"english scene description featuring the hero child, directly matching this page"}`
-      : `{"n":1,"title":"short page title","text":"...","scene":"english scene description featuring the hero child, directly matching this page"}`;
+      ? `{"n":1,"title_ar":"...","title_en":"...","text_ar":"...","text_en":"...","image_title_en":"1-3 word english poster title for this page","scene":"english scene description featuring the hero child, directly matching this page"}`
+      : `{"n":1,"title":"short page title","text":"...","image_title_en":"1-3 word english poster title for this page","scene":"english scene description featuring the hero child, directly matching this page"}`;
   return `{${titles},"summary":"...","moral":"...","category":"...","character":"consistent english visual description of the hero child","learning_goals":["short goal","..."],"pages":[${pageShape}]}`;
 }
 
@@ -97,7 +98,7 @@ function buildSystemPrompt(
   pageCount: number,
   bookMeta?: BookMeta,
 ): string {
-  const pageRules = `- لكل صفحة: عنوان قصير (2-4 كلمات) + نص (جملتان إلى ثلاث جمل) + وصف مشهد بالإنجليزية للرسام (scene).
+  const pageRules = `- لكل صفحة: عنوان قصير (2-4 كلمات) + نص (جملتان إلى ثلاث جمل) + image_title_en (1-3 كلمات إنجليزية واضحة كاسم بوستر تُرسم داخل الصورة) + وصف مشهد بالإنجليزية للرسام (scene).
 - character: وصف بصري ثابت بالإنجليزية لشكل الطفل البطل (الشعر، العينان، البشرة، الملابس) يبقى نفسه في كل الصفحات، ويعكس عمر الطفل: طفل صغير = شخصية أصغر وأبسط، طفل أكبر = أطول وأكثر نضجاً.
 - scene يجب أن يصور حرفياً ما يحدث في نص نفس الصفحة بنفس المكان والفعل والشخصيات، ويذكر "the hero child" دائماً.`;
 
@@ -128,7 +129,30 @@ ${jsonShape(language)}`;
       "مستوى القراءة: متقدم — يمكن استخدام 2-3 جمل بمفردات أغنى وأفكار أعمق.",
   }[bookMeta?.reading_level ?? "intermediate"];
 
-  return `أنت مؤلف كتب أطفال تعليمية محترف، تحوّل أي موضوع إلى رحلة ممتعة وتدرّجية.
+  // توجيهات مشهد غنيّ لكل فئة كتاب — تجعل الصفحة الواحدة تحوي عناصر متعددة
+  const richSceneByCategory: Record<string, string> = {
+    animals:
+      "Each scene must be a single dense educational POSTER showing AT LEAST 8 different cute animals arranged in a neat grid or scene, each animal clearly separated and labeled with its name written next to it (use the page's image_title_en plus the animal names baked into the artwork). The hero child stands among them pointing or interacting.",
+    fruits:
+      "Each scene is a colorful poster grid with AT LEAST 8 distinct fruits clearly separated, each labeled with its name. The hero child appears as a friendly guide.",
+    colors:
+      "Each scene is a vibrant color-wheel or grid poster showing multiple distinct color swatches with an everyday object of that color next to each, labeled. The hero child appears as a friendly guide.",
+    arabic_letters:
+      "Alternate page TYPES across the book: (A) huge single-letter showcase page with the Arabic letter rendered enormously plus 3-4 example objects starting with it; (B) practical scene where objects whose names start with the letter fill the page (e.g. letter ب → باب، بطة، بيت...); (C) tracing/coloring page rendered as pure black outline on plain white background, no fills, dotted guide lines. Vary types across pages.",
+    english_letters:
+      "Alternate page TYPES across the book: (A) huge single-letter showcase with 3-4 example objects; (B) practical scene filled with objects starting with that letter; (C) tracing/coloring page (black outline on white, dotted guides). Vary types across pages.",
+    mathematics:
+      "For counting pages, the scene must literally contain the depicted quantity (page about number 1 → exactly 1 cute object; number 2 → exactly 2 of the same object; etc.). Mix: counting pages, shape-recognition grids (multiple shapes labeled), simple addition visual stories, and one coloring/practice page (black outline on white).",
+    science:
+      "Each scene is a rich educational poster (water cycle, plant parts, solar system, body parts...) with multiple labeled elements arranged clearly. The hero child appears as an explorer/scientist.",
+    programming:
+      "Each scene is a friendly step-by-step visual (numbered cards or flow) showing a concept (sequence, loop, condition) with everyday objects. The hero child appears as the little coder.",
+  };
+  const richScene =
+    richSceneByCategory[bookMeta?.category ?? ""] ??
+    "Each scene must be visually rich and educational, packed with multiple clearly-labeled elements.";
+
+  return `أنت مؤلف كتب أطفال تعليمية محترف، تحوّل أي موضوع إلى رحلة ممتعة وتدرّجية ذات قيمة تعليمية حقيقية.
 اكتب كتاباً تعليمياً للأطفال من ${pageCount} صفحات بالضبط حول الموضوع المطلوب.
 قواعد صارمة:
 - ${catLine}
@@ -137,9 +161,10 @@ ${jsonShape(language)}`;
 - استخدم {child} ككلمة بديلة لاسم الطفل المتعلم في كل النصوص، واجعله مشاركاً في التعلم.
 - بنية الكتاب الإجبارية:
   • الصفحة 1: غلاف داخلي ترحيبي قصير يعرّف بالموضوع.
-  • الصفحات الوسطى: دروس تعليمية متدرجة (فكرة واحدة لكل صفحة) مع مثال ملموس.
-  • صفحة قبل الأخيرة: مراجعة سريعة أو نشاط قصير ممتع للطفل ("هل تستطيع أن…؟").
+  • الصفحات الوسطى: دروس تعليمية متدرجة (فكرة واحدة لكل صفحة) مع مثال ملموس متعدد العناصر.
+  • صفحة قبل الأخيرة: مراجعة سريعة أو نشاط ممتع للطفل ("هل تستطيع أن…؟").
   • الصفحة الأخيرة: خلاصة وتشجيع لما تعلّمه الطفل.
+- توجيه إجباري لوصف المشهد (scene): ${richScene}
 ${pageRules}
 - learning_goals: 3-4 أهداف تعلّم محددة وقابلة للقياس.
 - moral: المهارة أو المعرفة الرئيسية المكتسبة.
@@ -339,7 +364,8 @@ export const generatePageImage = createServerFn({ method: "POST" })
     const photoPart = photoDataUrl
       ? `\n${photoModePrompt(data.photoMode ?? "cartoon")}.`
       : "";
-    const prompt = `${STORY_STYLE_PROMPT}.${agePart}${photoPart}
+    const titlePart = page.image_title_en ? `\n${bakedTitlePrompt(page.image_title_en)}` : "";
+    const prompt = `${STORY_STYLE_PROMPT}.${agePart}${photoPart}${titlePart}
 Children's storybook page illustration that literally depicts this exact written scene so the image feels like part of the text: ${page.scene}.
 Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
 
@@ -509,7 +535,7 @@ export const approveTemplate = createServerFn({ method: "POST" })
 
 const TemplateIdInput = z.object({ templateId: z.string().uuid() });
 
-/** قراءة حالة الاعتماد لاستخدامها في واجهات أخرى */
+/** قراءة حالة الاعتماد (المستخدم + المسؤول) لاستخدامها في الواجهات */
 export const getTemplateApproval = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => TemplateIdInput.parse(input))
@@ -518,11 +544,78 @@ export const getTemplateApproval = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
       .from("story_templates")
-      .select("approved_at")
+      .select("approved_at, admin_approved_at")
       .eq("id", data.templateId)
       .single();
+    const r = row as {
+      approved_at?: string | null;
+      admin_approved_at?: string | null;
+    } | null;
     return {
-      approvedAt:
-        (row as { approved_at?: string | null } | null)?.approved_at ?? null,
+      approvedAt: r?.approved_at ?? null,
+      adminApprovedAt: r?.admin_approved_at ?? null,
     };
+  });
+
+/** [مسؤول] قائمة المحتوى المعتمد من المستخدم والمنتظر اعتماد المسؤول */
+export const adminListPendingTemplates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("غير مصرح لك");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("story_templates")
+      .select("id, title, content_type, language, approved_at, admin_approved_at, created_by, created_at, age_range")
+      .eq("is_custom", true)
+      .not("approved_at", "is", null)
+      .is("admin_approved_at", null)
+      .order("approved_at", { ascending: false })
+      .limit(60);
+    if (error) throw new Error("تعذر تحميل المحتوى المنتظر");
+    return data ?? [];
+  });
+
+/** [مسؤول] اعتماد نهائي للمحتوى — يفعّل تحميل PDF للمستخدم */
+export const adminApproveTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => TemplateIdInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("غير مصرح لك");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("story_templates")
+      .update({
+        admin_approved_at: new Date().toISOString(),
+        admin_approved_by: context.userId,
+      } as never)
+      .eq("id", data.templateId);
+    if (error) throw new Error("تعذر اعتماد المحتوى");
+    return { ok: true };
+  });
+
+/** [مسؤول] رفض / إعادة محتوى للمستخدم للتعديل (يلغي approved_at) */
+export const adminRejectTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => TemplateIdInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("غير مصرح لك");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("story_templates")
+      .update({ approved_at: null } as never)
+      .eq("id", data.templateId);
+    if (error) throw new Error("تعذر إعادة المحتوى");
+    return { ok: true };
   });

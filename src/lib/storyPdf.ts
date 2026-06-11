@@ -1,14 +1,13 @@
 /**
- * توليد ملف PDF عالي الجودة للقصة/الكتاب التعليمي في المتصفح:
- * غلاف + صفحات مرتبة (عنوان + نص + صورة + رقم الصفحة).
- * يدعم اللغة العربية فقط، الإنجليزية فقط، أو الوضع الثنائي عربي+إنجليزي.
+ * توليد PDF بلا هوامش بيضاء — كل صفحة = صورة مربعة تملأ كامل الورقة،
+ * مع نص الصفحة كـ overlay شفاف فوق الصورة (شريط سفلي مدمج مع المشهد).
+ * يدعم العربي فقط / الإنجليزي فقط / الوضع الثنائي.
  */
 
 export interface PdfStoryPage {
   n: number;
   title?: string | null;
   text: string;
-  /** للوضع الثنائي: عنوان ونص بالعربية بالإضافة إلى الإنجليزية */
   title_ar?: string | null;
   text_ar?: string | null;
   title_en?: string | null;
@@ -26,16 +25,12 @@ export interface StoryPdfInput {
   onProgress?: (done: number, total: number) => void;
 }
 
-const PAGE_W = 794;
-const PAGE_H = 1123;
+// صفحة مربعة 1024px — تتطابق مع حجم صور الذكاء الاصطناعي
+const PAGE = 1024;
+const PAGE_MM = 250; // 25cm × 25cm — حجم كتاب أطفال فاخر بلا هوامش
 
-const FONT = "'Baloo Bhaijaan 2','Rubik',sans-serif";
-const BG = "#FFF9F0";
-const INK = "#3B2B27";
-const CORAL = "#E8604C";
-const GOLD = "#F4B942";
-const CREAM = "#FFE8C7";
-const MUTED = "#8A7468";
+const FONT = "'Cairo','Tajawal','Alexandria','Kufam',sans-serif";
+const FALLBACK_BG = "#2A1F1A";
 
 async function toDataUrl(url: string): Promise<string | null> {
   try {
@@ -53,120 +48,71 @@ async function toDataUrl(url: string): Promise<string | null> {
   }
 }
 
-function div(css: string): HTMLDivElement {
-  const e = document.createElement("div");
-  e.style.cssText = css;
-  return e;
-}
-
-function textEl(tag: string, css: string, text: string): HTMLElement {
-  const e = document.createElement(tag);
-  e.style.cssText = css;
-  e.textContent = text;
-  return e;
-}
-
 function pageShell(dir: "rtl" | "ltr"): HTMLDivElement {
-  const e = div(
-    `width:${PAGE_W}px;height:${PAGE_H}px;background:${BG};font-family:${FONT};color:${INK};display:flex;flex-direction:column;align-items:center;box-sizing:border-box;overflow:hidden;position:relative;`,
-  );
+  const e = document.createElement("div");
+  e.style.cssText = `width:${PAGE}px;height:${PAGE}px;font-family:${FONT};color:#fff;position:relative;overflow:hidden;background:${FALLBACK_BG};box-sizing:border-box;`;
   e.dir = dir;
   return e;
 }
 
+function personalize(text: string | null | undefined, child?: string | null): string {
+  if (!text) return "";
+  return child ? text.replaceAll("{child}", child) : text;
+}
+
+/** خلفية الصورة تملأ كامل الصفحة بدون أي إطار */
+function backgroundImage(el: HTMLDivElement, imgData: string | null) {
+  if (imgData) {
+    el.style.backgroundImage = `url('${imgData}')`;
+    el.style.backgroundSize = "cover";
+    el.style.backgroundPosition = "center";
+  } else {
+    el.style.background = "linear-gradient(135deg,#FFE8C7,#FDEAE5)";
+  }
+}
+
+/** شريط متدرّج من شفاف لأسود قرب الأسفل لإبراز النص */
+function gradientOverlay(heightPct: number): HTMLDivElement {
+  const g = document.createElement("div");
+  g.style.cssText = `position:absolute;left:0;right:0;bottom:0;height:${heightPct}%;background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.65) 45%,rgba(0,0,0,0.25) 80%,rgba(0,0,0,0) 100%);pointer-events:none;`;
+  return g;
+}
+
 function buildCover(input: StoryPdfInput, coverImg: string | null): HTMLDivElement {
   const ar = input.language !== "en";
-  const page = pageShell(ar ? "rtl" : "ltr");
-  page.style.padding = "56px 60px";
-  page.style.justifyContent = "center";
-  page.style.textAlign = "center";
+  const el = pageShell(ar ? "rtl" : "ltr");
+  backgroundImage(el, coverImg);
+  el.appendChild(gradientOverlay(55));
 
-  page.appendChild(
-    textEl(
-      "div",
-      `font-size:22px;font-weight:800;color:${CORAL};letter-spacing:1px;`,
-      "✨ منصة حكايتي ✨",
-    ),
-  );
-  page.appendChild(
-    textEl(
-      "div",
-      `margin-top:10px;font-size:15px;font-weight:700;color:${MUTED};`,
-      input.contentType === "book"
-        ? "كتاب تعليمي ممتع"
-        : "قصة مصورة للأطفال",
-    ),
-  );
+  const box = document.createElement("div");
+  box.style.cssText = `position:absolute;left:40px;right:40px;bottom:48px;text-align:center;color:#fff;`;
 
-  page.appendChild(
-    textEl(
-      "h1",
-      `margin:26px 0 0;font-size:46px;line-height:1.35;font-weight:800;color:${INK};max-width:640px;`,
-      input.title,
-    ),
-  );
+  const brand = document.createElement("div");
+  brand.style.cssText = `font-size:22px;font-weight:800;letter-spacing:2px;color:#FFD86B;text-shadow:0 2px 10px rgba(0,0,0,0.6);margin-bottom:18px;`;
+  brand.textContent = "✨ منصة حكايتي ✨";
+  box.appendChild(brand);
+
+  const h1 = document.createElement("h1");
+  h1.style.cssText = `margin:0;font-size:68px;line-height:1.15;font-weight:900;text-shadow:0 4px 18px rgba(0,0,0,0.75);`;
+  h1.textContent = input.title;
+  box.appendChild(h1);
 
   if (input.childName) {
-    page.appendChild(
-      textEl(
-        "div",
-        `margin-top:18px;display:inline-block;background:${CREAM};border:3px solid ${GOLD};border-radius:999px;padding:10px 28px;font-size:23px;font-weight:800;color:${INK};`,
-        `⭐ بطل الحكاية: ${input.childName} ⭐`,
-      ),
-    );
-  }
-
-  if (coverImg) {
-    const img = document.createElement("img");
-    img.src = coverImg;
-    img.style.cssText = `margin-top:30px;width:430px;height:430px;object-fit:cover;border-radius:34px;border:6px solid ${GOLD};box-shadow:0 14px 34px rgba(59,43,39,0.18);`;
-    page.appendChild(img);
-  } else {
-    page.appendChild(
-      textEl(
-        "div",
-        `margin-top:30px;width:430px;height:430px;border-radius:34px;border:6px solid ${GOLD};background:${CREAM};display:flex;align-items:center;justify-content:center;font-size:120px;`,
-        "📖",
-      ),
-    );
-  }
-
-  if (input.moral) {
-    page.appendChild(
-      textEl(
-        "div",
-        `margin-top:28px;background:#FDEAE5;border-radius:20px;padding:14px 30px;font-size:19px;font-weight:700;color:${CORAL};max-width:600px;`,
-        `💝 ${input.moral}`,
-      ),
-    );
+    const hero = document.createElement("div");
+    hero.style.cssText = `margin-top:24px;display:inline-block;background:rgba(255,216,107,0.95);color:#2A1F1A;border-radius:999px;padding:14px 36px;font-size:30px;font-weight:900;box-shadow:0 6px 24px rgba(0,0,0,0.45);`;
+    hero.textContent = `⭐ بطل الحكاية: ${input.childName} ⭐`;
+    box.appendChild(hero);
   }
 
   if (input.language === "bilingual") {
-    page.appendChild(
-      textEl(
-        "div",
-        `margin-top:14px;font-size:13px;font-weight:700;color:${MUTED};`,
-        "Bilingual edition — عربي / English",
-      ),
-    );
+    const tag = document.createElement("div");
+    tag.style.cssText = `margin-top:14px;font-size:14px;font-weight:700;color:#fff;opacity:.9;`;
+    tag.textContent = "Bilingual edition — عربي / English";
+    box.appendChild(tag);
   }
 
-  page.appendChild(
-    textEl(
-      "div",
-      `position:absolute;bottom:34px;left:0;right:0;text-align:center;font-size:14px;font-weight:700;color:${MUTED};`,
-      "hekayati — حكايتي 🧡",
-    ),
-  );
-  return page;
-}
-
-function personalize(
-  text: string | null | undefined,
-  child?: string | null,
-): string {
-  if (!text) return "";
-  return child ? text.replaceAll("{child}", child) : text;
+  el.appendChild(box);
+  return el;
 }
 
 function buildContentPage(
@@ -176,23 +122,18 @@ function buildContentPage(
   language: "ar" | "en" | "bilingual",
 ): HTMLDivElement {
   const ar = language !== "en";
-  const page = pageShell(ar ? "rtl" : "ltr");
-  page.style.padding = "40px 50px 70px";
+  const el = pageShell(ar ? "rtl" : "ltr");
+  backgroundImage(el, imgData);
+  el.appendChild(gradientOverlay(language === "bilingual" ? 55 : 45));
 
-  if (imgData) {
-    const img = document.createElement("img");
-    img.src = imgData;
-    img.style.cssText = `width:100%;height:${language === "bilingual" ? "450px" : "560px"};object-fit:cover;border-radius:28px;border:5px solid ${GOLD};box-shadow:0 10px 26px rgba(59,43,39,0.15);`;
-    page.appendChild(img);
-  } else {
-    page.appendChild(
-      textEl(
-        "div",
-        `width:100%;height:${language === "bilingual" ? "450px" : "560px"};border-radius:28px;border:5px solid ${GOLD};background:${CREAM};display:flex;align-items:center;justify-content:center;font-size:100px;`,
-        "🎨",
-      ),
-    );
-  }
+  // رقم الصفحة دائرة في الأعلى
+  const pageNum = document.createElement("div");
+  pageNum.style.cssText = `position:absolute;top:28px;${ar ? "left:28px" : "right:28px"};width:64px;height:64px;border-radius:999px;background:rgba(232,96,76,0.95);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;box-shadow:0 4px 16px rgba(0,0,0,0.4);`;
+  pageNum.textContent = String(p.n);
+  el.appendChild(pageNum);
+
+  const box = document.createElement("div");
+  box.style.cssText = `position:absolute;left:32px;right:32px;bottom:36px;color:#fff;text-align:center;text-shadow:0 2px 12px rgba(0,0,0,0.85);`;
 
   if (language === "bilingual") {
     const arTitle = p.title_ar ?? p.title ?? null;
@@ -200,77 +141,55 @@ function buildContentPage(
     const arText = personalize(p.text_ar ?? p.text, childName);
     const enText = personalize(p.text_en ?? "", childName);
 
-    const arBlock = div(`width:100%;margin-top:22px;text-align:center;`);
+    const arBlock = document.createElement("div");
     arBlock.dir = "rtl";
-    if (arTitle)
-      arBlock.appendChild(
-        textEl(
-          "h2",
-          `margin:0;font-size:26px;font-weight:800;color:${CORAL};`,
-          arTitle,
-        ),
-      );
-    arBlock.appendChild(
-      textEl(
-        "p",
-        `margin:8px 0 0;font-size:20px;line-height:1.85;font-weight:600;color:${INK};`,
-        arText,
-      ),
-    );
-    page.appendChild(arBlock);
+    if (arTitle) {
+      const h = document.createElement("div");
+      h.style.cssText = `font-size:34px;font-weight:900;color:#FFD86B;margin-bottom:6px;`;
+      h.textContent = arTitle;
+      arBlock.appendChild(h);
+    }
+    const pAr = document.createElement("div");
+    pAr.style.cssText = `font-size:26px;line-height:1.55;font-weight:700;`;
+    pAr.textContent = arText;
+    arBlock.appendChild(pAr);
+    box.appendChild(arBlock);
 
-    const divider = div(
-      `width:60%;height:2px;background:${GOLD};opacity:.45;margin:14px auto;border-radius:2px;`,
-    );
-    page.appendChild(divider);
+    const divider = document.createElement("div");
+    divider.style.cssText = `width:50%;height:2px;background:rgba(255,216,107,0.65);margin:14px auto;border-radius:2px;`;
+    box.appendChild(divider);
 
-    const enBlock = div(`width:100%;text-align:center;`);
+    const enBlock = document.createElement("div");
     enBlock.dir = "ltr";
-    if (enTitle)
-      enBlock.appendChild(
-        textEl(
-          "h3",
-          `margin:0;font-size:22px;font-weight:800;color:${CORAL};`,
-          enTitle,
-        ),
-      );
-    if (enText)
-      enBlock.appendChild(
-        textEl(
-          "p",
-          `margin:6px 0 0;font-size:18px;line-height:1.7;font-weight:600;color:${INK};`,
-          enText,
-        ),
-      );
-    page.appendChild(enBlock);
+    if (enTitle) {
+      const h = document.createElement("div");
+      h.style.cssText = `font-size:28px;font-weight:900;color:#FFD86B;margin-bottom:6px;`;
+      h.textContent = enTitle;
+      enBlock.appendChild(h);
+    }
+    if (enText) {
+      const pEn = document.createElement("div");
+      pEn.style.cssText = `font-size:22px;line-height:1.5;font-weight:700;`;
+      pEn.textContent = enText;
+      enBlock.appendChild(pEn);
+    }
+    box.appendChild(enBlock);
   } else {
     if (p.title) {
-      page.appendChild(
-        textEl(
-          "h2",
-          `margin:30px 0 0;font-size:31px;font-weight:800;color:${CORAL};text-align:center;max-width:660px;`,
-          p.title,
-        ),
-      );
+      const h = document.createElement("div");
+      h.style.cssText = `font-size:40px;font-weight:900;color:#FFD86B;margin-bottom:10px;`;
+      h.textContent = p.title;
+      box.appendChild(h);
     }
     const text = personalize(p.text, childName);
-    page.appendChild(
-      textEl(
-        "p",
-        `margin:${p.title ? "16px" : "32px"} 0 0;font-size:24px;line-height:1.95;font-weight:600;color:${INK};text-align:center;max-width:660px;`,
-        text,
-      ),
-    );
+    const pEl = document.createElement("div");
+    pEl.style.cssText = `font-size:30px;line-height:1.6;font-weight:700;max-width:920px;margin:0 auto;`;
+    pEl.textContent = text;
+    box.appendChild(pEl);
   }
 
-  page.appendChild(
-    textEl(
-      "div",
-      `position:absolute;bottom:26px;left:0;right:0;margin:0 auto;width:56px;height:56px;border-radius:999px;background:${CORAL};color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;`,
-      String(p.n),
-    ),
-  );
-  return page;
+  el.appendChild(box);
+  return el;
 }
 
 export async function generateStoryPdf(input: StoryPdfInput): Promise<Blob> {
@@ -295,39 +214,32 @@ export async function generateStoryPdf(input: StoryPdfInput): Promise<Blob> {
     }),
   );
 
-  const host = div(
-    `position:fixed;left:-20000px;top:0;width:${PAGE_W}px;pointer-events:none;`,
-  );
+  const host = document.createElement("div");
+  host.style.cssText = `position:fixed;left:-20000px;top:0;width:${PAGE}px;pointer-events:none;`;
   document.body.appendChild(host);
 
+  // صفحة PDF مربعة — تتطابق مع حجم الصور بلا أي هوامش
   const pdf = new jsPDF({
     unit: "mm",
-    format: "a4",
+    format: [PAGE_MM, PAGE_MM],
     orientation: "portrait",
     compress: true,
   });
 
   const snap = async (el: HTMLElement, first: boolean) => {
     host.appendChild(el);
-    const imgs = Array.from(el.querySelectorAll("img"));
-    await Promise.all(
-      imgs.map(
-        (im) =>
-          new Promise<void>((resolve) => {
-            if (im.complete) return resolve();
-            im.onload = () => resolve();
-            im.onerror = () => resolve();
-          }),
-      ),
-    );
+    // انتظار تحميل background images
+    await new Promise<void>((r) => setTimeout(r, 60));
     const canvas = await html2canvas(el, {
       scale: 2,
-      backgroundColor: BG,
+      backgroundColor: FALLBACK_BG,
       logging: false,
+      useCORS: true,
     });
     const data = canvas.toDataURL("image/jpeg", 0.92);
-    if (!first) pdf.addPage();
-    pdf.addImage(data, "JPEG", 0, 0, 210, 297);
+    if (!first) pdf.addPage([PAGE_MM, PAGE_MM]);
+    // يملأ كامل الصفحة من 0,0 — لا هوامش
+    pdf.addImage(data, "JPEG", 0, 0, PAGE_MM, PAGE_MM);
     host.removeChild(el);
     tick();
   };
