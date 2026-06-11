@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { STORY_STYLE_PROMPT } from "@/lib/storyStyle";
+import { STORY_STYLE_PROMPT, STYLE_NEGATIVE } from "@/lib/storyStyle";
 import { parsePages } from "@/lib/storyTypes";
 
 const GenerateInput = z.object({
