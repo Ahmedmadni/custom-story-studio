@@ -282,8 +282,11 @@ function OrderDialog({
   const setStatusFn = useServerFn(adminSetStatus);
   const generateFn = useServerFn(adminGeneratePage);
   const getPagesFn = useServerFn(adminGetOrderPages);
+  const verifyFn = useServerFn(adminVerifyPayment);
+  const rejectPayFn = useServerFn(adminRejectPayment);
   const [generating, setGenerating] = useState<number | null>(null);
   const [batchRunning, setBatchRunning] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   const { data: pages, refetch: refetchPages } = useQuery({
     queryKey: ["admin-order-pages", order.id],
@@ -294,6 +297,26 @@ function OrderDialog({
     void queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
     void refetchPages();
   };
+
+  const verifyMutation = useMutation({
+    mutationFn: () => verifyFn({ data: { orderId: order.id } }),
+    onSuccess: () => {
+      toast.success("تم تأكيد الدفع — يمكن البدء بتوليد الصفحات ✅");
+      refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const rejectPayMutation = useMutation({
+    mutationFn: () =>
+      rejectPayFn({ data: { orderId: order.id, reason: rejectReason.trim() } }),
+    onSuccess: () => {
+      toast.success("تم رفض الدفع وإبلاغ العميل");
+      refresh();
+      onClose();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const statusMutation = useMutation({
     mutationFn: (status: "approved" | "rejected" | "sent") =>
