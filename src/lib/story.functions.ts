@@ -57,6 +57,10 @@ export const getMyStory = createServerFn({ method: "POST" })
       status: order.status as string,
       title: personalize(order.story_templates?.title ?? "", order.child_name),
       moral: order.story_templates?.moral ?? null,
+      language: (order.story_templates?.language ?? "ar") as "ar" | "en",
+      contentType: (order.story_templates?.content_type ?? "story") as
+        | "story"
+        | "book",
       pages,
     };
   });
