@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { BookOpen, Camera, Heart } from "lucide-react";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { BookOpen, Check, Heart, ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import { PRICE_PER_ITEM_EGP, useCart } from "@/features/cart/CartContext";
 import { parsePages } from "@/features/ai/storyTypes";
 
 export const Route = createFileRoute("/stories/$slug")({
@@ -19,6 +21,8 @@ export const Route = createFileRoute("/stories/$slug")({
 
 function StoryPreview() {
   const { slug } = Route.useParams();
+  const { add, has, items } = useCart();
+  const navigate = useNavigate();
 
   const { data: story, isLoading } = useQuery({
     queryKey: ["story", slug],
@@ -31,6 +35,19 @@ function StoryPreview() {
       return data;
     },
   });
+
+  const inCart = story ? has(story.id) : false;
+  const addToCart = () => {
+    if (!story) return;
+    add({
+      templateId: story.id,
+      slug: story.slug,
+      title: story.title,
+      coverUrl: story.cover_url,
+      contentType: (story.content_type ?? "story") as "story" | "book",
+    });
+    toast.success(`أُضيف «${story.title}» للسلة — ${items.length + 1} عنصر`);
+  };
 
   const pages = parsePages(story?.pages);
 
@@ -98,21 +115,42 @@ function StoryPreview() {
                 </div>
               )}
 
-              <div className="mt-8">
-                <Button
-                  asChild
-                  size="lg"
-                  className="rounded-full px-10 text-base font-bold shadow-lg"
-                >
-                  <Link to="/order/$templateId" params={{ templateId: story.id }}>
-                    <Camera className="ms-2 h-5 w-5" />
-                    اطلبها بصورة طفلك
-                  </Link>
-                </Button>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  سيتحول طفلك إلى بطل كرتوني ثلاثي الأبعاد في كل صفحات القصة ✨
-                </p>
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                {inCart ? (
+                  <>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="rounded-full px-8 text-base font-bold"
+                      disabled
+                    >
+                      <Check className="ms-2 h-5 w-5 text-grass" />
+                      في السلة
+                    </Button>
+                    <Button
+                      size="lg"
+                      className="rounded-full px-8 text-base font-bold shadow-lg"
+                      onClick={() => void navigate({ to: "/cart" })}
+                    >
+                      <ShoppingCart className="ms-2 h-5 w-5" />
+                      اذهب للسلة
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    size="lg"
+                    className="rounded-full px-10 text-base font-bold shadow-lg"
+                    onClick={addToCart}
+                  >
+                    <ShoppingCart className="ms-2 h-5 w-5" />
+                    أضف للسلة — {PRICE_PER_ITEM_EGP} ج
+                  </Button>
+                )}
               </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                ادفع عبر فودافون كاش، ارفع صورة طفلك وإيصال السداد، وستصلك القصة على واتساب كملف PDF ✨
+              </p>
+
 
               {pages.length > 0 && (
                 <div className="mt-10">

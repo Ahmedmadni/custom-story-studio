@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as CreateRouteImport } from './routes/create'
+import { Route as CartRouteImport } from './routes/cart'
 import { Route as BooksRouteImport } from './routes/books'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
@@ -17,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoriesIndexRouteImport } from './routes/stories.index'
 import { Route as StoriesSlugRouteImport } from './routes/stories.$slug'
 import { Route as AuthenticatedMyOrdersRouteImport } from './routes/_authenticated.my-orders'
+import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated.checkout'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedStoryOrderIdRouteImport } from './routes/_authenticated.story.$orderId'
 import { Route as AuthenticatedOrderTemplateIdRouteImport } from './routes/_authenticated.order.$templateId'
@@ -24,6 +26,11 @@ import { Route as AuthenticatedOrderTemplateIdRouteImport } from './routes/_auth
 const CreateRoute = CreateRouteImport.update({
   id: '/create',
   path: '/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CartRoute = CartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BooksRoute = BooksRouteImport.update({
@@ -60,6 +67,11 @@ const AuthenticatedMyOrdersRoute = AuthenticatedMyOrdersRouteImport.update({
   path: '/my-orders',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCheckoutRoute = AuthenticatedCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -82,8 +94,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
+  '/cart': typeof CartRoute
   '/create': typeof CreateRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/checkout': typeof AuthenticatedCheckoutRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories/': typeof StoriesIndexRoute
@@ -94,8 +108,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
+  '/cart': typeof CartRoute
   '/create': typeof CreateRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/checkout': typeof AuthenticatedCheckoutRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories': typeof StoriesIndexRoute
@@ -108,8 +124,10 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
+  '/cart': typeof CartRoute
   '/create': typeof CreateRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/my-orders': typeof AuthenticatedMyOrdersRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories/': typeof StoriesIndexRoute
@@ -122,8 +140,10 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/books'
+    | '/cart'
     | '/create'
     | '/admin'
+    | '/checkout'
     | '/my-orders'
     | '/stories/$slug'
     | '/stories/'
@@ -134,8 +154,10 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/books'
+    | '/cart'
     | '/create'
     | '/admin'
+    | '/checkout'
     | '/my-orders'
     | '/stories/$slug'
     | '/stories'
@@ -147,8 +169,10 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/books'
+    | '/cart'
     | '/create'
     | '/_authenticated/admin'
+    | '/_authenticated/checkout'
     | '/_authenticated/my-orders'
     | '/stories/$slug'
     | '/stories/'
@@ -161,6 +185,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   BooksRoute: typeof BooksRoute
+  CartRoute: typeof CartRoute
   CreateRoute: typeof CreateRoute
   StoriesSlugRoute: typeof StoriesSlugRoute
   StoriesIndexRoute: typeof StoriesIndexRoute
@@ -173,6 +198,13 @@ declare module '@tanstack/react-router' {
       path: '/create'
       fullPath: '/create'
       preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cart': {
+      id: '/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof CartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/books': {
@@ -224,6 +256,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMyOrdersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/checkout': {
+      id: '/_authenticated/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof AuthenticatedCheckoutRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -250,6 +289,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedCheckoutRoute: typeof AuthenticatedCheckoutRoute
   AuthenticatedMyOrdersRoute: typeof AuthenticatedMyOrdersRoute
   AuthenticatedOrderTemplateIdRoute: typeof AuthenticatedOrderTemplateIdRoute
   AuthenticatedStoryOrderIdRoute: typeof AuthenticatedStoryOrderIdRoute
@@ -257,6 +297,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedCheckoutRoute: AuthenticatedCheckoutRoute,
   AuthenticatedMyOrdersRoute: AuthenticatedMyOrdersRoute,
   AuthenticatedOrderTemplateIdRoute: AuthenticatedOrderTemplateIdRoute,
   AuthenticatedStoryOrderIdRoute: AuthenticatedStoryOrderIdRoute,
@@ -271,6 +312,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   BooksRoute: BooksRoute,
+  CartRoute: CartRoute,
   CreateRoute: CreateRoute,
   StoriesSlugRoute: StoriesSlugRoute,
   StoriesIndexRoute: StoriesIndexRoute,

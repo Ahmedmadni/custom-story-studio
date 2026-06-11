@@ -23,7 +23,7 @@ async function assertAdmin(context: AuthedContext) {
   if (!data) throw new Error("غير مصرح لك بالوصول");
 }
 
-/** قائمة الطلبات للوحة التحكم مع روابط موقعة لصور الأطفال */
+/** قائمة الطلبات للوحة التحكم مع روابط موقعة لصور الأطفال والإيصالات */
 export const adminListOrders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -49,11 +49,21 @@ export const adminListOrders = createServerFn({ method: "POST" })
             .createSignedUrl(o.child_photo_path, 3600);
           photoUrl = signed?.signedUrl ?? null;
         }
+        let receiptUrl: string | null = null;
+        if (o.receipt_path) {
+          const { data: signed } = await supabaseAdmin.storage
+            .from("payment-receipts")
+            .createSignedUrl(o.receipt_path, 3600);
+          receiptUrl = signed?.signedUrl ?? null;
+        }
         const totalPages = parsePages(o.story_templates?.pages).length;
         const donePages = (pageRows ?? []).filter((p) => p.order_id === o.id).length;
         return {
           id: o.id,
           status: o.status as string,
+          paymentStatus: (o.payment_status ?? "unpaid") as string,
+          priceEgp: o.price_egp ?? 100,
+          paymentRejectionReason: o.payment_rejection_reason as string | null,
           childName: o.child_name,
           childAge: o.child_age,
           whatsapp: o.whatsapp,
@@ -63,12 +73,58 @@ export const adminListOrders = createServerFn({ method: "POST" })
           storyTitle: o.story_templates?.title ?? "قصة محذوفة",
           templateId: o.template_id,
           photoUrl,
+          receiptUrl,
           totalPages,
           donePages,
         };
       }),
     );
     return result;
+  });
+
+const VerifyInput = z.object({ orderId: z.string().uuid() });
+
+export const adminVerifyPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => VerifyInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("orders")
+      .update({
+        payment_status: "verified",
+        payment_verified_by: context.userId,
+        payment_verified_at: new Date().toISOString(),
+        payment_rejection_reason: null,
+        status: "approved",
+      })
+      .eq("id", data.orderId);
+    if (error) throw new Error("تعذر تأكيد الدفع");
+    return { ok: true };
+  });
+
+const RejectInput = z.object({
+  orderId: z.string().uuid(),
+  reason: z.string().trim().min(1).max(300),
+});
+
+export const adminRejectPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => RejectInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("orders")
+      .update({
+        payment_status: "rejected",
+        payment_rejection_reason: data.reason,
+        status: "rejected",
+      })
+      .eq("id", data.orderId);
+    if (error) throw new Error("تعذر رفض الدفع");
+    return { ok: true };
   });
 
 const SetStatusInput = z.object({

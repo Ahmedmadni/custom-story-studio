@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { GraduationCap, Wand2 } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { GraduationCap } from "lucide-react";
 import { useState } from "react";
 
 import { CardShimmer } from "@/components/CardShimmer";
@@ -10,7 +10,6 @@ import { FilterChips } from "@/components/FilterChips";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { StoryCard } from "@/features/library/StoryCard";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/books")({
@@ -104,20 +103,6 @@ function BooksPage() {
           />
         )}
 
-        <div className="mt-14 rounded-3xl border-2 border-dashed border-primary/40 bg-secondary/30 p-8 text-center">
-          <h2 className="font-display text-2xl font-extrabold">
-            تريد كتاباً عن موضوع آخر؟
-          </h2>
-          <p className="mt-2 text-muted-foreground">
-            أنشئ كتاباً تعليمياً مخصصاً عن أي موضوع بالذكاء الاصطناعي خلال دقيقة
-          </p>
-          <Button asChild size="lg" className="mt-4 rounded-full px-8 font-bold shadow-lg">
-            <Link to="/create">
-              <Wand2 className="ms-2 h-5 w-5" />
-              أنشئ كتاباً الآن
-            </Link>
-          </Button>
-        </div>
       </main>
       <Footer />
     </div>

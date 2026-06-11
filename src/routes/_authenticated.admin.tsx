@@ -6,6 +6,7 @@ import {
   ImageIcon,
   Loader2,
   MessageCircle,
+  Receipt,
   ShieldAlert,
   Wand2,
   X,
@@ -15,7 +16,7 @@ import { toast } from "sonner";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { StatusBadge } from "@/features/orders/StatusBadge";
+import { PaymentBadge, StatusBadge } from "@/features/orders/StatusBadge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,13 +24,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import {
   adminGeneratePage,
   adminGetOrderPages,
   adminListOrders,
+  adminRejectPayment,
   adminSetStatus,
+  adminVerifyPayment,
 } from "@/features/admin/admin.functions";
 import {
   adminApproveTemplate,
@@ -48,6 +52,9 @@ export const Route = createFileRoute("/_authenticated/admin")({
 type AdminOrder = {
   id: string;
   status: string;
+  paymentStatus: string;
+  priceEgp: number;
+  paymentRejectionReason: string | null;
   childName: string;
   childAge: number | null;
   whatsapp: string;
@@ -57,6 +64,7 @@ type AdminOrder = {
   storyTitle: string;
   templateId: string | null;
   photoUrl: string | null;
+  receiptUrl: string | null;
   totalPages: number;
   donePages: number;
 };
@@ -245,6 +253,7 @@ function OrdersList() {
                 </p>
               </div>
               <div className="flex flex-col items-end gap-1">
+                <PaymentBadge status={o.paymentStatus} />
                 <StatusBadge status={o.status} />
                 <span className="text-xs font-bold text-muted-foreground">
                   الصور: {o.donePages}/{o.totalPages}
@@ -273,8 +282,11 @@ function OrderDialog({
   const setStatusFn = useServerFn(adminSetStatus);
   const generateFn = useServerFn(adminGeneratePage);
   const getPagesFn = useServerFn(adminGetOrderPages);
+  const verifyFn = useServerFn(adminVerifyPayment);
+  const rejectPayFn = useServerFn(adminRejectPayment);
   const [generating, setGenerating] = useState<number | null>(null);
   const [batchRunning, setBatchRunning] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   const { data: pages, refetch: refetchPages } = useQuery({
     queryKey: ["admin-order-pages", order.id],
@@ -285,6 +297,26 @@ function OrderDialog({
     void queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
     void refetchPages();
   };
+
+  const verifyMutation = useMutation({
+    mutationFn: () => verifyFn({ data: { orderId: order.id } }),
+    onSuccess: () => {
+      toast.success("تم تأكيد الدفع — يمكن البدء بتوليد الصفحات ✅");
+      refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const rejectPayMutation = useMutation({
+    mutationFn: () =>
+      rejectPayFn({ data: { orderId: order.id, reason: rejectReason.trim() } }),
+    onSuccess: () => {
+      toast.success("تم رفض الدفع وإبلاغ العميل");
+      refresh();
+      onClose();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const statusMutation = useMutation({
     mutationFn: (status: "approved" | "rejected" | "sent") =>
@@ -353,6 +385,7 @@ function OrderDialog({
           </DialogTitle>
         </DialogHeader>
 
+
         <div className="flex flex-wrap items-center gap-4">
           {order.photoUrl && (
             <img
@@ -370,13 +403,77 @@ function OrderDialog({
                 <b>ملاحظات:</b> {order.notes}
               </p>
             )}
-            <StatusBadge status={order.status} />
+            <div className="flex flex-wrap gap-2 pt-1">
+              <PaymentBadge status={order.paymentStatus} />
+              <StatusBadge status={order.status} />
+            </div>
           </div>
+        </div>
+
+        {/* payment verification */}
+        <div className="rounded-2xl border-2 border-grass/30 bg-grass/5 p-4">
+          <h3 className="flex items-center gap-2 font-display font-bold">
+            <Receipt className="h-4 w-4 text-grass" />
+            مراجعة الدفع — {order.priceEgp} جنيه فودافون كاش
+          </h3>
+          {order.receiptUrl ? (
+            <a
+              href={order.receiptUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-block"
+            >
+              <img
+                src={order.receiptUrl}
+                alt="إيصال الدفع"
+                className="h-40 rounded-xl border bg-card object-contain p-1 shadow hover:shadow-lg"
+              />
+            </a>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">
+              لم يُرفع إيصال بعد
+            </p>
+          )}
+          {order.paymentStatus === "rejected" && order.paymentRejectionReason && (
+            <p className="mt-2 rounded-xl bg-destructive/10 p-2 text-xs text-destructive">
+              سبب الرفض: {order.paymentRejectionReason}
+            </p>
+          )}
+          {order.paymentStatus === "receipt_uploaded" && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button
+                className="rounded-full bg-grass font-bold text-grass-foreground hover:bg-grass/90"
+                disabled={verifyMutation.isPending}
+                onClick={() => verifyMutation.mutate()}
+              >
+                <Check className="ms-1 h-4 w-4" />
+                تأكيد الدفع وبدء التنفيذ
+              </Button>
+              <Input
+                placeholder="سبب الرفض (مطلوب للرفض)"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                maxLength={300}
+                className="h-9 max-w-xs rounded-full"
+              />
+              <Button
+                variant="outline"
+                className="rounded-full font-bold text-destructive"
+                disabled={
+                  rejectPayMutation.isPending || rejectReason.trim().length === 0
+                }
+                onClick={() => rejectPayMutation.mutate()}
+              >
+                <X className="ms-1 h-4 w-4" />
+                رفض الدفع
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* status actions */}
         <div className="flex flex-wrap gap-2 border-t pt-4">
-          {order.status === "pending" && (
+          {order.status === "pending" && order.paymentStatus === "verified" && (
             <>
               <Button
                 className="rounded-full bg-grass font-bold text-grass-foreground hover:bg-grass/90"

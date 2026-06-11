@@ -1,124 +1,84 @@
+# خطة التحويل لمتجر القوالب الجاهزة
 
-## ١) تدقيق الوضع الحالي (Audit)
+## 1) المفهوم الجديد
 
-**موجود ويعمل:**
-- مصادقة كاملة + RLS + أدوار (auth, _authenticated gate, has_role).
-- مكتبتان منفصلتان فعلاً: `/stories` و `/books` تقرآن من `story_templates` مع فلتر `content_type`.
-- معالج إنشاء بـ 8 خطوات في `create.tsx` (1022 سطر): اسم، عمر، لغة، صورة، نوع، توليد، **معاينة واعتماد**، **تصدير ومشاركة**.
-- توليد نص+صور متناسق (Gemini عبر Lovable AI Gateway) مع `character` ثابت + `ageStylePrompt` + `photoModePrompt` (cartoon/real).
-- تعديل نص الصفحة + إعادة توليد الصورة قبل الاعتماد (`updatePageText`, `generatePageImage`).
-- PDF عالي الجودة (`storyPdf.ts` + `PdfActions`) + حفظ في bucket `story-pdfs` + مشاركة واتساب.
-- صفحة auth محسّنة، نمط فني موحّد، تكيّف العمر مطبّق.
+- المنتج = قوالب قصص/كتب جاهزة (story_templates معتمدة من الأدمن).
+- العميل لا يولّد أي محتوى. فقط:
+  1. يتصفح المعرض ويختار قالبًا.
+  2. يضيفه إلى السلة (سلة بسيطة لقالب واحد أو أكثر).
+  3. عند الدفع: يدخل **اسم الطفل + صورة الطفل + رقم واتساب الاستلام**.
+  4. يحوّل 100ج لكل قالب على فودافون كاش `01120016502` ويرفع صورة الإيصال أو يرسلها على نفس الرقم.
+  5. ينتظر إرسال PDF على واتساب من الأدمن.
+- الأدمن يتحقق من الإيصال → يولّد/يعدّل صفحات القصة باستبدال اسم وصورة الطفل → يصدّر PDF → يرسل على واتساب العميل برسالة جاهزة.
 
-**ناقص أو غير مكتمل (الفجوات الحقيقية):**
-1. **اللغة ثنائية فقط (ar/en)** — لا يوجد وضع **عربي+إنجليزي**. حقل `language` في الجدول `text` يقبل أي قيمة لكن واجهة الاختيار + الـ prompt + الـ PDF + الـ schema (`z.enum(["ar","en"])`) لا تدعم `bilingual`.
-2. **الكتب التعليمية بلا فئات مهيكلة**: لا يوجد قائمة ثابتة (رياضيات/علوم/برمجة/حروف ع/حروف إن/حيوانات/فواكه/ألوان) ولا اختيار "مستوى قراءة" ولا "طول الكتاب". الموضوع نص حر فقط.
-3. **بنية الكتاب التعليمي**: الـ prompt يولّد 6 صفحات عامة بدون: غلاف منفصل، أهداف تعلّم، صفحات مراجعة، نشاط، خلاصة.
-4. **الاعتماد ليس "إلزامياً" بشكل صارم**: زر تصدير PDF يظهر في خطوة 7 (بعد الاعتماد) — لكن لا يوجد سجل DB لحالة "approved" يمنع التصدير لو فتح المستخدم القصة من `my-orders` أو `story.$orderId`. التنفيذ حالياً يعتمد على state محلي فقط.
-5. **بدون إعادة ترتيب الصفحات** (reorder) و **بدون إعادة توليد صفحة كاملة** (نص+صورة معاً).
-6. **بدون مسودات/استعادة** (draft recovery) — لو أغلق المستخدم التبويب في منتصف المعالج يفقد كل شيء.
-7. **بدون retry تلقائي** لفشل توليد الصور (يعتمد على المستخدم).
-8. **بدون analytics events**.
-9. ملف `create.tsx` 1022 سطر يخلط UI + state + business logic.
-10. مكوّن `LanguageOptions`/`STEPS` مكرّر، لا توجد بنية feature-based.
+## 2) تغييرات قاعدة البيانات
 
----
+جدول جديد + توسعة `orders`:
 
-## ٢) خطة التنفيذ (مراحل قابلة للتحقق)
+- `orders`:
+  - `price_egp int default 100`
+  - `payment_status` enum: `unpaid | receipt_uploaded | verified | rejected`
+  - `receipt_path text` (صورة إيصال فودافون كاش في bucket `payment-receipts`)
+  - `paid_at, payment_verified_by, payment_verified_at`
+  - الحالة الحالية `status` تبقى لمسار التنفيذ (pending → in_progress → ready → sent).
+- `cart_items` (اختياري — يمكن الاكتفاء بـ localStorage للسلة وإنشاء order واحد لكل عنصر عند الدفع). الأبسط: **سلة في localStorage** + إنشاء صف order واحد لكل قالب عند الـ checkout.
+- Bucket جديد: `payment-receipts` (خاص، RLS: المالك + الأدمن).
 
-### المرحلة A — قاعدة البيانات والنماذج (migration واحد)
-- توسيع `story_templates.language` ليقبل `ar | en | bilingual` (CHECK constraint) + قيمة افتراضية.
-- إضافة عمود `approved_at timestamptz` على `story_templates` (يمنع التصدير قبل الاعتماد).
-- إضافة عمود `book_meta jsonb` للكتب: `{ category, reading_level, length, learning_goals[] }`.
-- إضافة جدول `wizard_drafts (user_id, payload jsonb, updated_at)` لاستعادة المسودات (RLS: المستخدم لمسودته فقط) + GRANTs.
-- خادم تحقّق: `approveTemplate` server fn يضع `approved_at`، و`generateStoryPdf`/`saveStoryPdf` يرفضان لو `approved_at IS NULL`.
+## 3) إعادة هيكلة الواجهات
 
-### المرحلة B — إعادة هيكلة المجلدات (feature-based، بدون كسر)
+### واجهة العميل
+- `/stories` و `/books`: تبقى كمعرض، لكن زر «اطلبها بصورة طفلك» يتحول إلى **«أضف للسلة — 100ج»**.
+- `/cart` (جديد): قائمة القوالب المختارة + الإجمالي + زر «إتمام الطلب».
+- `/checkout` (جديد): نموذج (اسم الطفل، عمره، صورة، واتساب الاستلام، ملاحظات) + تعليمات فودافون كاش + رفع صورة الإيصال + زر «أرسل الطلب».
+- بعد الإرسال → `/my-orders` يعرض الحالة (بانتظار التحقق من الدفع → قيد التنفيذ → جاهزة).
+- **إزالة كاملة لمسار `/create`** ولأي خاصية توليد للعميل (إخفاء من Header وحذف الراوت).
+
+### واجهة الأدمن (`/admin`) — توسعة
+- تبويبات:
+  1. **القوالب**: قائمة كل القوالب (منشورة/مسودة) — إنشاء قالب جديد + محرر صفحات (نص + توليد صورة بـAI + إعادة ترتيب + إضافة/حذف صفحة) + نشر/سحب.
+  2. **الطلبات**: قائمة الطلبات مع فلتر حسب `payment_status` و`status`.
+     - يفتح الإيصال للتحقق → زر «تأكيد الدفع».
+     - بعد التأكيد: واجهة توليد صفحات القصة لهذا الطلب (يستبدل اسم الطفل تلقائيًا في النصوص، ويستبدل وجه الطفل في الصور باستخدام صورة العميل عبر مولّد الصور الحالي).
+     - معاينة → تصدير PDF (موجود مسبقًا) → زر «إرسال على واتساب» يفتح `wa.me/2{whatsapp}` برسالة فيها رابط PDF + نص ودود + توقيع.
+     - في حال رفض الدفع → زر «رفض الطلب» مع سبب يصل للعميل في `/my-orders`.
+
+## 4) تنفيذ AI (للأدمن فقط)
+
+- نقل كل `generateAiStory / generatePageImage / approveTemplate / reorderPages / updatePageText` لـ middleware يتطلب دور admin (تحقق `has_role`).
+- إزالة استدعاءاتها من `/create` ثم حذف الملف.
+- في محرر القوالب: نفس واجهة الويزرد القديم لكن داخل `/admin/templates/$id`.
+
+## 5) خطوات التنفيذ (Phases)
+
+```text
+P1  هيكل البيانات
+    - migration: price_egp, payment_status enum, receipt_path, paid_at, verified_by/at
+    - storage bucket payment-receipts + RLS
+P2  السلة + Checkout
+    - src/features/cart/ (CartContext في localStorage)
+    - /cart , /checkout (مع رفع الإيصال)
+    - server fn createPaidOrder({templateId, child..., receipt})
+P3  واجهة العميل بعد الطلب
+    - /my-orders يعرض payment_status + status
+    - إزالة /create من Header وحذف الراوت
+P4  لوحة الأدمن — القوالب
+    - /admin تبويب «القوالب»: قائمة + زر «قالب جديد»
+    - /admin/templates/$id محرر صفحات (يستخدم AI fns الموجودة)
+    - حماية: requireSupabaseAuth + has_role('admin') على كل fn
+P5  لوحة الأدمن — الطلبات + الدفع
+    - تبويب «الطلبات»: عرض الإيصال + verifyPayment / rejectPayment
+    - بعد التأكيد: توليد صفحات الطلب بصورة الطفل (إعادة استخدام adminGeneratePage)
+    - زر إرسال واتساب برسالة جاهزة + رابط PDF
+P6  تنظيف + QA
+    - حذف كل مسار توليد العميل + تحديث Footer/Header
+    - اختبار end-to-end: تصفح → سلة → دفع → تحقق أدمن → توليد → PDF → واتساب
 ```
-src/features/
-  create/           ← يضم create.tsx مقسماً
-    wizard/Stepper.tsx, StepName.tsx, StepAge.tsx, StepLanguage.tsx,
-           StepPhoto.tsx, StepContent.tsx, StepGenerate.tsx,
-           StepPreview.tsx, StepExport.tsx
-    hooks/useWizardState.ts, useDraft.ts, useImageGeneration.ts
-    lib/wizardSchema.ts
-  library/          ← stories + books shared components (StoryCard, filters)
-  pdf/              ← storyPdf.ts + PdfActions.tsx
-  ai/               ← ai.functions.ts منظماً (story, book, image, translate)
-```
-الـ routes تبقى أغلفة رفيعة تستورد من `features/`.
 
-### المرحلة C — وضع اللغة الموحّد (Stories + Books)
-- `LANGUAGE_OPTIONS` يصبح: `ar` (عربي فقط)، `bilingual` (عربي+إنجليزي)، `en` (إنجليزي فقط).
-- اختيار اللغة **مطلوب** (لا قيمة افتراضية صامتة) — الزر "التالي" معطّل بدون اختيار صريح.
-- في `bilingual`: الـ prompt يطلب لكل صفحة `text_ar` + `text_en` + `title_ar` + `title_en`. `StoryPage` يصبح `{ n, title_ar?, title_en?, text_ar?, text_en?, text?, scene, image_path? }` مع توافق رجعي.
-- العرض في المعاينة والـ PDF: عربي ثم إنجليزي عمودياً (موبايل) / side-by-side (شاشة كبيرة، responsive).
-- يُحفظ `language` في DB ويُمرَّر لكل: مكتبة (badge)، معاينة، PDF، رسالة واتساب.
+## 6) أسئلة تحتاج تأكيدك قبل البدء
 
-### المرحلة D — الكتب التعليمية المهيكلة
-- ثوابت في `features/library/bookCategories.ts`: `mathematics, science, programming, arabic_letters, english_letters, animals, fruits, colors` (مع label عربي + أيقونة).
-- في معالج الإنشاء عند `contentType=book`: يحلّ محل حقل "topic" الحر:
-  - اختيار **فئة** (شبكة بطاقات).
-  - **مستوى القراءة**: مبتدئ/متوسط/متقدم (مشتق من العمر تلقائياً ويمكن تعديله).
-  - **طول الكتاب**: قصير 6 / متوسط 10 / موسّع 14 صفحة.
-- prompt جديد للكتب يولّد بنية: `cover` + `learning_goals[]` + `lessons[]` + `review[]` + `activity` + `summary`. تُرسم كصفحات بنفس نظام الصور.
-- صعوبة المفردات تتكيّف عبر `ageStylePrompt` + قاعدة "أبسط الكلمات للأصغر سناً" في system prompt.
+1. **سعر السلة**: 100ج لكل قالب أم 100ج للطلب كاملًا مهما كان عدد القوالب؟
+2. **رفع الإيصال**: إجباري داخل الموقع، أم يكفي إرسال الإيصال على واتساب `01120016502` ويؤكد الأدمن يدويًا بدون رفع؟
+3. **صورة الطفل**: نمط واحد (وجه الطفل داخل المشهد 3D) أم نُبقي الخيارين (كرتنة / وجه حقيقي)؟
+4. **القوالب الحالية الموجودة في DB**: نُبقيها كلها أم نبدأ بقائمة منتقاة فقط؟
 
-### المرحلة E — Preview & Approval إلزامي
-- خطوة المعاينة تكتسب:
-  - **إعادة توليد صفحة كاملة** (نص+صورة) — server fn جديدة `regeneratePage`.
-  - **إعادة ترتيب الصفحات** (drag-handle بسيط ↑/↓) — server fn `reorderPages` تحدّث `pages[].n`.
-  - زر "اعتماد المحتوى" يستدعي `approveTemplate` ويثبّت `approved_at`.
-- `PdfActions` + `saveStoryPdf` يتحققان من `approved_at` server-side (يرفعان خطأ واضح بالعربية).
-- في `_authenticated.story.$orderId.tsx` و `my-orders`: يظهر badge "بانتظار الاعتماد" مع زر "اذهب للاعتماد".
-
-### المرحلة F — استعادة المسودات + الموثوقية
-- `useDraft`: debounce 1s، يحفظ `wizard_drafts` (childName, age, language, contentType, bookMeta, topic, photoPath, photoMode, step).
-- عند فتح `/create` ووجود مسودة: شريط علوي "لديك مسودة محفوظة — استئناف؟ / تجاهل".
-- Retry تلقائي مع backoff لفشل صورة (×2)، ثم زر يدوي.
-- Zod validators موحّدة في `wizardSchema.ts`.
-- Analytics: `track(event, payload)` خفيف (console + جدول `analytics_events` اختياري لاحقاً) للأحداث: `wizard_step`, `generate_started/success/failed`, `approved`, `pdf_exported`, `wa_shared`.
-
-### المرحلة G — UI/UX (الحفاظ على الهوية، تحسين فقط)
-- Stepper متجاوب أفقي على الموبايل (scroll-snap بدل الإخفاء).
-- بطاقات أكبر، حالات empty/loading/error موحّدة (`<EmptyState/>`, `<ErrorBlock/>`, شِيمر بدل `Skeleton` المكرر).
-- Onboarding بسيط: tooltip "ابدأ من هنا" أول زيارة.
-- مكوّن `<PageReader/>` موحّد للمعاينة، يُستخدم في `story.$orderId` أيضاً (مصدر واحد).
-- تحسين tap targets ≥ 44px، تباين tokens، animations مدروسة (framer-motion للنقل بين الخطوات فقط).
-
-### المرحلة H — QA يدوي + سكربت اختبار
-- سيناريوهات: قصة ع/إن/ثنائي × كتاب 8 فئات × مع/بدون صورة × cartoon/real × اعتماد ثم PDF ثم WhatsApp ثم استعادة من `my-orders`.
-- فحص: الـ PDF يطابق المعاينة، الـ bilingual يعرض اللغتين في كل مكان، الاعتماد مطلوب server-side، المسودات تستعاد بعد إغلاق التبويب.
-
----
-
-## ٣) ما لن أفعله (لتجنب الإفراط)
-- لن أغيّر تكامل المصادقة الحالي.
-- لن أستبدل Lovable AI Gateway أو نموذج Gemini.
-- لن أحذف `admin`, `my-orders`, أو سير الإدارة اليدوي عبر واتساب (admin number).
-- لن أحوّل المشروع إلى Edge Functions — يبقى TanStack `createServerFn`.
-
----
-
-## ٤) ترتيب الشحن المقترح
-A (migration) ✅ → C (لغة موحّدة) ✅ → D (كتب مهيكلة) ✅ → E (اعتماد إلزامي) ✅ → F (drafts + retry) ✅ → G (تلميع UI) ✅ → H (QA checklist) ✅.
-
-### المرحلة B — ما تم ✅
-- إنشاء `src/features/{ai,pdf,library,orders,admin,create}/`.
-- نقل: ai/storyStyle/storyTypes → features/ai، storyPdf/pdf.functions/PdfActions → features/pdf،
-  StoryCard/bookCategories → features/library، story.functions/draft.functions/whatsapp/StatusBadge → features/orders،
-  admin.functions → features/admin.
-- تحديث كل الـ imports (~14 ملف) دون أي مرجع قديم متبقٍ.
-- `src/components/` يحتوي الآن فقط على مكوّنات UI العامة، و`src/lib/` فقط على utilities مشتركة.
-- تقسيم `create.tsx` نفسه إلى خطوات داخل `features/create/` مؤجّل لـ PR لاحق.
-
-### المرحلة G — ما تم
-- مكوّنات موحّدة جديدة: `EmptyState`, `ErrorBlock`, `CardShimmer`, `FilterChips`.
-- `/stories` و `/books` و `/my-orders` تستخدم الحالات الموحّدة (شِيمر/فارغ/خطأ + إعادة محاولة).
-- `FilterChips` متجاوب على الموبايل مع scroll-snap، tap targets ≥ 44px.
-- shimmer animation مضافة في `styles.css`.
-
-### المرحلة H — ما تم
-- ملف `docs/QA-CHECKLIST.md` يغطّي: المصادقة، المكتبات، مسار الطلب الكامل،
-  لوحة الأدمن، معالج الإنشاء، اعتماد الأدمن، الموبايل/RTL، الأداء والأمان.
-
+بعد ردك على هذه النقاط أبدأ التنفيذ من P1.

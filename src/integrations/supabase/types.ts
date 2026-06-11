@@ -58,6 +58,13 @@ export type Database = {
           created_at: string
           id: string
           notes: string | null
+          paid_at: string | null
+          payment_rejection_reason: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          payment_verified_at: string | null
+          payment_verified_by: string | null
+          price_egp: number
+          receipt_path: string | null
           status: Database["public"]["Enums"]["order_status"]
           template_id: string | null
           updated_at: string
@@ -72,6 +79,13 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          paid_at?: string | null
+          payment_rejection_reason?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          payment_verified_at?: string | null
+          payment_verified_by?: string | null
+          price_egp?: number
+          receipt_path?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           template_id?: string | null
           updated_at?: string
@@ -86,6 +100,13 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          paid_at?: string | null
+          payment_rejection_reason?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          payment_verified_at?: string | null
+          payment_verified_by?: string | null
+          price_egp?: number
+          receipt_path?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           template_id?: string | null
           updated_at?: string
@@ -253,6 +274,7 @@ export type Database = {
         | "ready"
         | "sent"
         | "rejected"
+      payment_status: "unpaid" | "receipt_uploaded" | "verified" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -389,6 +411,7 @@ export const Constants = {
         "sent",
         "rejected",
       ],
+      payment_status: ["unpaid", "receipt_uploaded", "verified", "rejected"],
     },
   },
 } as const
