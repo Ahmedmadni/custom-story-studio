@@ -59,7 +59,9 @@ import {
 } from "@/features/orders/draft.functions";
 import {
   CONTENT_TYPE_OPTIONS,
+  GENDER_OPTIONS,
   LANGUAGE_OPTIONS,
+  type Gender,
   type LanguageMode,
 } from "@/features/ai/storyTypes";
 import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
@@ -94,6 +96,7 @@ const MAX_PHOTO_MB = 8;
 interface DraftPayload {
   step?: number;
   childName?: string;
+  gender?: Gender;
   age?: string;
   language?: LanguageMode;
   whatsapp?: string;
@@ -118,6 +121,7 @@ function CreateWizard() {
 
   const [step, setStep] = useState(0);
   const [childName, setChildName] = useState("");
+  const [gender, setGender] = useState<Gender | "">("");
   const [age, setAge] = useState("");
   const [language, setLanguage] = useState<LanguageMode | "">("");
   const [photo, setPhoto] = useState<File | null>(null);
