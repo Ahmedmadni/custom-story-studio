@@ -126,7 +126,7 @@ function CreateWizard() {
   const [language, setLanguage] = useState<LanguageMode | "">("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [photoMode, setPhotoMode] = useState<"cartoon" | "real">("cartoon");
+  const [photoMode, setPhotoMode] = useState<"cartoon" | "real">("real");
   const [whatsapp, setWhatsapp] = useState("");
   const [contentType, setContentType] = useState<"story" | "book">("story");
   const [topic, setTopic] = useState("");
