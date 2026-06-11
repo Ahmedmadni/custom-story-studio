@@ -21,3 +21,8 @@ export function waLink(number: string, message: string): string {
 export function adminWaLink(message: string): string {
   return waLink(ADMIN_WHATSAPP, message);
 }
+
+/** مشاركة رسالة عبر واتساب دون تحديد رقم (يختار المستخدم جهة الإرسال) */
+export function shareWaLink(message: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
