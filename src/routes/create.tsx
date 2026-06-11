@@ -658,6 +658,33 @@ function CreateWizard() {
                   <p className="mt-2 text-xs text-muted-foreground">
                     سيكون طفلك هو بطل القصة أو رفيق التعلم في الكتاب
                   </p>
+
+                  <div className="mt-6">
+                    <Label className="font-bold">جنس البطل</Label>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      نستخدم هذا لكتابة النصوص بالصيغة الصحيحة (مذكر/مؤنث) ولاختيار شكل الشخصية المرجعية.
+                    </p>
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      {GENDER_OPTIONS.map((g) => (
+                        <button
+                          key={g.value}
+                          type="button"
+                          onClick={() => setGender(g.value)}
+                          className={`rounded-2xl border-2 p-4 text-start transition-colors ${
+                            gender === g.value
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2 font-display text-xl font-bold">
+                            <span className="text-2xl">{g.emoji}</span>
+                            {g.label}
+                          </span>
+                          <p className="mt-1 text-xs text-muted-foreground">{g.hint}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
