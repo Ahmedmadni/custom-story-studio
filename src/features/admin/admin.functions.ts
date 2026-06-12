@@ -790,8 +790,9 @@ export const adminGetUsageStats = createServerFn({ method: "POST" })
       costPerTextUsd: COST_PER_TEXT_GENERATION_USD,
       estimatedCostUsdTotal,
       estimatedCostUsd30d,
-      currentImageModel: "google/gemini-3.1-flash-image-preview",
+      currentImageModel: "gemini-2.5-flash-image (مفتاحك المباشر)",
       currentTextModel: "google/gemini-3-flash-preview",
+
       providers: {
         lovable: Boolean(process.env.LOVABLE_API_KEY),
         openai: Boolean(process.env.OPENAI_API_KEY),
