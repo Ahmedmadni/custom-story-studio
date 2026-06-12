@@ -986,7 +986,8 @@ export const adminRegenerateTemplatePageImage = createServerFn({ method: "POST" 
   .handler(async ({ data, context }) => {
     await assertAdmin(context as unknown as AuthedContext);
     const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("خدمة الذكاء الاصطناعي غير مهيأة");
+    if (!key && !process.env.GEMINI_API_KEY) throw new Error("خدمة الذكاء الاصطناعي غير مهيأة");
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: tpl } = await supabaseAdmin
       .from("story_templates")
