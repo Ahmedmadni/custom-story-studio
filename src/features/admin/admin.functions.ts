@@ -523,61 +523,10 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
     }
 
 
-    // Fallback 2: Google Gemini (gemini-2.5-flash-image / nano-banana)
-    if (!base64 && process.env.GEMINI_API_KEY) {
-      providerUsed = "gemini";
-      try {
-        const photoRes = await fetch(signedPhoto.signedUrl);
-        if (!photoRes.ok) throw new Error("photo fetch failed");
-        const photoBuf = Buffer.from(await photoRes.arrayBuffer());
-        const photoB64 = photoBuf.toString("base64");
-        const mime = photoRes.headers.get("content-type") || "image/png";
+    // (تمت ترقية Gemini إلى المزود الأساسي في الأعلى)
 
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${process.env.GEMINI_API_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                {
-                  role: "user",
-                  parts: [
-                    { text: prompt },
-                    { inline_data: { mime_type: mime, data: photoB64 } },
-                  ],
-                },
-              ],
-            }),
-          },
-        );
+    // Fallback 3: Stability AI (Stable Diffusion 3) — text-to-image
 
-        if (geminiRes.ok) {
-          const gj = (await geminiRes.json()) as {
-            candidates?: {
-              content?: { parts?: { inline_data?: { data?: string }; inlineData?: { data?: string } }[] };
-            }[];
-          };
-          const parts = gj.candidates?.[0]?.content?.parts ?? [];
-          for (const p of parts) {
-            const d = p.inline_data?.data ?? p.inlineData?.data;
-            if (d) {
-              base64 = d;
-              break;
-            }
-          }
-        } else {
-          const body = await geminiRes.text().catch(() => "");
-          console.error("Gemini fallback failed", geminiRes.status, body);
-          providerErrors.push(summarizeProviderFailure("gemini", geminiRes.status, body));
-        }
-      } catch (e) {
-        console.error("Gemini fallback error", e);
-        providerErrors.push("تعذر الاتصال بـ Gemini");
-      }
-    }
-
-    // Fallback 3: Stability AI (Stable Diffusion 3) — text-to-image (لا يقبل صورة الطفل كمدخل في هذا المسار)
     if (!base64 && process.env.STABILITY_API_KEY) {
       providerUsed = "stability";
       try {
