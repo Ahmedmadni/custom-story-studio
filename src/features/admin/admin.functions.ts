@@ -986,7 +986,8 @@ export const adminRegenerateTemplatePageImage = createServerFn({ method: "POST" 
   .handler(async ({ data, context }) => {
     await assertAdmin(context as unknown as AuthedContext);
     const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("خدمة الذكاء الاصطناعي غير مهيأة");
+    if (!key && !process.env.GEMINI_API_KEY) throw new Error("خدمة الذكاء الاصطناعي غير مهيأة");
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: tpl } = await supabaseAdmin
       .from("story_templates")
@@ -1004,27 +1005,62 @@ export const adminRegenerateTemplatePageImage = createServerFn({ method: "POST" 
 Children's storybook page illustration that literally depicts this exact scene: ${page.scene}.
 Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-3.1-flash-image-preview",
-        messages: [{ role: "user", content: prompt }],
-        modalities: ["image", "text"],
-      }),
-    });
-    if (res.status === 429) throw new Error("الخدمة مشغولة، حاول لاحقاً");
-    if (res.status === 402) throw new Error("نفد رصيد Lovable AI");
-    if (!res.ok) {
-      console.error("regen tpl image", res.status, await res.text());
-      throw new Error("تعذر التوليد");
+    let base64: string | null = null;
+
+    // المزود الأساسي: Gemini المباشر
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const gRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${process.env.GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: prompt }] }],
+            }),
+          },
+        );
+        if (gRes.ok) {
+          const gj = (await gRes.json()) as {
+            candidates?: { content?: { parts?: { inline_data?: { data?: string }; inlineData?: { data?: string } }[] } }[];
+          };
+          for (const p of gj.candidates?.[0]?.content?.parts ?? []) {
+            const d = p.inline_data?.data ?? p.inlineData?.data;
+            if (d) { base64 = d; break; }
+          }
+        } else {
+          console.warn("Gemini regen tpl failed", gRes.status, await gRes.text().catch(() => ""));
+        }
+      } catch (e) {
+        console.warn("Gemini regen tpl error", e);
+      }
     }
-    const json = (await res.json()) as {
-      choices?: { message?: { images?: { image_url?: { url?: string } }[] } }[];
-    };
-    const dataUrl = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    if (!dataUrl?.includes("base64,")) throw new Error("لم تُرجع الصورة");
-    const bytes = Buffer.from(dataUrl.split("base64,")[1], "base64");
+
+    // Fallback: Lovable AI Gateway
+    if (!base64 && key) {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-3.1-flash-image-preview",
+          messages: [{ role: "user", content: prompt }],
+          modalities: ["image", "text"],
+        }),
+      });
+      if (res.ok) {
+        const json = (await res.json()) as {
+          choices?: { message?: { images?: { image_url?: { url?: string } }[] } }[];
+        };
+        const dataUrl = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        if (dataUrl?.includes("base64,")) base64 = dataUrl.split("base64,")[1];
+      } else {
+        console.warn("Lovable regen tpl failed", res.status, await res.text().catch(() => ""));
+      }
+    }
+
+    if (!base64) throw new Error("تعذر توليد الصورة من Gemini ولا Lovable AI — تحقق من المفاتيح/الرصيد");
+    const bytes = Buffer.from(base64, "base64");
+
     const imagePath = `templates/${data.templateId}/page-${data.pageNumber}.png`;
     const { error: upErr } = await supabaseAdmin.storage
       .from("story-pages")
