@@ -376,53 +376,118 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
       }
     }
 
-    // محاولة Lovable AI أولاً، ثم OpenAI، ثم Gemini تلقائياً عند الفشل
+    // ترتيب المزودات: Gemini (مفتاحك الشخصي) → Lovable AI → OpenAI → Stability → Replicate
     let base64: string | null = null;
-    let providerUsed: "lovable" | "openai" | "gemini" | "stability" | "replicate" = "lovable";
+    let providerUsed: "lovable" | "openai" | "gemini" | "stability" | "replicate" = "gemini";
 
-    const lovableContent: Array<
-      | { type: "text"; text: string }
-      | { type: "image_url"; image_url: { url: string } }
-    > = [
-      { type: "text", text: prompt },
-      { type: "image_url", image_url: { url: signedPhoto.signedUrl } },
-    ];
-    if (refUrl) {
-      lovableContent.push({ type: "image_url", image_url: { url: refUrl } });
-    }
+    // المزود الأساسي: Google Gemini المباشر (gemini-2.5-flash-image / nano-banana)
+    if (!base64 && process.env.GEMINI_API_KEY) {
+      providerUsed = "gemini";
+      try {
+        const photoRes = await fetch(signedPhoto.signedUrl);
+        if (!photoRes.ok) throw new Error("photo fetch failed");
+        const photoBuf = Buffer.from(await photoRes.arrayBuffer());
+        const photoB64 = photoBuf.toString("base64");
+        const mime = photoRes.headers.get("content-type") || "image/png";
 
-    const lovableRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3.1-flash-image-preview",
-        messages: [{ role: "user", content: lovableContent }],
-        modalities: ["image", "text"],
-      }),
-    });
+        const parts: Array<
+          | { text: string }
+          | { inline_data: { mime_type: string; data: string } }
+        > = [
+          { text: prompt },
+          { inline_data: { mime_type: mime, data: photoB64 } },
+        ];
+        if (refUrl) {
+          try {
+            const refRes = await fetch(refUrl);
+            if (refRes.ok) {
+              const refB64 = Buffer.from(await refRes.arrayBuffer()).toString("base64");
+              const refMime = refRes.headers.get("content-type") || "image/png";
+              parts.push({ inline_data: { mime_type: refMime, data: refB64 } });
+            }
+          } catch {
+            // تجاهل فشل تحميل صورة المرجع
+          }
+        }
 
-    if (lovableRes.status === 429) {
-      throw new Error("الخدمة مشغولة، انتظر دقيقة ثم أعد المحاولة");
-    }
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${process.env.GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ role: "user", parts }] }),
+          },
+        );
 
-    if (lovableRes.ok) {
-      const json = (await lovableRes.json()) as {
-        choices?: { message?: { images?: { image_url?: { url?: string } }[] } }[];
-      };
-      const dataUrl = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-      if (dataUrl?.includes("base64,")) {
-        base64 = dataUrl.split("base64,")[1];
+        if (geminiRes.ok) {
+          const gj = (await geminiRes.json()) as {
+            candidates?: {
+              content?: { parts?: { inline_data?: { data?: string }; inlineData?: { data?: string } }[] };
+            }[];
+          };
+          const respParts = gj.candidates?.[0]?.content?.parts ?? [];
+          for (const p of respParts) {
+            const d = p.inline_data?.data ?? p.inlineData?.data;
+            if (d) {
+              base64 = d;
+              break;
+            }
+          }
+          if (!base64) providerErrors.push("Gemini لم يُعد صورة");
+        } else {
+          const body = await geminiRes.text().catch(() => "");
+          console.error("Gemini primary failed", geminiRes.status, body);
+          providerErrors.push(summarizeProviderFailure("gemini", geminiRes.status, body));
+        }
+      } catch (e) {
+        console.error("Gemini primary error", e);
+        providerErrors.push("تعذر الاتصال بـ Gemini");
       }
-    } else {
-      const body = await lovableRes.text().catch(() => "");
-      console.warn("Lovable AI failed", lovableRes.status, body);
-      providerErrors.push(summarizeProviderFailure("lovable", lovableRes.status, body));
     }
 
-    // Fallback 1: OpenAI gpt-image-1
+    // Fallback 1: Lovable AI Gateway (gemini-3.1-flash-image-preview)
+    if (!base64 && key) {
+      providerUsed = "lovable";
+      const lovableContent: Array<
+        | { type: "text"; text: string }
+        | { type: "image_url"; image_url: { url: string } }
+      > = [
+        { type: "text", text: prompt },
+        { type: "image_url", image_url: { url: signedPhoto.signedUrl } },
+      ];
+      if (refUrl) {
+        lovableContent.push({ type: "image_url", image_url: { url: refUrl } });
+      }
+
+      const lovableRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3.1-flash-image-preview",
+          messages: [{ role: "user", content: lovableContent }],
+          modalities: ["image", "text"],
+        }),
+      });
+
+      if (lovableRes.ok) {
+        const json = (await lovableRes.json()) as {
+          choices?: { message?: { images?: { image_url?: { url?: string } }[] } }[];
+        };
+        const dataUrl = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        if (dataUrl?.includes("base64,")) {
+          base64 = dataUrl.split("base64,")[1];
+        }
+      } else {
+        const body = await lovableRes.text().catch(() => "");
+        console.warn("Lovable AI fallback failed", lovableRes.status, body);
+        providerErrors.push(summarizeProviderFailure("lovable", lovableRes.status, body));
+      }
+    }
+
+    // Fallback 2: OpenAI gpt-image-1
     if (!base64 && process.env.OPENAI_API_KEY) {
       providerUsed = "openai";
       try {
@@ -457,61 +522,11 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
       }
     }
 
-    // Fallback 2: Google Gemini (gemini-2.5-flash-image / nano-banana)
-    if (!base64 && process.env.GEMINI_API_KEY) {
-      providerUsed = "gemini";
-      try {
-        const photoRes = await fetch(signedPhoto.signedUrl);
-        if (!photoRes.ok) throw new Error("photo fetch failed");
-        const photoBuf = Buffer.from(await photoRes.arrayBuffer());
-        const photoB64 = photoBuf.toString("base64");
-        const mime = photoRes.headers.get("content-type") || "image/png";
 
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${process.env.GEMINI_API_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                {
-                  role: "user",
-                  parts: [
-                    { text: prompt },
-                    { inline_data: { mime_type: mime, data: photoB64 } },
-                  ],
-                },
-              ],
-            }),
-          },
-        );
+    // (تمت ترقية Gemini إلى المزود الأساسي في الأعلى)
 
-        if (geminiRes.ok) {
-          const gj = (await geminiRes.json()) as {
-            candidates?: {
-              content?: { parts?: { inline_data?: { data?: string }; inlineData?: { data?: string } }[] };
-            }[];
-          };
-          const parts = gj.candidates?.[0]?.content?.parts ?? [];
-          for (const p of parts) {
-            const d = p.inline_data?.data ?? p.inlineData?.data;
-            if (d) {
-              base64 = d;
-              break;
-            }
-          }
-        } else {
-          const body = await geminiRes.text().catch(() => "");
-          console.error("Gemini fallback failed", geminiRes.status, body);
-          providerErrors.push(summarizeProviderFailure("gemini", geminiRes.status, body));
-        }
-      } catch (e) {
-        console.error("Gemini fallback error", e);
-        providerErrors.push("تعذر الاتصال بـ Gemini");
-      }
-    }
+    // Fallback 3: Stability AI (Stable Diffusion 3) — text-to-image
 
-    // Fallback 3: Stability AI (Stable Diffusion 3) — text-to-image (لا يقبل صورة الطفل كمدخل في هذا المسار)
     if (!base64 && process.env.STABILITY_API_KEY) {
       providerUsed = "stability";
       try {
@@ -775,8 +790,9 @@ export const adminGetUsageStats = createServerFn({ method: "POST" })
       costPerTextUsd: COST_PER_TEXT_GENERATION_USD,
       estimatedCostUsdTotal,
       estimatedCostUsd30d,
-      currentImageModel: "google/gemini-3.1-flash-image-preview",
+      currentImageModel: "gemini-2.5-flash-image (مفتاحك المباشر)",
       currentTextModel: "google/gemini-3-flash-preview",
+
       providers: {
         lovable: Boolean(process.env.LOVABLE_API_KEY),
         openai: Boolean(process.env.OPENAI_API_KEY),
