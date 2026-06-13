@@ -186,6 +186,33 @@ function Index() {
         </div>
       </section>
 
+      {/* Games promo */}
+      <section className="container mx-auto px-4 pb-4">
+        <Link
+          to="/games"
+          className="group flex flex-col items-center gap-4 overflow-hidden rounded-3xl border-4 border-primary/40 bg-gradient-to-l from-primary/15 via-accent/10 to-candy/15 p-6 shadow-md transition-all hover:-translate-y-1 hover:border-primary hover:shadow-xl md:flex-row md:gap-6"
+        >
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl bg-card text-5xl shadow-md transition-transform group-hover:scale-110">
+            🎮
+          </div>
+          <div className="flex-1 text-center md:text-start">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-xs font-bold text-primary">
+              جديد ✨ ألعاب وتعليم
+            </span>
+            <h2 className="mt-2 font-display text-2xl font-extrabold md:text-3xl">
+              العب وتعلّم: أرقام، حروف، أشكال، ألوان وتلوين
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground md:text-base">
+              ألعاب ذكاء تفاعلية تنمي مهارات طفلك بأسلوب ممتع — تكيُّف تلقائي مع عمره.
+            </p>
+          </div>
+          <span className="rounded-full bg-primary px-5 py-2 text-sm font-extrabold text-primary-foreground shadow">
+            ابدأ اللعب ←
+          </span>
+        </Link>
+      </section>
+
+
       {/* How it works */}
       <section className="container mx-auto px-4 py-14">
         <h2 className="text-center font-display text-3xl font-extrabold md:text-4xl">
