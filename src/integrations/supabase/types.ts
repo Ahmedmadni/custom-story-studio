@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      game_progress: {
+        Row: {
+          age_group: string | null
+          best_score: number
+          created_at: string
+          game_key: string
+          id: string
+          last_played_at: string
+          rounds_played: number
+          score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age_group?: string | null
+          best_score?: number
+          created_at?: string
+          game_key: string
+          id?: string
+          last_played_at?: string
+          rounds_played?: number
+          score?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age_group?: string | null
+          best_score?: number
+          created_at?: string
+          game_key?: string
+          id?: string
+          last_played_at?: string
+          rounds_played?: number
+          score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       generated_pages: {
         Row: {
           created_at: string
