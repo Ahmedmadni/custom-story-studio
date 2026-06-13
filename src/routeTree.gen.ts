@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as GamesRouteImport } from './routes/games'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as BooksRouteImport } from './routes/books'
@@ -23,6 +24,11 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.
 import { Route as AuthenticatedStoryOrderIdRouteImport } from './routes/_authenticated.story.$orderId'
 import { Route as AuthenticatedOrderTemplateIdRouteImport } from './routes/_authenticated.order.$templateId'
 
+const GamesRoute = GamesRouteImport.update({
+  id: '/games',
+  path: '/games',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CreateRoute = CreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/books': typeof BooksRoute
   '/cart': typeof CartRoute
   '/create': typeof CreateRoute
+  '/games': typeof GamesRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/books': typeof BooksRoute
   '/cart': typeof CartRoute
   '/create': typeof CreateRoute
+  '/games': typeof GamesRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/books': typeof BooksRoute
   '/cart': typeof CartRoute
   '/create': typeof CreateRoute
+  '/games': typeof GamesRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/my-orders': typeof AuthenticatedMyOrdersRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/books'
     | '/cart'
     | '/create'
+    | '/games'
     | '/admin'
     | '/checkout'
     | '/my-orders'
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/books'
     | '/cart'
     | '/create'
+    | '/games'
     | '/admin'
     | '/checkout'
     | '/my-orders'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/books'
     | '/cart'
     | '/create'
+    | '/games'
     | '/_authenticated/admin'
     | '/_authenticated/checkout'
     | '/_authenticated/my-orders'
@@ -187,12 +199,20 @@ export interface RootRouteChildren {
   BooksRoute: typeof BooksRoute
   CartRoute: typeof CartRoute
   CreateRoute: typeof CreateRoute
+  GamesRoute: typeof GamesRoute
   StoriesSlugRoute: typeof StoriesSlugRoute
   StoriesIndexRoute: typeof StoriesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/games': {
+      id: '/games'
+      path: '/games'
+      fullPath: '/games'
+      preLoaderRoute: typeof GamesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/create': {
       id: '/create'
       path: '/create'
@@ -314,6 +334,7 @@ const rootRouteChildren: RootRouteChildren = {
   BooksRoute: BooksRoute,
   CartRoute: CartRoute,
   CreateRoute: CreateRoute,
+  GamesRoute: GamesRoute,
   StoriesSlugRoute: StoriesSlugRoute,
   StoriesIndexRoute: StoriesIndexRoute,
 }
