@@ -10,6 +10,7 @@ const navLinks = [
   { to: "/", label: "الرئيسية" },
   { to: "/stories", label: "القصص" },
   { to: "/books", label: "الكتب التعليمية" },
+  { to: "/games", label: "ألعاب وتعليم" },
 ];
 
 export function Header() {
