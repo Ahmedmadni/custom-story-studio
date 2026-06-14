@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PuzzlesRouteImport } from './routes/puzzles'
 import { Route as GamesRouteImport } from './routes/games'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as CartRouteImport } from './routes/cart'
@@ -18,12 +19,18 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoriesIndexRouteImport } from './routes/stories.index'
 import { Route as StoriesSlugRouteImport } from './routes/stories.$slug'
+import { Route as PuzzlesIdRouteImport } from './routes/puzzles.$id'
 import { Route as AuthenticatedMyOrdersRouteImport } from './routes/_authenticated.my-orders'
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated.checkout'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedStoryOrderIdRouteImport } from './routes/_authenticated.story.$orderId'
 import { Route as AuthenticatedOrderTemplateIdRouteImport } from './routes/_authenticated.order.$templateId'
 
+const PuzzlesRoute = PuzzlesRouteImport.update({
+  id: '/puzzles',
+  path: '/puzzles',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GamesRoute = GamesRouteImport.update({
   id: '/games',
   path: '/games',
@@ -68,6 +75,11 @@ const StoriesSlugRoute = StoriesSlugRouteImport.update({
   path: '/stories/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PuzzlesIdRoute = PuzzlesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => PuzzlesRoute,
+} as any)
 const AuthenticatedMyOrdersRoute = AuthenticatedMyOrdersRouteImport.update({
   id: '/my-orders',
   path: '/my-orders',
@@ -103,9 +115,11 @@ export interface FileRoutesByFullPath {
   '/cart': typeof CartRoute
   '/create': typeof CreateRoute
   '/games': typeof GamesRoute
+  '/puzzles': typeof PuzzlesRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/puzzles/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories/': typeof StoriesIndexRoute
   '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
@@ -118,9 +132,11 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/create': typeof CreateRoute
   '/games': typeof GamesRoute
+  '/puzzles': typeof PuzzlesRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/puzzles/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories': typeof StoriesIndexRoute
   '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
@@ -135,9 +151,11 @@ export interface FileRoutesById {
   '/cart': typeof CartRoute
   '/create': typeof CreateRoute
   '/games': typeof GamesRoute
+  '/puzzles': typeof PuzzlesRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/puzzles/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories/': typeof StoriesIndexRoute
   '/_authenticated/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
@@ -152,9 +170,11 @@ export interface FileRouteTypes {
     | '/cart'
     | '/create'
     | '/games'
+    | '/puzzles'
     | '/admin'
     | '/checkout'
     | '/my-orders'
+    | '/puzzles/$id'
     | '/stories/$slug'
     | '/stories/'
     | '/order/$templateId'
@@ -167,9 +187,11 @@ export interface FileRouteTypes {
     | '/cart'
     | '/create'
     | '/games'
+    | '/puzzles'
     | '/admin'
     | '/checkout'
     | '/my-orders'
+    | '/puzzles/$id'
     | '/stories/$slug'
     | '/stories'
     | '/order/$templateId'
@@ -183,9 +205,11 @@ export interface FileRouteTypes {
     | '/cart'
     | '/create'
     | '/games'
+    | '/puzzles'
     | '/_authenticated/admin'
     | '/_authenticated/checkout'
     | '/_authenticated/my-orders'
+    | '/puzzles/$id'
     | '/stories/$slug'
     | '/stories/'
     | '/_authenticated/order/$templateId'
@@ -200,12 +224,20 @@ export interface RootRouteChildren {
   CartRoute: typeof CartRoute
   CreateRoute: typeof CreateRoute
   GamesRoute: typeof GamesRoute
+  PuzzlesRoute: typeof PuzzlesRouteWithChildren
   StoriesSlugRoute: typeof StoriesSlugRoute
   StoriesIndexRoute: typeof StoriesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/puzzles': {
+      id: '/puzzles'
+      path: '/puzzles'
+      fullPath: '/puzzles'
+      preLoaderRoute: typeof PuzzlesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/games': {
       id: '/games'
       path: '/games'
@@ -269,6 +301,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoriesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/puzzles/$id': {
+      id: '/puzzles/$id'
+      path: '/$id'
+      fullPath: '/puzzles/$id'
+      preLoaderRoute: typeof PuzzlesIdRouteImport
+      parentRoute: typeof PuzzlesRoute
+    }
     '/_authenticated/my-orders': {
       id: '/_authenticated/my-orders'
       path: '/my-orders'
@@ -327,6 +366,17 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface PuzzlesRouteChildren {
+  PuzzlesIdRoute: typeof PuzzlesIdRoute
+}
+
+const PuzzlesRouteChildren: PuzzlesRouteChildren = {
+  PuzzlesIdRoute: PuzzlesIdRoute,
+}
+
+const PuzzlesRouteWithChildren =
+  PuzzlesRoute._addFileChildren(PuzzlesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
@@ -335,19 +385,10 @@ const rootRouteChildren: RootRouteChildren = {
   CartRoute: CartRoute,
   CreateRoute: CreateRoute,
   GamesRoute: GamesRoute,
+  PuzzlesRoute: PuzzlesRouteWithChildren,
   StoriesSlugRoute: StoriesSlugRoute,
   StoriesIndexRoute: StoriesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
