@@ -11,6 +11,7 @@ const navLinks = [
   { to: "/stories", label: "القصص" },
   { to: "/books", label: "الكتب التعليمية" },
   { to: "/games", label: "ألعاب وتعليم" },
+  { to: "/puzzles", label: "الألغاز" },
 ];
 
 export function Header() {
