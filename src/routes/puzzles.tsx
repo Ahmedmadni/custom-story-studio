@@ -96,39 +96,53 @@ function PuzzlesPage() {
 
         {/* Puzzle grid */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((p) => {
+          {list.map((p, idx) => {
             const prog = progress[p.id];
+            const done = prog?.completed;
             return (
               <Link
                 key={p.id}
                 to="/puzzles/$id"
                 params={{ id: p.id }}
-                className={`group block rounded-3xl border-4 border-transparent p-5 shadow-md transition-all hover:-translate-y-1 hover:border-primary ${p.color}`}
+                style={{ animationDelay: `${Math.min(idx * 40, 400)}ms` }}
+                className={`group relative block animate-fade-in overflow-hidden rounded-3xl border border-border/40 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg active:scale-[0.98] ${p.color}`}
               >
-                <div className="flex items-start justify-between">
-                  <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-card text-3xl shadow">
+                <span className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/10 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100" />
+
+                <div className="flex items-start justify-between gap-2">
+                  <div className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-card text-3xl shadow-sm ring-1 ring-border/50 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
                     {p.emoji}
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${DIFFICULTY_COLOR[p.difficulty]}`}>
-                    {DIFFICULTY_LABEL[p.difficulty]}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${DIFFICULTY_COLOR[p.difficulty]}`}>
+                      {DIFFICULTY_LABEL[p.difficulty]}
+                    </span>
+                    {done && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-grass/30 px-2 py-0.5 text-[10px] font-bold text-foreground">
+                        ✓ تم
+                      </span>
+                    )}
+                  </div>
                 </div>
+
                 <h3 className="mt-3 font-display text-xl font-extrabold text-foreground">{p.title}</h3>
-                <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{p.description}</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">{p.description}</p>
+
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {p.skills.map((s) => (
-                    <span key={s.key} className="rounded-full bg-card/80 px-2 py-0.5 text-[11px] font-bold text-foreground/80">
+                  {p.skills.slice(0, 2).map((s) => (
+                    <span key={s.key} className="rounded-full bg-card/80 px-2 py-0.5 text-[11px] font-bold text-foreground/75 ring-1 ring-border/40">
                       {s.label}
                     </span>
                   ))}
                 </div>
+
                 <div className="mt-3 flex items-center justify-between text-xs font-bold text-foreground/70">
                   <span className="inline-flex items-center gap-1">
                     <Clock className="h-3.5 w-3.5" /> ~{p.estimatedMinutes} د
                   </span>
                   <span className="inline-flex items-center gap-0.5 text-accent">
                     {Array.from({ length: 3 }).map((_, i) => (
-                      <Star key={i} className={`h-3.5 w-3.5 ${prog && i < prog.stars ? "fill-current" : "opacity-30"}`} />
+                      <Star key={i} className={`h-3.5 w-3.5 ${prog && i < prog.stars ? "fill-current" : "opacity-25"}`} />
                     ))}
                   </span>
                 </div>
