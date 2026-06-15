@@ -1,10 +1,11 @@
 import type { PuzzleDef } from "./types";
 
+// كل بطاقة: عنوان قصير + رسالة سطر واحد للأطفال + إيموجي واضح
 export const PUZZLES: PuzzleDef[] = [
   {
     id: "count-animals",
-    title: "عُدّ الحيوانات",
-    description: "أحصِ الحيوانات في الصورة واختر العدد الصحيح",
+    title: "عُدّ معي",
+    description: "كم حيواناً ترى؟",
     emoji: "🐰",
     engine: "counting",
     difficulty: "easy",
@@ -16,7 +17,7 @@ export const PUZZLES: PuzzleDef[] = [
   {
     id: "odd-one-out",
     title: "المختلف",
-    description: "اعثر على العنصر المختلف بين المجموعة",
+    description: "من لا يشبه الباقي؟",
     emoji: "🔍",
     engine: "odd_one_out",
     difficulty: "easy",
@@ -27,8 +28,8 @@ export const PUZZLES: PuzzleDef[] = [
   },
   {
     id: "shape-match",
-    title: "طابق الأشكال",
-    description: "اختر الشكل المطابق للنموذج",
+    title: "الأشكال",
+    description: "اختر الشكل نفسه",
     emoji: "🔺",
     engine: "shape_match",
     difficulty: "easy",
@@ -39,8 +40,8 @@ export const PUZZLES: PuzzleDef[] = [
   },
   {
     id: "color-match",
-    title: "طابق الألوان",
-    description: "اختر اللون المطلوب من بين الخيارات",
+    title: "الألوان",
+    description: "اختر اللون الصحيح",
     emoji: "🎨",
     engine: "color_match",
     difficulty: "easy",
@@ -52,7 +53,7 @@ export const PUZZLES: PuzzleDef[] = [
   {
     id: "shadow-match",
     title: "ظل من؟",
-    description: "صل الكائن بالظل المطابق له",
+    description: "خمّن صاحب الظل",
     emoji: "👤",
     engine: "shadow_match",
     difficulty: "medium",
@@ -63,9 +64,9 @@ export const PUZZLES: PuzzleDef[] = [
   },
   {
     id: "letter-picture",
-    title: "الحرف والصورة",
-    description: "اختر الحرف الذي تبدأ به الكلمة",
-    emoji: "أ",
+    title: "أول حرف",
+    description: "بأي حرف تبدأ؟",
+    emoji: "🔤",
     engine: "letter_picture",
     difficulty: "easy",
     estimatedMinutes: 2,
@@ -75,8 +76,8 @@ export const PUZZLES: PuzzleDef[] = [
   },
   {
     id: "memory-pairs",
-    title: "ذاكرة الأزواج",
-    description: "اقلب البطاقات وابحث عن الزوج المتطابق",
+    title: "الذاكرة",
+    description: "اعثر على الزوج",
     emoji: "🧠",
     engine: "memory_pairs",
     difficulty: "medium",
@@ -88,7 +89,7 @@ export const PUZZLES: PuzzleDef[] = [
   {
     id: "pattern-complete",
     title: "أكمل النمط",
-    description: "اختر العنصر الذي يكمل النمط",
+    description: "ما التالي؟",
     emoji: "🔁",
     engine: "pattern_complete",
     difficulty: "medium",
@@ -99,8 +100,8 @@ export const PUZZLES: PuzzleDef[] = [
   },
   {
     id: "sequence-order",
-    title: "رتّب الأرقام",
-    description: "رتّب الأرقام من الأصغر إلى الأكبر",
+    title: "الأصغر؟",
+    description: "اختر الرقم الأصغر",
     emoji: "🔢",
     engine: "sequence_order",
     difficulty: "medium",
@@ -112,7 +113,7 @@ export const PUZZLES: PuzzleDef[] = [
   {
     id: "missing-piece",
     title: "القطعة الناقصة",
-    description: "اختر القطعة المناسبة لإكمال الصورة",
+    description: "أكمل الصورة",
     emoji: "🧩",
     engine: "missing_piece",
     difficulty: "medium",
@@ -123,8 +124,8 @@ export const PUZZLES: PuzzleDef[] = [
   },
   {
     id: "sorting-category",
-    title: "صنّف حسب النوع",
-    description: "اختر الكائن الذي ينتمي للمجموعة",
+    title: "صنّفها",
+    description: "أين تنتمي؟",
     emoji: "🗂️",
     engine: "sorting_category",
     difficulty: "easy",
@@ -135,8 +136,8 @@ export const PUZZLES: PuzzleDef[] = [
   },
   {
     id: "cause-effect",
-    title: "السبب والنتيجة",
-    description: "اختر النتيجة المناسبة للحدث",
+    title: "ماذا يحدث؟",
+    description: "اختر النتيجة",
     emoji: "💡",
     engine: "cause_effect",
     difficulty: "medium",
@@ -147,8 +148,8 @@ export const PUZZLES: PuzzleDef[] = [
   },
   {
     id: "attention-find",
-    title: "تحدّي التركيز",
-    description: "اعثر على الرمز المطلوب وسط الفوضى",
+    title: "ابحث جيداً",
+    description: "اعثر على الرمز",
     emoji: "👀",
     engine: "attention",
     difficulty: "medium",
@@ -160,7 +161,7 @@ export const PUZZLES: PuzzleDef[] = [
   {
     id: "logic-true",
     title: "صح أم خطأ؟",
-    description: "اختر الإجابة المنطقية الصحيحة",
+    description: "فكّر واختر",
     emoji: "✅",
     engine: "logic",
     difficulty: "hard",
@@ -172,7 +173,7 @@ export const PUZZLES: PuzzleDef[] = [
   {
     id: "spot-difference",
     title: "اكتشف الفرق",
-    description: "ابحث عن الاختلاف بين الصورتين",
+    description: "أي صورة مختلفة؟",
     emoji: "🔎",
     engine: "spot_difference",
     difficulty: "medium",
@@ -183,8 +184,8 @@ export const PUZZLES: PuzzleDef[] = [
   },
   {
     id: "drag-match",
-    title: "صل العنصر بمكانه",
-    description: "اسحب كل صورة إلى الفئة الصحيحة",
+    title: "وصّل العناصر",
+    description: "كلٌّ في مكانه",
     emoji: "🔗",
     engine: "drag_match",
     difficulty: "medium",
@@ -196,7 +197,7 @@ export const PUZZLES: PuzzleDef[] = [
   {
     id: "story-order",
     title: "رتّب القصة",
-    description: "رتّب أحداث القصة بالترتيب الصحيح",
+    description: "أيها أولاً؟",
     emoji: "📖",
     engine: "story_order",
     difficulty: "hard",
@@ -208,7 +209,7 @@ export const PUZZLES: PuzzleDef[] = [
   {
     id: "maze",
     title: "المتاهة",
-    description: "ساعد الشخصية على الوصول إلى الهدف",
+    description: "اختر الاتجاه",
     emoji: "🌀",
     engine: "maze",
     difficulty: "hard",
@@ -219,8 +220,8 @@ export const PUZZLES: PuzzleDef[] = [
   },
   {
     id: "audio-recognition",
-    title: "ميّز الصوت",
-    description: "استمع واختر الكلمة الصحيحة",
+    title: "اسمع واختر",
+    description: "ميّز الصوت",
     emoji: "🔊",
     engine: "audio_recognition",
     difficulty: "medium",
@@ -231,8 +232,8 @@ export const PUZZLES: PuzzleDef[] = [
   },
   {
     id: "jigsaw-rotate",
-    title: "أعد تركيب الصورة",
-    description: "دوّر القطع لتعود الصورة كاملة",
+    title: "الاتجاه الصحيح",
+    description: "أيها معتدل؟",
     emoji: "🧩",
     engine: "jigsaw_rotate",
     difficulty: "hard",
@@ -244,7 +245,7 @@ export const PUZZLES: PuzzleDef[] = [
   {
     id: "daily-mini",
     title: "تحدّي اليوم",
-    description: "لغز يومي صغير يجمع بين عدة مهارات",
+    description: "لغز سريع كل يوم",
     emoji: "🌟",
     engine: "daily_mini",
     difficulty: "easy",
