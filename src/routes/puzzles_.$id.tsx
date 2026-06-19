@@ -58,8 +58,8 @@ function PuzzleDetailPage() {
     <div className="min-h-screen">
       <Header />
       <main className="container mx-auto max-w-3xl px-4 py-8">
-        <Button variant="outline" size="sm" onClick={() => navigate({ to: "/puzzles" })} className="mb-4 rounded-full">
-          <ArrowRight className="ms-1 h-4 w-4" /> كل الألغاز
+        <Button variant="outline" size="sm" onClick={() => navigate({ to: "/puzzles" })} className="mb-4 rounded-full touch-manipulation">
+          <ArrowRight className="me-1 h-4 w-4" /> كل الألغاز
         </Button>
 
         {/* Detail card */}
