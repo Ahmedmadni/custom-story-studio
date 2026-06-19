@@ -61,23 +61,23 @@ function ToolBar({
   round, total, score, onHint, onRetry,
 }: { round: number; total: number; score: number; onHint?: () => void; onRetry: () => void }) {
   return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-secondary/40 p-3">
-      <div className="flex gap-2 text-sm font-bold">
-        <span className="rounded-full bg-primary px-3 py-1 text-primary-foreground">
+    <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-2xl bg-secondary/40 p-3 sm:flex sm:flex-wrap sm:justify-between">
+      <div className="flex min-w-0 flex-wrap gap-2 text-xs font-bold sm:text-sm">
+        <span className="whitespace-nowrap rounded-full bg-primary px-3 py-1 text-primary-foreground">
           الجولة: {Math.min(round + 1, total)}/{total}
         </span>
-        <span className="rounded-full bg-accent px-3 py-1 text-accent-foreground">
+        <span className="whitespace-nowrap rounded-full bg-accent px-3 py-1 text-accent-foreground">
           النقاط: {score}
         </span>
       </div>
-      <div className="flex gap-2">
+      <div className="flex shrink-0 gap-2">
         {onHint && (
-          <Button variant="outline" size="sm" onClick={onHint} className="rounded-full">
-            <Lightbulb className="ms-1 h-4 w-4" /> تلميح
+          <Button variant="outline" size="sm" onClick={onHint} className="rounded-full touch-manipulation">
+            <Lightbulb className="me-1 h-4 w-4" /> تلميح
           </Button>
         )}
-        <Button variant="outline" size="sm" onClick={onRetry} className="rounded-full">
-          <RotateCcw className="ms-1 h-4 w-4" /> إعادة
+        <Button variant="outline" size="sm" onClick={onRetry} className="rounded-full touch-manipulation">
+          <RotateCcw className="me-1 h-4 w-4" /> إعادة
         </Button>
       </div>
     </div>
