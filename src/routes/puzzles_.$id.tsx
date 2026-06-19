@@ -9,7 +9,7 @@ import { DIFFICULTY_COLOR, DIFFICULTY_LABEL } from "@/features/puzzles/types";
 import { PuzzleEngine } from "@/features/puzzles/PuzzleEngine";
 import { usePuzzleProgress } from "@/features/puzzles/usePuzzleProgress";
 
-export const Route = createFileRoute("/puzzles/$id")({
+export const Route = createFileRoute("/puzzles_/$id")({
   head: ({ params }) => {
     const p = getPuzzleById(params.id);
     return {
