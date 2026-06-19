@@ -517,14 +517,14 @@ function MemoryPairs({ onDone }: { onDone: (score: number) => void }) {
       <ToolBar round={matched.length} total={6} score={matched.length} onRetry={() => onDone(matched.length >= 6 ? 3 : 0)} />
       <div className="rounded-3xl bg-card p-4 shadow-lg">
         <p className="mb-3 text-center text-sm text-muted-foreground">عدد المحاولات: {moves}</p>
-        <div className="mx-auto grid max-w-md grid-cols-4 gap-2">
+        <div className="mx-auto grid max-w-[22rem] grid-cols-3 gap-2 sm:max-w-md sm:grid-cols-4">
           {cards.map((c, i) => {
             const isUp = revealed.includes(i) || matched.includes(c.key);
             return (
               <button
                 key={c.uid}
                 onClick={() => flip(i)}
-                className={`flex aspect-square items-center justify-center rounded-xl border-4 text-3xl transition-transform ${
+                className={`flex aspect-square select-none touch-manipulation items-center justify-center rounded-xl border-4 text-3xl transition-transform active:scale-95 ${
                   isUp ? "border-primary bg-card" : "border-secondary bg-primary/20"
                 }`}
               >
