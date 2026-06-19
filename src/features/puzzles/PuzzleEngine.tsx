@@ -99,8 +99,8 @@ function ResultScreen({
           <span key={i} className={i < stars ? "" : "opacity-20"}>⭐</span>
         ))}
       </div>
-      <Button size="lg" className="rounded-full" onClick={onRetry}>
-        <Sparkles className="ms-1 h-4 w-4" /> العب مرة أخرى
+      <Button size="lg" className="rounded-full touch-manipulation" onClick={onRetry}>
+        <Sparkles className="me-1 h-4 w-4" /> العب مرة أخرى
       </Button>
     </div>
   );
