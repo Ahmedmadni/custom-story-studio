@@ -152,7 +152,7 @@ function ChoiceGame({
         {revealHint && current.hint && (
           <p className="mb-3 text-center text-sm text-muted-foreground">💡 {current.hint}</p>
         )}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4">
           {current.options.map((opt) => {
             const isPicked = picked === opt.key;
             const isCorrect = opt.key === current.correct;
@@ -162,7 +162,7 @@ function ChoiceGame({
                 key={opt.key}
                 disabled={!!picked}
                 onClick={() => pick(opt.key)}
-                className={`flex min-h-28 items-center justify-center rounded-2xl border-4 p-4 text-center text-4xl font-extrabold transition-transform hover:scale-105 disabled:hover:scale-100 ${
+                className={`flex min-h-24 select-none touch-manipulation items-center justify-center rounded-2xl border-4 p-3 text-center text-4xl font-extrabold transition-transform active:scale-95 sm:min-h-28 sm:p-4 sm:hover:scale-105 disabled:active:scale-100 disabled:sm:hover:scale-100 ${
                   state === "ok" ? "border-grass bg-grass/20"
                     : state === "bad" ? "border-destructive bg-destructive/10"
                       : "border-secondary bg-card"
