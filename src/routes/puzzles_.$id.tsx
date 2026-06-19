@@ -9,7 +9,7 @@ import { DIFFICULTY_COLOR, DIFFICULTY_LABEL } from "@/features/puzzles/types";
 import { PuzzleEngine } from "@/features/puzzles/PuzzleEngine";
 import { usePuzzleProgress } from "@/features/puzzles/usePuzzleProgress";
 
-export const Route = createFileRoute("/puzzles/$id")({
+export const Route = createFileRoute("/puzzles_/$id")({
   head: ({ params }) => {
     const p = getPuzzleById(params.id);
     return {
@@ -58,8 +58,8 @@ function PuzzleDetailPage() {
     <div className="min-h-screen">
       <Header />
       <main className="container mx-auto max-w-3xl px-4 py-8">
-        <Button variant="outline" size="sm" onClick={() => navigate({ to: "/puzzles" })} className="mb-4 rounded-full">
-          <ArrowRight className="ms-1 h-4 w-4" /> كل الألغاز
+        <Button variant="outline" size="sm" onClick={() => navigate({ to: "/puzzles" })} className="mb-4 rounded-full touch-manipulation">
+          <ArrowRight className="me-1 h-4 w-4" /> كل الألغاز
         </Button>
 
         {/* Detail card */}
@@ -91,18 +91,27 @@ function PuzzleDetailPage() {
             </span>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             {!playing ? (
-              <Button size="lg" className="rounded-full" onClick={() => setPlaying(true)}>
-                <Play className="ms-1 h-5 w-5" /> ابدأ اللعب
+              <Button
+                size="lg"
+                className="w-full min-h-12 rounded-full text-lg touch-manipulation sm:w-auto"
+                onClick={() => setPlaying(true)}
+              >
+                <Play className="me-1 h-5 w-5" /> ابدأ اللعب
               </Button>
             ) : (
-              <Button size="lg" variant="outline" className="rounded-full" onClick={() => setPlaying(false)}>
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full min-h-12 rounded-full touch-manipulation sm:w-auto"
+                onClick={() => setPlaying(false)}
+              >
                 إنهاء الجلسة
               </Button>
             )}
             {progress.attempts > 0 && (
-              <span className="self-center text-xs text-muted-foreground">
+              <span className="text-center text-xs text-muted-foreground sm:self-center sm:text-start">
                 المحاولات: {progress.attempts} • أفضل نتيجة: {progress.bestScore} ⭐
               </span>
             )}

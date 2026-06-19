@@ -19,7 +19,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoriesIndexRouteImport } from './routes/stories.index'
 import { Route as StoriesSlugRouteImport } from './routes/stories.$slug'
-import { Route as PuzzlesIdRouteImport } from './routes/puzzles.$id'
+import { Route as PuzzlesIdRouteImport } from './routes/puzzles_.$id'
 import { Route as AuthenticatedMyOrdersRouteImport } from './routes/_authenticated.my-orders'
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated.checkout'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
@@ -76,9 +76,9 @@ const StoriesSlugRoute = StoriesSlugRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const PuzzlesIdRoute = PuzzlesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => PuzzlesRoute,
+  id: '/puzzles_/$id',
+  path: '/puzzles/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedMyOrdersRoute = AuthenticatedMyOrdersRouteImport.update({
   id: '/my-orders',
@@ -115,7 +115,7 @@ export interface FileRoutesByFullPath {
   '/cart': typeof CartRoute
   '/create': typeof CreateRoute
   '/games': typeof GamesRoute
-  '/puzzles': typeof PuzzlesRouteWithChildren
+  '/puzzles': typeof PuzzlesRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
@@ -132,7 +132,7 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/create': typeof CreateRoute
   '/games': typeof GamesRoute
-  '/puzzles': typeof PuzzlesRouteWithChildren
+  '/puzzles': typeof PuzzlesRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
@@ -151,11 +151,11 @@ export interface FileRoutesById {
   '/cart': typeof CartRoute
   '/create': typeof CreateRoute
   '/games': typeof GamesRoute
-  '/puzzles': typeof PuzzlesRouteWithChildren
+  '/puzzles': typeof PuzzlesRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/my-orders': typeof AuthenticatedMyOrdersRoute
-  '/puzzles/$id': typeof PuzzlesIdRoute
+  '/puzzles_/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories/': typeof StoriesIndexRoute
   '/_authenticated/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
@@ -209,7 +209,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/checkout'
     | '/_authenticated/my-orders'
-    | '/puzzles/$id'
+    | '/puzzles_/$id'
     | '/stories/$slug'
     | '/stories/'
     | '/_authenticated/order/$templateId'
@@ -224,7 +224,8 @@ export interface RootRouteChildren {
   CartRoute: typeof CartRoute
   CreateRoute: typeof CreateRoute
   GamesRoute: typeof GamesRoute
-  PuzzlesRoute: typeof PuzzlesRouteWithChildren
+  PuzzlesRoute: typeof PuzzlesRoute
+  PuzzlesIdRoute: typeof PuzzlesIdRoute
   StoriesSlugRoute: typeof StoriesSlugRoute
   StoriesIndexRoute: typeof StoriesIndexRoute
 }
@@ -301,12 +302,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoriesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/puzzles/$id': {
-      id: '/puzzles/$id'
-      path: '/$id'
+    '/puzzles_/$id': {
+      id: '/puzzles_/$id'
+      path: '/puzzles/$id'
       fullPath: '/puzzles/$id'
       preLoaderRoute: typeof PuzzlesIdRouteImport
-      parentRoute: typeof PuzzlesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/my-orders': {
       id: '/_authenticated/my-orders'
@@ -366,17 +367,6 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
-interface PuzzlesRouteChildren {
-  PuzzlesIdRoute: typeof PuzzlesIdRoute
-}
-
-const PuzzlesRouteChildren: PuzzlesRouteChildren = {
-  PuzzlesIdRoute: PuzzlesIdRoute,
-}
-
-const PuzzlesRouteWithChildren =
-  PuzzlesRoute._addFileChildren(PuzzlesRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
@@ -385,20 +375,11 @@ const rootRouteChildren: RootRouteChildren = {
   CartRoute: CartRoute,
   CreateRoute: CreateRoute,
   GamesRoute: GamesRoute,
-  PuzzlesRoute: PuzzlesRouteWithChildren,
+  PuzzlesRoute: PuzzlesRoute,
+  PuzzlesIdRoute: PuzzlesIdRoute,
   StoriesSlugRoute: StoriesSlugRoute,
   StoriesIndexRoute: StoriesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

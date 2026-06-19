@@ -61,23 +61,23 @@ function ToolBar({
   round, total, score, onHint, onRetry,
 }: { round: number; total: number; score: number; onHint?: () => void; onRetry: () => void }) {
   return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-secondary/40 p-3">
-      <div className="flex gap-2 text-sm font-bold">
-        <span className="rounded-full bg-primary px-3 py-1 text-primary-foreground">
+    <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-2xl bg-secondary/40 p-3 sm:flex sm:flex-wrap sm:justify-between">
+      <div className="flex min-w-0 flex-wrap gap-2 text-xs font-bold sm:text-sm">
+        <span className="whitespace-nowrap rounded-full bg-primary px-3 py-1 text-primary-foreground">
           الجولة: {Math.min(round + 1, total)}/{total}
         </span>
-        <span className="rounded-full bg-accent px-3 py-1 text-accent-foreground">
+        <span className="whitespace-nowrap rounded-full bg-accent px-3 py-1 text-accent-foreground">
           النقاط: {score}
         </span>
       </div>
-      <div className="flex gap-2">
+      <div className="flex shrink-0 gap-2">
         {onHint && (
-          <Button variant="outline" size="sm" onClick={onHint} className="rounded-full">
-            <Lightbulb className="ms-1 h-4 w-4" /> تلميح
+          <Button variant="outline" size="sm" onClick={onHint} className="rounded-full touch-manipulation">
+            <Lightbulb className="me-1 h-4 w-4" /> تلميح
           </Button>
         )}
-        <Button variant="outline" size="sm" onClick={onRetry} className="rounded-full">
-          <RotateCcw className="ms-1 h-4 w-4" /> إعادة
+        <Button variant="outline" size="sm" onClick={onRetry} className="rounded-full touch-manipulation">
+          <RotateCcw className="me-1 h-4 w-4" /> إعادة
         </Button>
       </div>
     </div>
@@ -99,8 +99,8 @@ function ResultScreen({
           <span key={i} className={i < stars ? "" : "opacity-20"}>⭐</span>
         ))}
       </div>
-      <Button size="lg" className="rounded-full" onClick={onRetry}>
-        <Sparkles className="ms-1 h-4 w-4" /> العب مرة أخرى
+      <Button size="lg" className="rounded-full touch-manipulation" onClick={onRetry}>
+        <Sparkles className="me-1 h-4 w-4" /> العب مرة أخرى
       </Button>
     </div>
   );
@@ -152,7 +152,7 @@ function ChoiceGame({
         {revealHint && current.hint && (
           <p className="mb-3 text-center text-sm text-muted-foreground">💡 {current.hint}</p>
         )}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4">
           {current.options.map((opt) => {
             const isPicked = picked === opt.key;
             const isCorrect = opt.key === current.correct;
@@ -162,7 +162,7 @@ function ChoiceGame({
                 key={opt.key}
                 disabled={!!picked}
                 onClick={() => pick(opt.key)}
-                className={`flex min-h-28 items-center justify-center rounded-2xl border-4 p-4 text-center text-4xl font-extrabold transition-transform hover:scale-105 disabled:hover:scale-100 ${
+                className={`flex min-h-24 select-none touch-manipulation items-center justify-center rounded-2xl border-4 p-3 text-center text-4xl font-extrabold transition-transform active:scale-95 sm:min-h-28 sm:p-4 sm:hover:scale-105 disabled:active:scale-100 disabled:sm:hover:scale-100 ${
                   state === "ok" ? "border-grass bg-grass/20"
                     : state === "bad" ? "border-destructive bg-destructive/10"
                       : "border-secondary bg-card"
@@ -517,14 +517,14 @@ function MemoryPairs({ onDone }: { onDone: (score: number) => void }) {
       <ToolBar round={matched.length} total={6} score={matched.length} onRetry={() => onDone(matched.length >= 6 ? 3 : 0)} />
       <div className="rounded-3xl bg-card p-4 shadow-lg">
         <p className="mb-3 text-center text-sm text-muted-foreground">عدد المحاولات: {moves}</p>
-        <div className="mx-auto grid max-w-md grid-cols-4 gap-2">
+        <div className="mx-auto grid max-w-[22rem] grid-cols-3 gap-2 sm:max-w-md sm:grid-cols-4">
           {cards.map((c, i) => {
             const isUp = revealed.includes(i) || matched.includes(c.key);
             return (
               <button
                 key={c.uid}
                 onClick={() => flip(i)}
-                className={`flex aspect-square items-center justify-center rounded-xl border-4 text-3xl transition-transform ${
+                className={`flex aspect-square select-none touch-manipulation items-center justify-center rounded-xl border-4 text-3xl transition-transform active:scale-95 ${
                   isUp ? "border-primary bg-card" : "border-secondary bg-primary/20"
                 }`}
               >
