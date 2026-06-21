@@ -12,6 +12,7 @@ import {
   playWrong,
   setSfxEnabled,
 } from "./sounds";
+import { generateExtraRounds, type AiRound } from "./puzzles.functions";
 
 // ---------- Expanded content pools (more variety = less repetition) ----------
 const ANIMALS = [
