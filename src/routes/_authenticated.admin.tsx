@@ -72,6 +72,8 @@ type AdminOrder = {
   adminNotes: string | null;
   createdAt: string;
   storyTitle: string;
+  language: "ar" | "en" | "bilingual";
+  contentType: "story" | "book";
   templateId: string | null;
   photoUrl: string | null;
   receiptUrl: string | null;
