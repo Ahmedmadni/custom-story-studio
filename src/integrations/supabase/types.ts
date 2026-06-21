@@ -95,11 +95,13 @@ export type Database = {
           child_name: string
           child_photo_path: string
           created_at: string
+          delivery_address: string | null
           gender: Database["public"]["Enums"]["child_gender"]
           hero_character: string | null
           id: string
           language: string
           notes: string | null
+          pages_count: number
           paid_at: string | null
           payment_rejection_reason: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
@@ -107,6 +109,7 @@ export type Database = {
           payment_verified_by: string | null
           photo_mode: string
           price_egp: number
+          print_copy: boolean
           publish_consent: boolean
           published_template_id: string | null
           published_to_library_at: string | null
@@ -123,11 +126,13 @@ export type Database = {
           child_name: string
           child_photo_path: string
           created_at?: string
+          delivery_address?: string | null
           gender?: Database["public"]["Enums"]["child_gender"]
           hero_character?: string | null
           id?: string
           language?: string
           notes?: string | null
+          pages_count?: number
           paid_at?: string | null
           payment_rejection_reason?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
@@ -135,6 +140,7 @@ export type Database = {
           payment_verified_by?: string | null
           photo_mode?: string
           price_egp?: number
+          print_copy?: boolean
           publish_consent?: boolean
           published_template_id?: string | null
           published_to_library_at?: string | null
@@ -151,11 +157,13 @@ export type Database = {
           child_name?: string
           child_photo_path?: string
           created_at?: string
+          delivery_address?: string | null
           gender?: Database["public"]["Enums"]["child_gender"]
           hero_character?: string | null
           id?: string
           language?: string
           notes?: string | null
+          pages_count?: number
           paid_at?: string | null
           payment_rejection_reason?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
@@ -163,6 +171,7 @@ export type Database = {
           payment_verified_by?: string | null
           photo_mode?: string
           price_egp?: number
+          print_copy?: boolean
           publish_consent?: boolean
           published_template_id?: string | null
           published_to_library_at?: string | null
