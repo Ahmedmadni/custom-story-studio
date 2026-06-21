@@ -52,7 +52,7 @@ function StoriesPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="container mx-auto px-4 py-10">
+      <main className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 pb-12">
         <h1 className="font-display text-3xl font-extrabold md:text-4xl">
           مكتبة الحكايات 📚
         </h1>
