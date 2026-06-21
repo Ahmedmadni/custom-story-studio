@@ -643,13 +643,14 @@ export const adminApproveTemplate = createServerFn({ method: "POST" })
       .update({
         admin_approved_at: new Date().toISOString(),
         admin_approved_by: context.userId,
+        is_published: true,
       } as never)
       .eq("id", data.templateId);
     if (error) throw new Error("تعذر اعتماد المحتوى");
     return { ok: true };
   });
 
-/** [مسؤول] رفض / إعادة محتوى للمستخدم للتعديل (يلغي approved_at) */
+/** [مسؤول] رفض / إعادة محتوى للمستخدم للتعديل (يلغي approved_at ويُلغي النشر) */
 export const adminRejectTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => TemplateIdInput.parse(input))
@@ -662,7 +663,7 @@ export const adminRejectTemplate = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("story_templates")
-      .update({ approved_at: null } as never)
+      .update({ approved_at: null, admin_approved_at: null, is_published: false } as never)
       .eq("id", data.templateId);
     if (error) throw new Error("تعذر إعادة المحتوى");
     return { ok: true };
