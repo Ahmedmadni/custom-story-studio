@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Camera, Loader2, Send, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Footer } from "@/components/Footer";
@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
 import { LANGUAGE_OPTIONS, type LanguageMode } from "@/features/ai/storyTypes";
+import { HERO_OPTIONS, HERO_CATEGORIES, type HeroOption } from "@/features/orders/heroes";
 import { cn } from "@/lib/utils";
 import photoModeRealImg from "@/assets/photo-mode-real.jpg";
 import photoModeCartoonImg from "@/assets/photo-mode-cartoon.jpg";
