@@ -49,6 +49,7 @@ import {
   adminRejectTemplate,
 } from "@/features/ai/ai.functions";
 import { waLink } from "@/features/orders/whatsapp";
+import { generateStoryPdf, type PdfStoryPage } from "@/features/pdf/storyPdf";
 import { TemplatesManager } from "@/features/admin/TemplatesManager";
 
 export const Route = createFileRoute("/_authenticated/admin")({
