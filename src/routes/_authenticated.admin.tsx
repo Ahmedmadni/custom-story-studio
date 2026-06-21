@@ -589,6 +589,39 @@ function OrderDialog({
               </a>
             </Button>
           )}
+          {(order.status === "approved" ||
+            order.status === "generating" ||
+            order.status === "ready" ||
+            order.status === "sent") && (
+            <div className="flex flex-col items-start gap-1">
+              <Button
+                variant="outline"
+                className="rounded-full border-2 border-primary px-5 font-bold text-primary hover:bg-primary hover:text-primary-foreground"
+                disabled={exportingPdf || batchRunning || generating !== null || readyCount === 0}
+                onClick={() => void handleAdminExport()}
+              >
+                {exportingPdf ? (
+                  <Loader2 className="ms-1 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="ms-1 h-4 w-4" />
+                )}
+                تصدير PDF (أدمن)
+              </Button>
+              {pdfProgress ? (
+                <span className="text-xs font-semibold text-muted-foreground">
+                  📄 جارٍ التجهيز… {pdfProgress.done}/{pdfProgress.total}
+                </span>
+              ) : readyCount === 0 ? (
+                <span className="text-xs text-muted-foreground">
+                  ولّد الصفحات أولاً للتصدير
+                </span>
+              ) : readyCount < order.totalPages ? (
+                <span className="text-xs text-muted-foreground">
+                  اكتمل {readyCount}/{order.totalPages} صورة
+                </span>
+              ) : null}
+            </div>
+          )}
         </div>
 
         {/* pages grid */}
