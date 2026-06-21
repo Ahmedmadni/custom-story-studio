@@ -1175,3 +1175,57 @@ ${data.instruction ? `تعليمات إضافية: ${data.instruction}` : ""}`;
 
     return { page: updated.find((p) => p.n === data.pageNumber) };
   });
+
+// ============================================================
+// نشر / إلغاء نشر / حذف القوالب من لوحة الأدمن
+// ============================================================
+
+const SetPublishedInput = z.object({
+  templateId: z.string().uuid(),
+  published: z.boolean(),
+});
+
+export const adminSetTemplatePublished = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => SetPublishedInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const patch: Record<string, unknown> = { is_published: data.published };
+    if (data.published) {
+      // اعتماد إداري ضمني عند النشر اليدوي
+      patch.admin_approved_at = new Date().toISOString();
+      patch.admin_approved_by = context.userId;
+    }
+    const { error } = await supabaseAdmin
+      .from("story_templates")
+      .update(patch as never)
+      .eq("id", data.templateId);
+    if (error) throw new Error("تعذر تحديث حالة النشر");
+    return { ok: true, published: data.published };
+  });
+
+export const adminDeleteTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => TplId.parse(i))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // امنع حذف قالب مرتبط بطلبات قائمة
+    const { count } = await supabaseAdmin
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("template_id", data.templateId);
+    if ((count ?? 0) > 0) {
+      throw new Error("هذا القالب مرتبط بطلبات حالية — ألغِ نشره بدل حذفه");
+    }
+
+    const { error } = await supabaseAdmin
+      .from("story_templates")
+      .delete()
+      .eq("id", data.templateId);
+    if (error) throw new Error("تعذر حذف القالب");
+    return { ok: true };
+  });
+

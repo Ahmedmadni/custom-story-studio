@@ -1,18 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Check, ImageIcon, Loader2, Sparkles, Upload, Wand2, X } from "lucide-react";
+import { Check, Eye, EyeOff, ImageIcon, Loader2, Sparkles, Trash2, Upload, Wand2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
+  adminDeleteTemplate,
   adminGetTemplate,
   adminListTemplates,
   adminRegenerateTemplatePageImage,
   adminRegenerateTemplatePageText,
+  adminSetTemplatePublished,
   adminUpdateTemplatePage,
   adminUploadTemplatePageImage,
 } from "@/features/admin/admin.functions";
 import { Button } from "@/components/ui/button";
+
 import {
   Dialog,
   DialogContent,
@@ -36,6 +39,7 @@ type TemplateRow = {
   adminApprovedAt: string | null;
   coverUrl: string | null;
   pageCount: number;
+  category: string | null;
 };
 
 export function TemplatesManager() {
@@ -45,7 +49,7 @@ export function TemplatesManager() {
     queryFn: () => listFn(),
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "story" | "book" | "custom" | "published">("all");
+  const [filter, setFilter] = useState<"all" | "story" | "book" | "custom" | "published" | "hidden" | "heroes">("all");
 
   const filtered = (items ?? []).filter((t) => {
     if (filter === "all") return true;
@@ -53,6 +57,8 @@ export function TemplatesManager() {
     if (filter === "book") return t.contentType === "book";
     if (filter === "custom") return t.isCustom;
     if (filter === "published") return t.isPublished;
+    if (filter === "hidden") return !t.isPublished;
+    if (filter === "heroes") return (t.category ?? "").includes("خارق");
     return true;
   });
 
@@ -70,7 +76,9 @@ export function TemplatesManager() {
             { v: "all", l: "الكل" },
             { v: "story", l: "قصص" },
             { v: "book", l: "كتب" },
+            { v: "heroes", l: "🦸 أبطال خارقون" },
             { v: "published", l: "منشور" },
+            { v: "hidden", l: "مخفي" },
             { v: "custom", l: "مخصص" },
           ].map((o) => (
             <button
@@ -95,39 +103,15 @@ export function TemplatesManager() {
           </p>
         ) : (
           filtered.map((t) => (
-            <button
+            <TemplateCard
               key={t.id}
-              onClick={() => setSelectedId(t.id)}
-              className="group overflow-hidden rounded-3xl border-2 border-border bg-card text-start shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
-            >
-              <div className="relative aspect-square overflow-hidden bg-secondary">
-                {t.coverUrl ? (
-                  <img src={t.coverUrl} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <ImageIcon className="h-10 w-10 text-muted-foreground/50" />
-                  </div>
-                )}
-                <div className="absolute start-2 top-2 flex flex-wrap gap-1">
-                  {t.isPublished && (
-                    <span className="rounded-full bg-grass/90 px-2 py-0.5 text-[10px] font-bold text-grass-foreground">منشور</span>
-                  )}
-                  {t.isCustom && (
-                    <span className="rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-bold text-primary-foreground">مخصص</span>
-                  )}
-                </div>
-              </div>
-              <div className="p-3">
-                <h3 className="line-clamp-1 font-display text-sm font-bold">{t.title}</h3>
-                <p className="text-[11px] text-muted-foreground">
-                  {t.contentType === "book" ? "كتاب" : "قصة"} · {t.pageCount} صفحة
-                  {t.ageRange ? ` · ${t.ageRange}` : ""}
-                </p>
-              </div>
-            </button>
+              t={t}
+              onOpen={() => setSelectedId(t.id)}
+            />
           ))
         )}
       </div>
+
 
       {selectedId && <TemplateEditorDialog templateId={selectedId} onClose={() => setSelectedId(null)} />}
     </section>
@@ -467,6 +451,119 @@ function PageEditor({
             </Button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function TemplateCard({
+  t,
+  onOpen,
+}: {
+  t: TemplateRow;
+  onOpen: () => void;
+}) {
+  const qc = useQueryClient();
+  const setPub = useServerFn(adminSetTemplatePublished);
+  const delFn = useServerFn(adminDeleteTemplate);
+
+  const togglePublish = useMutation({
+    mutationFn: () => setPub({ data: { templateId: t.id, published: !t.isPublished } }),
+    onSuccess: (r) => {
+      toast.success(r.published ? "تم نشر القالب — ظاهر للعملاء الآن ✅" : "تم إخفاء القالب من المكتبة");
+      void qc.invalidateQueries({ queryKey: ["admin-templates"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const del = useMutation({
+    mutationFn: () => delFn({ data: { templateId: t.id } }),
+    onSuccess: () => {
+      toast.success("تم حذف القالب");
+      void qc.invalidateQueries({ queryKey: ["admin-templates"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const busy = togglePublish.isPending || del.isPending;
+
+  return (
+    <div className="group relative overflow-hidden rounded-3xl border-2 border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-md">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="block w-full text-start"
+      >
+        <div className="relative aspect-square overflow-hidden bg-secondary">
+          {t.coverUrl ? (
+            <img src={t.coverUrl} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <ImageIcon className="h-10 w-10 text-muted-foreground/50" />
+            </div>
+          )}
+          <div className="absolute start-2 top-2 flex flex-wrap gap-1">
+            {t.isPublished ? (
+              <span className="rounded-full bg-grass/90 px-2 py-0.5 text-[10px] font-bold text-grass-foreground">
+                ✓ منشور
+              </span>
+            ) : (
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                مخفي
+              </span>
+            )}
+            {t.isCustom && (
+              <span className="rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                مخصص
+              </span>
+            )}
+            {t.category && (
+              <span className="rounded-full bg-sunny/90 px-2 py-0.5 text-[10px] font-bold text-sunny-foreground">
+                {t.category}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="p-3">
+          <h3 className="line-clamp-1 font-display text-sm font-bold">{t.title}</h3>
+          <p className="text-[11px] text-muted-foreground">
+            {t.contentType === "book" ? "كتاب" : "قصة"} · {t.pageCount} صفحة
+            {t.ageRange ? ` · ${t.ageRange}` : ""}
+          </p>
+        </div>
+      </button>
+      <div className="flex gap-1.5 border-t-2 border-border bg-secondary/30 p-2">
+        <Button
+          size="sm"
+          variant={t.isPublished ? "outline" : "default"}
+          className="h-8 flex-1 rounded-full text-[11px] font-bold"
+          disabled={busy}
+          onClick={() => togglePublish.mutate()}
+        >
+          {togglePublish.isPending ? (
+            <Loader2 className="ms-1 h-3 w-3 animate-spin" />
+          ) : t.isPublished ? (
+            <EyeOff className="ms-1 h-3 w-3" />
+          ) : (
+            <Eye className="ms-1 h-3 w-3" />
+          )}
+          {t.isPublished ? "إخفاء" : "نشر"}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 rounded-full px-2 text-[11px] font-bold text-destructive hover:bg-destructive/10"
+          disabled={busy}
+          onClick={() => {
+            if (confirm(`حذف "${t.title}" نهائياً؟`)) del.mutate();
+          }}
+        >
+          {del.isPending ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Trash2 className="h-3 w-3" />
+          )}
+        </Button>
       </div>
     </div>
   );
