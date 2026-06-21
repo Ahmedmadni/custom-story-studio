@@ -12,6 +12,7 @@ import {
   playWrong,
   setSfxEnabled,
 } from "./sounds";
+import { generateExtraRounds, type AiRound } from "./puzzles.functions";
 
 // ---------- Expanded content pools (more variety = less repetition) ----------
 const ANIMALS = [
@@ -646,10 +647,53 @@ function MemoryPairs({ onDone }: { onDone: (score: number) => void }) {
   );
 }
 
+// ---------- AI augmentation ----------
+const AI_ENGINES = new Set([
+  "logic",
+  "cause_effect",
+  "sorting_category",
+  "sequence_order",
+]);
+
+function aiRoundToChoice(r: AiRound): ChoiceRound {
+  return {
+    question: r.question,
+    options: shuffle([r.correct, ...r.others]).map((o) => ({
+      key: o,
+      render: <span className="text-lg">{o}</span>,
+    })),
+    correct: r.correct,
+    hint: r.hint,
+  };
+}
+
 // ---------- Main engine ----------
 export function PuzzleEngine({ puzzle, onComplete }: { puzzle: PuzzleDef; onComplete: (stars: number) => void }) {
   const total = Math.max(puzzle.rounds ?? 5, 8); // ضمان حد أدنى 8 جولات لتقليل التكرار
   const [sessionId, setSessionId] = useState(0);
+  const [aiRounds, setAiRounds] = useState<ChoiceRound[]>([]);
+
+  // Top-up bank from AI for supported engines (fire-and-forget, falls back to static silently)
+  useEffect(() => {
+    let cancelled = false;
+    if (!AI_ENGINES.has(puzzle.engine)) {
+      setAiRounds([]);
+      return;
+    }
+    generateExtraRounds({
+      data: { engine: puzzle.engine as "logic", count: 8 },
+    })
+      .then((res) => {
+        if (cancelled) return;
+        setAiRounds((res?.rounds ?? []).map(aiRoundToChoice));
+      })
+      .catch(() => {
+        if (!cancelled) setAiRounds([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [puzzle.engine, sessionId]);
 
   function handleDone(score: number) {
     const ratio = score / Math.max(1, total);
@@ -686,10 +730,10 @@ export function PuzzleEngine({ puzzle, onComplete }: { puzzle: PuzzleDef; onComp
   };
 
   const build = builders[puzzle.engine] ?? buildLogic;
-  // توليد جولات فريدة قدر الإمكان ضمن البنك المتاح (محاولة تجنّب التكرار المباشر)
+  // توليد جولات فريدة: نخلط بين AI rounds والبنك الثابت لمنع التكرار
   const rounds = useMemo(() => {
-    const out: ChoiceRound[] = [];
-    const seenCorrect = new Set<string>();
+    const out: ChoiceRound[] = [...aiRounds];
+    const seenCorrect = new Set<string>(aiRounds.map((r) => r.correct));
     let attempts = 0;
     while (out.length < total && attempts < total * 6) {
       const r = build();
@@ -700,8 +744,9 @@ export function PuzzleEngine({ puzzle, onComplete }: { puzzle: PuzzleDef; onComp
       attempts++;
     }
     while (out.length < total) out.push(build());
-    return out;
-  }, [sessionId, total, build]);
+    return shuffle(out).slice(0, total);
+  }, [sessionId, total, build, aiRounds]);
 
   return <ChoiceGame key={sessionId} rounds={rounds} total={total} onDone={handleDone} />;
 }
+

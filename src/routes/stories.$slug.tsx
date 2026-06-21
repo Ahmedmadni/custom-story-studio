@@ -54,7 +54,7 @@ function StoryPreview() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="container mx-auto px-4 py-10">
+      <main className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 pb-12">
         {isLoading ? (
           <div className="grid gap-8 md:grid-cols-2">
             <Skeleton className="aspect-[3/4] rounded-3xl" />
