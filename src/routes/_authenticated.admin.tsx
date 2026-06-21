@@ -83,6 +83,8 @@ type AdminOrder = {
   receiptUrl: string | null;
   totalPages: number;
   donePages: number;
+  publishedToLibraryAt: string | null;
+  publishedSlug: string | null;
 };
 
 function AdminPage() {
