@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { PRICE_PER_ITEM_EGP, useCart } from "@/features/cart/CartContext";
+import { STARTING_PRICE_EGP, useCart } from "@/features/cart/CartContext";
 import { parsePages } from "@/features/ai/storyTypes";
 
 export const Route = createFileRoute("/stories/$slug")({
@@ -158,7 +158,7 @@ function StoryPreview() {
                     onClick={addToCart}
                   >
                     <ShoppingCart className="ms-2 h-5 w-5" />
-                    أضف للسلة — {PRICE_PER_ITEM_EGP} ج
+                    أضف للسلة — ابتداءً من {STARTING_PRICE_EGP} ج
                   </Button>
                 )}
               </div>

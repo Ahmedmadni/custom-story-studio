@@ -21,7 +21,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { PRICE_PER_ITEM_EGP, useCart } from "@/features/cart/CartContext";
+import {
+  PAGES_OPTIONS,
+  PRINT_COPY_PRICE_EGP,
+  useCart,
+} from "@/features/cart/CartContext";
 import { submitCheckout } from "@/features/orders/checkout.functions";
 import {
   GENDER_OPTIONS,
@@ -57,15 +61,17 @@ type ItemDraft = {
   language: LanguageMode;
   photoMode: PhotoMode;
   publishConsent: boolean;
+  pagesCount: 10 | 16;
 };
 
 function CheckoutPage() {
   const { user } = useAuth();
-  const { items, totalEgp, clear } = useCart();
+  const { items, clear } = useCart();
   const navigate = useNavigate();
   const submitFn = useServerFn(submitCheckout);
 
   const [drafts, setDrafts] = useState<Record<string, ItemDraft>>(() =>
+
     Object.fromEntries(
       items.map((i) => [
         i.templateId,
@@ -79,11 +85,14 @@ function CheckoutPage() {
           language: "ar" as LanguageMode,
           photoMode: "cartoon" as PhotoMode,
           publishConsent: false,
+          pagesCount: 10 as 10 | 16,
         },
       ]),
     ),
   );
   const [whatsapp, setWhatsapp] = useState("");
+  const [printCopy, setPrintCopy] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
   const [receipt, setReceipt] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -146,6 +155,9 @@ function CheckoutPage() {
     if (!isValidEgyptianMobile(whatsapp))
       return toast.error("اكتب رقم واتساب مصري صحيح مثل 01012345678");
     if (!receipt) return toast.error("ارفع صورة إيصال التحويل");
+    if (printCopy && deliveryAddress.trim().length < 10)
+      return toast.error("اكتب عنوان التوصيل بالتفصيل");
+
 
     for (const item of items) {
       const d = drafts[item.templateId];
@@ -193,6 +205,8 @@ function CheckoutPage() {
         data: {
           whatsapp: whatsapp.trim(),
           receiptPath,
+          printCopy,
+          deliveryAddress: printCopy ? deliveryAddress.trim() : null,
           items: uploadedItems.map((it) => {
             const d = drafts[it.templateId];
             return {
@@ -200,6 +214,7 @@ function CheckoutPage() {
               language: d.language,
               photoMode: d.photoMode,
               publishConsent: d.publishConsent,
+              pagesCount: d.pagesCount,
             };
           }),
         },
@@ -214,6 +229,16 @@ function CheckoutPage() {
       setSubmitting(false);
     }
   };
+
+  const itemsSubtotal = items.reduce((sum, it) => {
+    const d = drafts[it.templateId];
+    const opt = PAGES_OPTIONS.find((o) => o.pages === d?.pagesCount);
+    return sum + (opt?.price ?? PAGES_OPTIONS[0].price);
+  }, 0);
+  const printExtra = printCopy ? PRINT_COPY_PRICE_EGP : 0;
+  const grandTotal = itemsSubtotal + printExtra;
+
+
 
   return (
     <div className="min-h-screen">
@@ -429,6 +454,36 @@ function CheckoutPage() {
                     </span>
                   </span>
                 </label>
+
+                <div className="mt-4">
+                  <Label className="font-bold">عدد صفحات القصة</Label>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {PAGES_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.pages}
+                        type="button"
+                        onClick={() =>
+                          updateDraft(item.templateId, {
+                            pagesCount: opt.pages as 10 | 16,
+                          })
+                        }
+                        className={`rounded-xl border-2 p-3 text-start transition-colors ${
+                          d.pagesCount === opt.pages
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <span className="block font-bold">{opt.pages} صفحة</span>
+                        <p className="mt-0.5 text-xs font-extrabold text-primary">
+                          {opt.price} جنيه
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    📄 ستصلك القصة كملف PDF عبر واتساب
+                  </p>
+                </div>
               </div>
             );
           })}
@@ -445,6 +500,60 @@ function CheckoutPage() {
             maxLength={15}
             className="mt-2 rounded-xl text-left"
           />
+        </section>
+
+        {/* print + delivery */}
+        <section className="mt-6 rounded-3xl border-2 border-border bg-card p-5 shadow-sm">
+          <h2 className="font-display text-xl font-extrabold">طريقة الاستلام</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            📄 تُسلَّم القصة افتراضياً كملف PDF عبر واتساب. يمكنك أيضاً طلب نسخة ورقية مطبوعة.
+          </p>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setPrintCopy(false)}
+              className={`rounded-2xl border-2 p-4 text-start transition-colors ${
+                !printCopy ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+              }`}
+            >
+              <span className="block font-bold">📱 ملف PDF فقط</span>
+              <p className="mt-1 text-xs text-muted-foreground">يُرسل عبر واتساب — مجاناً</p>
+              <p className="mt-1 text-xs font-extrabold text-primary">بدون رسوم إضافية</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPrintCopy(true)}
+              className={`rounded-2xl border-2 p-4 text-start transition-colors ${
+                printCopy ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+              }`}
+            >
+              <span className="block font-bold">🖨️ PDF + نسخة مطبوعة</span>
+              <p className="mt-1 text-xs text-muted-foreground">
+                نطبع القصة بجودة عالية ونوصلها لعنوانك
+              </p>
+              <p className="mt-1 text-xs font-extrabold text-primary">
+                + {PRINT_COPY_PRICE_EGP} جنيه (طباعة وشحن)
+              </p>
+            </button>
+          </div>
+
+          {printCopy && (
+            <div className="mt-4">
+              <Label className="font-bold">عنوان التوصيل بالتفصيل</Label>
+              <Textarea
+                value={deliveryAddress}
+                onChange={(e) => setDeliveryAddress(e.target.value)}
+                rows={3}
+                maxLength={500}
+                placeholder="المحافظة — المدينة — الحي — الشارع — رقم العمارة والشقة — أي معلم قريب"
+                className="mt-2 rounded-xl"
+              />
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                سيتواصل معك مندوب الشحن على رقم الواتساب لتأكيد الموعد.
+              </p>
+            </div>
+          )}
         </section>
 
         {/* payment */}
@@ -464,15 +573,26 @@ function CheckoutPage() {
               <Copy className="ms-1 h-4 w-4" /> نسخ الرقم
             </Button>
           </div>
-          <div className="mt-3 rounded-2xl bg-card p-4">
-            <p className="text-xs text-muted-foreground">المبلغ المطلوب تحويله</p>
-            <p className="font-display text-3xl font-extrabold text-primary">
-              {totalEgp} جنيه
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              ({items.length} عنصر × {PRICE_PER_ITEM_EGP} ج)
-            </p>
+          <div className="mt-3 space-y-2 rounded-2xl bg-card p-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">قصص ({items.length})</span>
+              <span className="font-bold">{itemsSubtotal} ج</span>
+            </div>
+            {printCopy && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">طباعة وشحن</span>
+                <span className="font-bold">{PRINT_COPY_PRICE_EGP} ج</span>
+              </div>
+            )}
+            <div className="my-2 h-px bg-border" />
+            <div className="flex items-center justify-between">
+              <span className="font-bold">المبلغ المطلوب تحويله</span>
+              <span className="font-display text-3xl font-extrabold text-primary">
+                {grandTotal} ج
+              </span>
+            </div>
           </div>
+
 
           <div className="mt-5">
             <Label className="flex items-center gap-2 font-bold">

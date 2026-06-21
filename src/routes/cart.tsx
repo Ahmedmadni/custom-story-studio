@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { PRICE_PER_ITEM_EGP, useCart } from "@/features/cart/CartContext";
+import { STARTING_PRICE_EGP, useCart } from "@/features/cart/CartContext";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/cart")({
 });
 
 function CartPage() {
-  const { items, remove, totalEgp, count } = useCart();
+  const { items, remove, count } = useCart();
 
   return (
     <div className="min-h-screen">
@@ -26,7 +26,7 @@ function CartPage() {
           سلة المشتريات
         </h1>
         <p className="mt-2 text-muted-foreground">
-          السعر الموحد لكل قصة: {PRICE_PER_ITEM_EGP} جنيه
+          السعر يبدأ من {STARTING_PRICE_EGP} جنيه لكل قصة — تختار عدد الصفحات وخيار الطباعة في الخطوة التالية
         </p>
 
         {count === 0 ? (
@@ -67,8 +67,8 @@ function CartPage() {
                     </p>
                   </div>
                   <div className="text-end">
-                    <p className="font-display text-lg font-extrabold text-primary">
-                      {PRICE_PER_ITEM_EGP} ج
+                    <p className="font-display text-sm font-extrabold text-primary">
+                      من {STARTING_PRICE_EGP} ج
                     </p>
                     <button
                       onClick={() => remove(it.templateId)}
@@ -87,12 +87,10 @@ function CartPage() {
                 <span className="font-bold">عدد العناصر</span>
                 <span className="font-extrabold">{count}</span>
               </div>
-              <div className="mt-2 flex items-center justify-between text-2xl">
-                <span className="font-display font-bold">الإجمالي</span>
-                <span className="font-display font-extrabold text-primary">
-                  {totalEgp} جنيه
-                </span>
-              </div>
+              <p className="mt-3 text-sm text-muted-foreground">
+                📄 تُسلَّم كل قصة كملف PDF عبر واتساب. يمكنك في الخطوة التالية اختيار طباعة نسخة ورقية وتوصيلها لعنوانك.
+              </p>
+
               <Button
                 asChild
                 size="lg"
