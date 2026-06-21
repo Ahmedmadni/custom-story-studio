@@ -10,12 +10,11 @@ export function Footer() {
       <div className="container mx-auto grid gap-8 px-4 py-10 md:grid-cols-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-              <BookOpen className="h-4 w-4" />
-            </span>
-            <span className="font-display text-xl font-bold text-primary">
-              كيدزي
-            </span>
+            <img
+              src={kidzyLogo.url}
+              alt="Kidzy — كيدزي"
+              className="h-9 w-auto drop-shadow-sm"
+            />
           </div>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             قصص أطفال نبيلة وإنسانية، بطلها طفلك! اختر قصة، ارفع صورة طفلك،

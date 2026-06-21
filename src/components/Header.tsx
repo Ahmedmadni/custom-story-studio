@@ -25,12 +25,11 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b-4 border-secondary bg-card/95 backdrop-blur no-print">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md">
-            <BookOpen className="h-5 w-5" />
-          </span>
-          <span className="font-display text-2xl font-bold text-primary">
-            كيدزي
-          </span>
+          <img
+            src={kidzyLogo.url}
+            alt="Kidzy — كيدزي"
+            className="h-10 w-auto drop-shadow-sm"
+          />
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
