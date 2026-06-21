@@ -357,6 +357,18 @@ function OrderDialog({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const approveContentMutation = useMutation({
+    mutationFn: () => {
+      if (!order.templateId) throw new Error("لا يوجد قالب مرتبط بالطلب");
+      return approveContentFn({ data: { templateId: order.templateId } });
+    },
+    onSuccess: () => {
+      toast.success("تم اعتماد محتوى القصة — يمكن للعميل تنزيل PDF الآن ✅");
+      refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const generateOne = async (n: number) => {
     setGenerating(n);
     try {
