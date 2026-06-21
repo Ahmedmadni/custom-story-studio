@@ -25,6 +25,8 @@ export const Route = createFileRoute("/_authenticated/my-orders")({
 function MyOrders() {
   const { user } = useAuth();
   const fetchPdfs = useServerFn(listMyPdfs);
+  const updatePrefsFn = useServerFn(updateMyOrderPreferences);
+  const queryClient = useQueryClient();
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["my-orders", user?.id],
@@ -33,12 +35,26 @@ function MyOrders() {
       const { data } = await supabase
         .from("orders")
         .select(
-          "id, status, payment_status, payment_rejection_reason, child_name, created_at, story_templates!template_id(title, cover_url, slug)",
+          "id, status, payment_status, payment_rejection_reason, child_name, language, photo_mode, created_at, story_templates!template_id(title, cover_url, slug)",
         )
         .order("created_at", { ascending: false });
       return data ?? [];
     },
   });
+
+  const updatePrefs = useMutation({
+    mutationFn: (vars: {
+      orderId: string;
+      language?: "ar" | "en" | "bilingual";
+      photoMode?: "cartoon" | "real";
+    }) => updatePrefsFn({ data: vars }),
+    onSuccess: () => {
+      toast.success("تم تحديث تفضيلاتك");
+      void queryClient.invalidateQueries({ queryKey: ["my-orders", user?.id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const { data: myPdfs } = useQuery({
     queryKey: ["my-pdfs", user?.id],
