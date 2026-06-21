@@ -132,7 +132,7 @@ export const adminListOrders = createServerFn({ method: "POST" })
 
     const { data: orders, error } = await supabaseAdmin
       .from("orders")
-      .select("*, story_templates(id, title, slug, pages, language, content_type)")
+      .select("*, story_templates!template_id(id, title, slug, pages, language, content_type)")
       .order("created_at", { ascending: false });
     if (error) throw new Error("تعذر تحميل الطلبات");
 
@@ -275,7 +275,7 @@ export const adminGeneratePage = createServerFn({ method: "POST" })
 
     const { data: order, error: orderErr } = await supabaseAdmin
       .from("orders")
-      .select("*, story_templates(id, pages, title)")
+      .select("*, story_templates!template_id(id, pages, title)")
       .eq("id", data.orderId)
       .single();
     if (orderErr || !order) throw new Error("الطلب غير موجود");
