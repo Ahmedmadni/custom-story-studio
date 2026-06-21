@@ -444,6 +444,36 @@ function CheckoutPage() {
                     </span>
                   </span>
                 </label>
+
+                <div className="mt-4">
+                  <Label className="font-bold">عدد صفحات القصة</Label>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {PAGES_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.pages}
+                        type="button"
+                        onClick={() =>
+                          updateDraft(item.templateId, {
+                            pagesCount: opt.pages as 10 | 16,
+                          })
+                        }
+                        className={`rounded-xl border-2 p-3 text-start transition-colors ${
+                          d.pagesCount === opt.pages
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <span className="block font-bold">{opt.pages} صفحة</span>
+                        <p className="mt-0.5 text-xs font-extrabold text-primary">
+                          {opt.price} جنيه
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    📄 ستصلك القصة كملف PDF عبر واتساب
+                  </p>
+                </div>
               </div>
             );
           })}
