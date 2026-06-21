@@ -140,22 +140,13 @@ export function Header() {
               </Link>
             )}
             {isAdmin && (
-              <>
-                <Link
-                  to="/admin"
-                  onClick={() => setOpen(false)}
-                  className="rounded-xl px-4 py-3 font-semibold text-accent hover:bg-secondary"
-                >
-                  لوحة التحكم
-                </Link>
-                <Link
-                  to="/create"
-                  onClick={() => setOpen(false)}
-                  className="rounded-xl px-4 py-3 font-semibold text-accent hover:bg-secondary"
-                >
-                  إدارة القوالب
-                </Link>
-              </>
+              <Link
+                to="/admin"
+                onClick={() => setOpen(false)}
+                className="rounded-xl px-4 py-3 font-semibold text-accent hover:bg-secondary"
+              >
+                لوحة التحكم
+              </Link>
             )}
             {user ? (
               <Button
