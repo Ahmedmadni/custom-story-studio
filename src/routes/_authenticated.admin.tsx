@@ -528,12 +528,6 @@ function OrderDialog({
             </div>
           </div>
         </div>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <PaymentBadge status={order.paymentStatus} />
-              <StatusBadge status={order.status} />
-            </div>
-          </div>
-        </div>
 
         {/* payment verification */}
         <div className="rounded-2xl border-2 border-grass/30 bg-grass/5 p-4">
