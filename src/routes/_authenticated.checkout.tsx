@@ -69,7 +69,17 @@ function CheckoutPage() {
     Object.fromEntries(
       items.map((i) => [
         i.templateId,
-        { childName: "", childAge: "", gender: "" as const, notes: "", photo: null, preview: null },
+        {
+          childName: "",
+          childAge: "",
+          gender: "" as const,
+          notes: "",
+          photo: null,
+          preview: null,
+          language: "ar" as LanguageMode,
+          photoMode: "cartoon" as PhotoMode,
+          publishConsent: false,
+        },
       ]),
     ),
   );
