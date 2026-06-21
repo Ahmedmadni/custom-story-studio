@@ -53,21 +53,13 @@ export function Header() {
             </Link>
           )}
           {isAdmin && (
-            <>
-              <Link
-                to="/admin"
-                className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-secondary"
-              >
-                <Shield className="h-4 w-4" />
-                لوحة التحكم
-              </Link>
-              <Link
-                to="/create"
-                className="rounded-full px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-secondary"
-              >
-                إدارة القوالب
-              </Link>
-            </>
+            <Link
+              to="/admin"
+              className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-secondary"
+            >
+              <Shield className="h-4 w-4" />
+              لوحة التحكم
+            </Link>
           )}
         </nav>
 
