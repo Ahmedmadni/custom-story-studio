@@ -180,6 +180,8 @@ export const adminListOrders = createServerFn({ method: "POST" })
           receiptUrl,
           totalPages,
           donePages,
+          publishedToLibraryAt: (o.published_to_library_at as string | null) ?? null,
+          publishedSlug: ((o.published_template as { slug?: string } | null)?.slug) ?? null,
         };
       }),
     );
