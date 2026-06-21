@@ -480,11 +480,54 @@ function OrderDialog({
             <p>
               <b>واتساب العميل:</b> <span dir="ltr">{order.whatsapp}</span>
             </p>
+            <div className="flex flex-wrap gap-1.5 pt-1 text-xs">
+              <span className="rounded-full bg-secondary px-2.5 py-1 font-semibold">
+                🌐 {order.language === "ar" ? "عربي" : order.language === "en" ? "English" : "عربي + إنجليزي"}
+              </span>
+              <span className="rounded-full bg-secondary px-2.5 py-1 font-semibold">
+                {order.photoMode === "real" ? "📷 وجه حقيقي" : "🎨 كرتوني"}
+              </span>
+              {order.heroCharacter && (
+                <span className="rounded-full bg-primary/15 px-2.5 py-1 font-semibold text-primary">
+                  🦸 {order.heroCharacter}
+                </span>
+              )}
+            </div>
             {order.notes && (
               <p>
                 <b>ملاحظات:</b> {order.notes}
               </p>
             )}
+            <div className="flex flex-wrap gap-2 pt-1">
+              <PaymentBadge status={order.paymentStatus} />
+              <StatusBadge status={order.status} />
+            </div>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="rounded-full font-bold"
+              >
+                <a href={`/story/${order.id}`} target="_blank" rel="noreferrer">
+                  <BookOpen className="ms-1 h-4 w-4" />
+                  مراجعة القصة
+                </a>
+              </Button>
+              {order.templateId && (
+                <Button
+                  size="sm"
+                  className="rounded-full bg-grass font-bold text-grass-foreground hover:bg-grass/90"
+                  disabled={approveContentMutation.isPending}
+                  onClick={() => approveContentMutation.mutate()}
+                >
+                  <ShieldCheck className="ms-1 h-4 w-4" />
+                  اعتماد محتوى القصة
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
             <div className="flex flex-wrap gap-2 pt-1">
               <PaymentBadge status={order.paymentStatus} />
               <StatusBadge status={order.status} />
