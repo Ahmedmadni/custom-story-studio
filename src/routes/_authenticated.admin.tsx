@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  BookOpen,
   Check,
   CreditCard,
   ExternalLink,
@@ -12,6 +13,7 @@ import {
   MessageCircle,
   Receipt,
   ShieldAlert,
+  ShieldCheck,
   Sparkles,
   Wand2,
   X,
