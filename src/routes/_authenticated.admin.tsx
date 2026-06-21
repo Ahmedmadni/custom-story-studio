@@ -46,6 +46,7 @@ import {
   adminRejectPayment,
   adminSetStatus,
   adminUnpublishOrderStory,
+  adminUpdateOrderPreferences,
   adminVerifyPayment,
 } from "@/features/admin/admin.functions";
 
