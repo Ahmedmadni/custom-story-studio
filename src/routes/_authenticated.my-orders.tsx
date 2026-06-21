@@ -120,6 +120,47 @@ function MyOrders() {
                     <p className="mt-2 rounded-xl bg-destructive/10 p-2 text-xs text-destructive">
                       سبب رفض الدفع: {o.payment_rejection_reason}
                     </p>
+                  {(["pending", "approved"].includes(o.status as string)) && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                      <span className="font-bold text-muted-foreground">
+                        تفضيلاتك (قابلة للتعديل قبل بدء التوليد):
+                      </span>
+                      <label className="flex items-center gap-1">
+                        🌐
+                        <select
+                          className="rounded-full border-2 border-border bg-secondary px-2 py-1 font-semibold"
+                          value={(o.language as string | null) ?? "ar"}
+                          disabled={updatePrefs.isPending}
+                          onChange={(e) =>
+                            updatePrefs.mutate({
+                              orderId: o.id,
+                              language: e.target.value as "ar" | "en" | "bilingual",
+                            })
+                          }
+                        >
+                          <option value="ar">عربي</option>
+                          <option value="en">English</option>
+                          <option value="bilingual">عربي + إنجليزي</option>
+                        </select>
+                      </label>
+                      <label className="flex items-center gap-1">
+                        🎭
+                        <select
+                          className="rounded-full border-2 border-border bg-secondary px-2 py-1 font-semibold"
+                          value={(o.photo_mode as string | null) ?? "cartoon"}
+                          disabled={updatePrefs.isPending}
+                          onChange={(e) =>
+                            updatePrefs.mutate({
+                              orderId: o.id,
+                              photoMode: e.target.value as "cartoon" | "real",
+                            })
+                          }
+                        >
+                          <option value="cartoon">🎨 كرتوني</option>
+                          <option value="real">📷 وجه حقيقي</option>
+                        </select>
+                      </label>
+                    </div>
                   )}
                 </div>
                 {(o.status === "ready" || o.status === "sent") && (
