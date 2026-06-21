@@ -17,7 +17,7 @@ import { updateMyOrderPreferences } from "@/features/admin/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/my-orders")({
   head: () => ({
-    meta: [{ title: "طلباتي — حكايتي" }],
+    meta: [{ title: "طلباتي — كيدزي" }],
   }),
   component: MyOrders,
 });

@@ -41,7 +41,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/checkout")({
   head: () => ({
-    meta: [{ title: "إتمام الطلب — حكايتي" }],
+    meta: [{ title: "إتمام الطلب — كيدزي" }],
   }),
   component: CheckoutPage,
 });

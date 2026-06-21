@@ -8,7 +8,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/_authenticated/admin")({
-  head: () => ({ meta: [{ title: "لوحة التحكم — حكايتي" }] }),
+  head: () => ({ meta: [{ title: "لوحة التحكم — كيدزي" }] }),
   component: AdminLayout,
 });
 

@@ -9,7 +9,7 @@ import { STARTING_PRICE_EGP, useCart } from "@/features/cart/CartContext";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
-    meta: [{ title: "سلة المشتريات — حكايتي" }],
+    meta: [{ title: "سلة المشتريات — كيدزي" }],
   }),
   component: CartPage,
 });

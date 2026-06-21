@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "حكايتي — قصص وكتب تعليمية مخصصة لطفلك" },
+      { title: "كيدزي — قصص وكتب تعليمية مخصصة لطفلك" },
       {
         name: "description",
         content:

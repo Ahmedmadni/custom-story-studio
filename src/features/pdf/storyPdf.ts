@@ -89,7 +89,7 @@ function buildCover(input: StoryPdfInput, coverImg: string | null): HTMLDivEleme
 
   const brand = document.createElement("div");
   brand.style.cssText = `font-size:22px;font-weight:800;letter-spacing:2px;color:#FFD86B;text-shadow:0 2px 10px rgba(0,0,0,0.6);margin-bottom:18px;`;
-  brand.textContent = "✨ منصة حكايتي ✨";
+  brand.textContent = "✨ منصة كيدزي ✨";
   box.appendChild(brand);
 
   const h1 = document.createElement("h1");

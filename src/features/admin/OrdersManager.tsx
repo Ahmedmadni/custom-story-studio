@@ -369,7 +369,7 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
   };
 
   const storyLink = `${typeof window !== "undefined" ? window.location.origin : ""}/story/${order.id}`;
-  const waMessage = `مرحباً! 🌟\nقصة «${order.storyTitle}» بطلها ${order.childName} أصبحت جاهزة! 🎉\nشاهدها وحمّلها من هنا:\n${storyLink}\n\nمع تحيات فريق حكايتي 📖`;
+  const waMessage = `مرحباً! 🌟\nقصة «${order.storyTitle}» بطلها ${order.childName} أصبحت جاهزة! 🎉\nشاهدها وحمّلها من هنا:\n${storyLink}\n\nمع تحيات فريق كيدزي 📖`;
 
   const handleAdminExport = async () => {
     const pdfPages: PdfStoryPage[] = (pages ?? [])

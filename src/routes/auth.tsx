@@ -14,10 +14,10 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "تسجيل الدخول — حكايتي" },
+      { title: "تسجيل الدخول — كيدزي" },
       {
         name: "description",
-        content: "سجّل دخولك إلى حكايتي وحوّل طفلك إلى بطل قصصه وكتبه التعليمية المصوّرة.",
+        content: "سجّل دخولك إلى كيدزي وحوّل طفلك إلى بطل قصصه وكتبه التعليمية المصوّرة.",
       },
     ],
   }),
@@ -130,7 +130,7 @@ function AuthPage() {
           <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
             <BookOpen className="h-8 w-8" />
           </span>
-          <h1 className="mt-4 font-display text-4xl font-extrabold text-primary">حكايتي</h1>
+          <h1 className="mt-4 font-display text-4xl font-extrabold text-primary">كيدزي</h1>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
             منصة تحوّل طفلك إلى بطل قصصه وكتبه التعليمية المصوّرة — بأسلوب كرتوني ثلاثي
             الأبعاد، جاهزة للتحميل والمشاركة.
@@ -203,7 +203,7 @@ function AuthPage() {
                 onClick={() => void signIn()}
               >
                 {busy && <Loader2 className="ms-2 h-4 w-4 animate-spin" />}
-                دخول إلى حكايتي
+                دخول إلى كيدزي
               </Button>
             </TabsContent>
 

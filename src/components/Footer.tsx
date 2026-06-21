@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { BookOpen, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
+import kidzyLogo from "@/assets/kidzy-logo.png.asset.json";
 import { adminWaLink } from "@/features/orders/whatsapp";
 
 export function Footer() {
@@ -9,12 +10,11 @@ export function Footer() {
       <div className="container mx-auto grid gap-8 px-4 py-10 md:grid-cols-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-              <BookOpen className="h-4 w-4" />
-            </span>
-            <span className="font-display text-xl font-bold text-primary">
-              حكايتي
-            </span>
+            <img
+              src={kidzyLogo.url}
+              alt="Kidzy — كيدزي"
+              className="h-9 w-auto drop-shadow-sm"
+            />
           </div>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             قصص أطفال نبيلة وإنسانية، بطلها طفلك! اختر قصة، ارفع صورة طفلك،
@@ -49,7 +49,7 @@ export function Footer() {
         <div>
           <h3 className="font-display text-lg font-bold">تواصل معنا</h3>
           <a
-            href={adminWaLink("مرحباً! لدي استفسار عن قصص حكايتي 📖")}
+            href={adminWaLink("مرحباً! لدي استفسار عن قصص كيدزي 📖")}
             target="_blank"
             rel="noreferrer"
             className="mt-3 inline-flex items-center gap-2 rounded-full bg-grass px-5 py-2.5 text-sm font-bold text-grass-foreground shadow-md transition-transform hover:scale-105"
@@ -60,7 +60,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t py-4 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} حكايتي — قصص تزرع القيم في قلوب الأطفال
+        © {new Date().getFullYear()} كيدزي — قصص تزرع القيم في قلوب الأطفال
       </div>
     </footer>
   );

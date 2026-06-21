@@ -21,7 +21,7 @@ import photoModeCartoonImg from "@/assets/photo-mode-cartoon.jpg";
 
 export const Route = createFileRoute("/_authenticated/order/$templateId")({
   head: () => ({
-    meta: [{ title: "اطلب القصة — حكايتي" }],
+    meta: [{ title: "اطلب القصة — كيدزي" }],
   }),
   component: OrderPage,
 });

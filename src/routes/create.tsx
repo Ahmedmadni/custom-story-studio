@@ -69,7 +69,7 @@ import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
 export const Route = createFileRoute("/create")({
   head: () => ({
     meta: [
-      { title: "أنشئ قصة أو كتاباً تعليمياً — حكايتي" },
+      { title: "أنشئ قصة أو كتاباً تعليمياً — كيدزي" },
       {
         name: "description",
         content:
@@ -1427,7 +1427,7 @@ function Step7Approval({ result, childName, pdfPages, personalize, reset }: Step
   const adminApproved = Boolean(data?.adminApprovedAt);
 
   const remindAdmin = () => {
-    const msg = `مرحباً 👋\nأنشأت محتوى «${personalize(result.title)}» على منصة حكايتي وأنتظر اعتماده لتحميله 🌟\nمعرّف المحتوى: ${result.id}`;
+    const msg = `مرحباً 👋\nأنشأت محتوى «${personalize(result.title)}» على منصة كيدزي وأنتظر اعتماده لتحميله 🌟\nمعرّف المحتوى: ${result.id}`;
     const url = `https://wa.me/201120016502?text=${encodeURIComponent(msg)}`;
     window.open(url, "_blank", "noopener");
   };
