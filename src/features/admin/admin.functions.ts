@@ -132,7 +132,7 @@ export const adminListOrders = createServerFn({ method: "POST" })
 
     const { data: orders, error } = await supabaseAdmin
       .from("orders")
-      .select("*, story_templates(id, title, slug, pages, language, content_type)")
+      .select("*, story_templates!template_id(id, title, slug, pages, language, content_type), published_template:story_templates!published_template_id(slug)")
       .order("created_at", { ascending: false });
     if (error) throw new Error("تعذر تحميل الطلبات");
 
@@ -180,6 +180,8 @@ export const adminListOrders = createServerFn({ method: "POST" })
           receiptUrl,
           totalPages,
           donePages,
+          publishedToLibraryAt: (o.published_to_library_at as string | null) ?? null,
+          publishedSlug: ((o.published_template as { slug?: string } | null)?.slug) ?? null,
         };
       }),
     );
@@ -275,7 +277,7 @@ export const adminGeneratePage = createServerFn({ method: "POST" })
 
     const { data: order, error: orderErr } = await supabaseAdmin
       .from("orders")
-      .select("*, story_templates(id, pages, title)")
+      .select("*, story_templates!template_id(id, pages, title)")
       .eq("id", data.orderId)
       .single();
     if (orderErr || !order) throw new Error("الطلب غير موجود");
@@ -1241,3 +1243,144 @@ export const adminDeleteTemplate = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+
+const PublishOrderInput = z.object({ orderId: z.string().uuid() });
+
+/**
+ * [مسؤول] نشر قصة طلب عميل في مكتبة الحكايات العامة.
+ * يبني صفًا جديدًا في story_templates يحفظ نسخة الطفل كاملة (الاسم + الصور المولّدة)
+ * ويعتمد التصنيف/الفئة العمرية/نوع المحتوى تلقائيًا من القالب الأصلي.
+ */
+export const adminPublishOrderStory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => PublishOrderInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: order, error: orderErr } = await supabaseAdmin
+      .from("orders")
+      .select(
+        "id, child_name, language, published_template_id, story_templates!template_id(id, title, summary, moral, category, age_range, content_type, language, pages, cover_url)",
+      )
+      .eq("id", data.orderId)
+      .single();
+    if (orderErr || !order) throw new Error("الطلب غير موجود");
+    if (order.published_template_id) {
+      throw new Error("هذه القصة منشورة بالفعل في المكتبة");
+    }
+    const tpl = order.story_templates as {
+      id: string;
+      title: string;
+      summary: string;
+      moral: string | null;
+      category: string;
+      age_range: string;
+      content_type: string;
+      language: string;
+      pages: unknown;
+      cover_url: string | null;
+    } | null;
+    if (!tpl) throw new Error("القالب الأصلي للطلب غير موجود");
+
+    const { data: pageRows } = await supabaseAdmin
+      .from("generated_pages")
+      .select("page_number, image_path, page_text")
+      .eq("order_id", data.orderId)
+      .order("page_number");
+    if (!pageRows || pageRows.length === 0) {
+      throw new Error("لا توجد صفحات مولدة لهذا الطلب — أكمل التوليد أولاً");
+    }
+
+    const originalPages = parsePages(tpl.pages);
+    const childName = order.child_name;
+
+    const mergedPages: StoryPage[] = originalPages.map((op) => {
+      const gen = pageRows.find((r) => r.page_number === op.n);
+      return {
+        n: op.n,
+        title: op.title,
+        title_ar: op.title_ar,
+        title_en: op.title_en,
+        text: gen?.page_text ?? personalize(op.text ?? "", childName),
+        text_ar: op.text_ar ? personalize(op.text_ar, childName) : undefined,
+        text_en: op.text_en ? personalize(op.text_en, childName) : undefined,
+        scene: op.scene,
+        image_title_en: op.image_title_en,
+        image_path: gen?.image_path ?? op.image_path ?? null,
+      };
+    });
+
+    // غلاف عام: نوقّع رابطًا طويل الأمد لأول صفحة مولّدة (سنة كحد أقصى تسمح به Supabase)
+    let coverUrl: string | null = tpl.cover_url ?? null;
+    const firstImagePath = pageRows.find((r) => !!r.image_path)?.image_path;
+    if (firstImagePath) {
+      const { data: signed } = await supabaseAdmin.storage
+        .from("story-pages")
+        .createSignedUrl(firstImagePath, 60 * 60 * 24 * 365);
+      if (signed?.signedUrl) coverUrl = signed.signedUrl;
+    }
+
+    const personalizedTitle = personalize(tpl.title ?? "", childName);
+    const slug = `order-${data.orderId.slice(0, 8)}`;
+    const now = new Date().toISOString();
+
+    const { data: inserted, error: insertErr } = await supabaseAdmin
+      .from("story_templates")
+      .insert({
+        slug,
+        title: personalizedTitle,
+        summary: tpl.summary,
+        category: tpl.category,
+        moral: tpl.moral ?? "",
+        age_range: tpl.age_range,
+        content_type: tpl.content_type,
+        language: (order.language as string | null) ?? tpl.language,
+        pages: mergedPages as unknown as object,
+        cover_url: coverUrl,
+        is_published: true,
+        is_custom: false,
+        approved_at: now,
+        admin_approved_at: now,
+        admin_approved_by: context.userId,
+      } as never)
+      .select("id, slug")
+      .single();
+    if (insertErr || !inserted) {
+      console.error("publish insert error", insertErr);
+      throw new Error("تعذر نشر القصة في المكتبة");
+    }
+
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        published_to_library_at: now,
+        published_template_id: (inserted as { id: string }).id,
+      } as never)
+      .eq("id", data.orderId);
+
+    return { ok: true, slug: (inserted as { slug: string }).slug };
+  });
+
+/** [مسؤول] إلغاء نشر قصة طلب من المكتبة (يحذف صف القالب المنشور) */
+export const adminUnpublishOrderStory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => PublishOrderInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: order } = await supabaseAdmin
+      .from("orders")
+      .select("published_template_id")
+      .eq("id", data.orderId)
+      .single();
+    const publishedId = (order as { published_template_id: string | null } | null)?.published_template_id;
+    if (publishedId) {
+      await supabaseAdmin.from("story_templates").delete().eq("id", publishedId);
+    }
+    await supabaseAdmin
+      .from("orders")
+      .update({ published_to_library_at: null, published_template_id: null } as never)
+      .eq("id", data.orderId);
+    return { ok: true };
+  });

@@ -31,7 +31,7 @@ function MyOrders() {
       const { data } = await supabase
         .from("orders")
         .select(
-          "id, status, payment_status, payment_rejection_reason, child_name, created_at, story_templates(title, cover_url, slug)",
+          "id, status, payment_status, payment_rejection_reason, child_name, created_at, story_templates!template_id(title, cover_url, slug)",
         )
         .order("created_at", { ascending: false });
       return data ?? [];

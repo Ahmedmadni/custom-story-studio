@@ -7,6 +7,7 @@ import {
   CreditCard,
   ExternalLink,
   FileDown,
+  Globe,
   ImageIcon,
   KeyRound,
   Loader2,
@@ -15,6 +16,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Sparkles,
+  Undo2,
   Wand2,
   X,
 } from "lucide-react";
@@ -40,8 +42,10 @@ import {
   adminGetOrderPages,
   adminGetUsageStats,
   adminListOrders,
+  adminPublishOrderStory,
   adminRejectPayment,
   adminSetStatus,
+  adminUnpublishOrderStory,
   adminVerifyPayment,
 } from "@/features/admin/admin.functions";
 
@@ -83,6 +87,8 @@ type AdminOrder = {
   receiptUrl: string | null;
   totalPages: number;
   donePages: number;
+  publishedToLibraryAt: string | null;
+  publishedSlug: string | null;
 };
 
 function AdminPage() {
@@ -304,6 +310,9 @@ function OrderDialog({
   const verifyFn = useServerFn(adminVerifyPayment);
   const rejectPayFn = useServerFn(adminRejectPayment);
   const approveContentFn = useServerFn(adminApproveTemplate);
+  const publishFn = useServerFn(adminPublishOrderStory);
+  const unpublishFn = useServerFn(adminUnpublishOrderStory);
+  const [consent, setConsent] = useState(false);
   const [generating, setGenerating] = useState<number | null>(null);
   const [batchRunning, setBatchRunning] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -364,6 +373,25 @@ function OrderDialog({
     },
     onSuccess: () => {
       toast.success("تم اعتماد محتوى القصة — يمكن للعميل تنزيل PDF الآن ✅");
+      refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: () => publishFn({ data: { orderId: order.id } }),
+    onSuccess: (res) => {
+      toast.success("تم نشر القصة في مكتبة الحكايات 🎉");
+      if (res?.slug) window.open(`/stories/${res.slug}`, "_blank", "noreferrer");
+      refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const unpublishMutation = useMutation({
+    mutationFn: () => unpublishFn({ data: { orderId: order.id } }),
+    onSuccess: () => {
+      toast.success("تم إلغاء نشر القصة من المكتبة");
       refresh();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -677,6 +705,81 @@ function OrderDialog({
             </div>
           )}
         </div>
+
+        {/* publish to library */}
+        {(order.status === "ready" || order.status === "sent") && (
+          <div className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-4">
+            <h3 className="flex items-center gap-2 font-display font-bold text-primary">
+              <Globe className="h-4 w-4" />
+              نشر القصة في مكتبة الحكايات
+            </h3>
+            {order.publishedToLibraryAt ? (
+              <div className="mt-3 space-y-2">
+                <p className="text-sm font-semibold text-grass">
+                  ✅ منشورة منذ {new Date(order.publishedToLibraryAt).toLocaleString("ar-EG")}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {order.publishedSlug && (
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full font-bold"
+                    >
+                      <a href={`/stories/${order.publishedSlug}`} target="_blank" rel="noreferrer">
+                        <ExternalLink className="ms-1 h-4 w-4" />
+                        فتح في المكتبة
+                      </a>
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-full font-bold text-destructive"
+                    disabled={unpublishMutation.isPending}
+                    onClick={() => unpublishMutation.mutate()}
+                  >
+                    <Undo2 className="ms-1 h-4 w-4" />
+                    إلغاء النشر
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  ستُنشر النسخة الكاملة لـ{order.childName} (الاسم + الصور المولّدة) في تصنيف القالب الأصلي تلقائيًا، ويراها زوار المكتبة.
+                </p>
+                <label className="flex items-start gap-2 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    className="mt-1 h-4 w-4 accent-primary"
+                  />
+                  <span>أؤكد أن العميل وافق على نشر قصة طفله علنًا في الموقع.</span>
+                </label>
+                <Button
+                  className="rounded-full bg-primary font-bold text-primary-foreground hover:bg-primary/90"
+                  disabled={!consent || publishMutation.isPending || (order.donePages < order.totalPages)}
+                  onClick={() => publishMutation.mutate()}
+                >
+                  {publishMutation.isPending ? (
+                    <Loader2 className="ms-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Globe className="ms-1 h-4 w-4" />
+                  )}
+                  نشر في مكتبة الحكايات
+                </Button>
+                {order.donePages < order.totalPages && (
+                  <p className="text-xs text-amber-700">
+                    اكتمل {order.donePages}/{order.totalPages} صفحة فقط — أكمل التوليد قبل النشر.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
 
         {/* pages grid */}
         {order.status !== "pending" && order.status !== "rejected" && (

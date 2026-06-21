@@ -107,6 +107,8 @@ export type Database = {
           payment_verified_by: string | null
           photo_mode: string
           price_egp: number
+          published_template_id: string | null
+          published_to_library_at: string | null
           receipt_path: string | null
           status: Database["public"]["Enums"]["order_status"]
           template_id: string | null
@@ -132,6 +134,8 @@ export type Database = {
           payment_verified_by?: string | null
           photo_mode?: string
           price_egp?: number
+          published_template_id?: string | null
+          published_to_library_at?: string | null
           receipt_path?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           template_id?: string | null
@@ -157,6 +161,8 @@ export type Database = {
           payment_verified_by?: string | null
           photo_mode?: string
           price_egp?: number
+          published_template_id?: string | null
+          published_to_library_at?: string | null
           receipt_path?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           template_id?: string | null
@@ -165,6 +171,13 @@ export type Database = {
           whatsapp?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_published_template_id_fkey"
+            columns: ["published_template_id"]
+            isOneToOne: false
+            referencedRelation: "story_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_template_id_fkey"
             columns: ["template_id"]
