@@ -75,6 +75,7 @@ export const getMyStory = createServerFn({ method: "POST" })
       language: (tpl?.language ?? "ar") as "ar" | "en" | "bilingual",
       contentType: (tpl?.content_type ?? "story") as "story" | "book",
       approvedAt: tpl?.approved_at ?? null,
+      adminApprovedAt: tpl?.admin_approved_at ?? null,
       pages,
     };
   });
