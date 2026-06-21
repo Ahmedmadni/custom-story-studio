@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BookOpen,
+  ChevronLeft,
   LayoutDashboard,
   Library,
   Package,
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -20,6 +22,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 
 type NavItem = {
@@ -28,13 +33,31 @@ type NavItem = {
   icon: ComponentType<{ className?: string }>;
 };
 
-const items: NavItem[] = [
+type NavGroup = {
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+  to: string;
+  children: { to: string; label: string }[];
+};
+
+const singleItems: NavItem[] = [
   { to: "/admin", label: "نظرة عامة", icon: LayoutDashboard },
   { to: "/admin/orders", label: "الطلبات", icon: Package },
   { to: "/admin/approvals", label: "اعتماد المحتوى", icon: ShieldCheck },
-  { to: "/admin/templates", label: "القوالب", icon: Library },
   { to: "/admin/users", label: "المستخدمون", icon: Users },
   { to: "/admin/roles", label: "الصلاحيات", icon: ShieldCheck },
+];
+
+const groupItems: NavGroup[] = [
+  {
+    label: "القوالب",
+    icon: Library,
+    to: "/admin/templates",
+    children: [
+      { to: "/create", label: "قالب جديد" },
+      { to: "/admin/templates", label: "إدارة القوالب" },
+    ],
+  },
 ];
 
 export function AdminSidebar() {
