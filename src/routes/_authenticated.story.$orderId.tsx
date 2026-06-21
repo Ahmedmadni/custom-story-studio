@@ -192,8 +192,8 @@ function StoryViewer() {
             language={story.language}
             contentType={story.contentType}
             templateId={story.templateId ?? undefined}
-            disabled={!isApproved}
-            disabledReason={!isApproved ? "اعتمد المحتوى أولاً من معالج الإنشاء" : undefined}
+            disabled={!isAdminApproved}
+            disabledReason={!isAdminApproved ? (isUserApproved ? "بانتظار اعتماد الإدارة" : "اعتمد المحتوى أولاً من معالج الإنشاء") : undefined}
             pages={pages.map((p) => ({
               n: p.n,
               title: p.title,
