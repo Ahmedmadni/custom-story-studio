@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Camera, Loader2, Send, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Footer } from "@/components/Footer";
@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
 import { LANGUAGE_OPTIONS, type LanguageMode } from "@/features/ai/storyTypes";
+import { HERO_OPTIONS, HERO_CATEGORIES, type HeroOption } from "@/features/orders/heroes";
 import { cn } from "@/lib/utils";
 import photoModeRealImg from "@/assets/photo-mode-real.jpg";
 import photoModeCartoonImg from "@/assets/photo-mode-cartoon.jpg";
@@ -64,6 +65,21 @@ function OrderPage() {
   const [language, setLanguage] = useState<LanguageMode>("ar");
   const [photoMode, setPhotoMode] = useState<PhotoMode>("cartoon");
   const [heroCharacter, setHeroCharacter] = useState("");
+  const [heroQuery, setHeroQuery] = useState("");
+  const [heroCat, setHeroCat] = useState<"الكل" | HeroOption["category"]>("الكل");
+
+  const filteredHeroes = useMemo(() => {
+    const q = heroQuery.trim().toLowerCase();
+    return HERO_OPTIONS.filter((h) => {
+      if (heroCat !== "الكل" && h.category !== heroCat) return false;
+      if (!q) return true;
+      return (
+        h.name.toLowerCase().includes(q) ||
+        h.enName.toLowerCase().includes(q) ||
+        h.keywords.some((k) => k.toLowerCase().includes(q))
+      );
+    });
+  }, [heroQuery, heroCat]);
 
   const { data: template } = useQuery({
     queryKey: ["template", templateId],
@@ -275,19 +291,90 @@ function OrderPage() {
           <div>
             <Label htmlFor="hero" className="flex items-center gap-2 font-bold">
               <Sparkles className="h-4 w-4 text-primary" />
-              بطل خارق مفضل لطفلك (اختياري)
+              بطل مفضل لطفلك (اختياري)
             </Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              اختر من القائمة أو اكتب اسماً آخر — سنحاول إدماجه أو روح شخصيته في القصة
+            </p>
+
+            <Input
+              dir="rtl"
+              value={heroQuery}
+              onChange={(e) => setHeroQuery(e.target.value)}
+              placeholder="🔍 ابحث عن بطل (مثال: باتمان، سوبر، spider)…"
+              className="mt-3 rounded-xl"
+            />
+
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {(["الكل", ...HERO_CATEGORIES] as const).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setHeroCat(c)}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-bold transition-colors",
+                    heroCat === c
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background hover:border-primary/40",
+                  )}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-3 grid max-h-64 grid-cols-2 gap-2 overflow-y-auto rounded-2xl border border-border bg-secondary/20 p-2 sm:grid-cols-3 md:grid-cols-4">
+              {filteredHeroes.length === 0 ? (
+                <div className="col-span-full p-4 text-center text-xs text-muted-foreground">
+                  لا توجد نتائج — اكتب اسم البطل في الحقل بالأسفل
+                </div>
+              ) : (
+                filteredHeroes.map((h) => {
+                  const selected = heroCharacter === h.name;
+                  return (
+                    <button
+                      key={h.enName}
+                      type="button"
+                      onClick={() => {
+                        setHeroCharacter(selected ? "" : h.name);
+                        setHeroQuery("");
+                      }}
+                      className={cn(
+                        "flex flex-col items-center gap-1 rounded-xl border-2 p-2 text-center transition-all",
+                        selected
+                          ? "border-primary bg-primary/10 shadow-md"
+                          : "border-transparent bg-card hover:border-primary/40",
+                      )}
+                    >
+                      <span className="text-2xl">{h.emoji}</span>
+                      <span className="text-[11px] font-bold leading-tight">{h.name}</span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
             <Input
               id="hero"
               value={heroCharacter}
               onChange={(e) => setHeroCharacter(e.target.value)}
-              placeholder="مثال: سوبرمان، باتمان، سبايدر مان، شخصية أصلية…"
+              placeholder="أو اكتب اسماً آخر هنا…"
               maxLength={60}
-              className="mt-2 rounded-xl"
+              className="mt-3 rounded-xl"
             />
-            <p className="mt-1 text-xs text-muted-foreground">
-              سنحاول إدماج هذا البطل أو روح شخصيته في القصة عند الإمكان
-            </p>
+            {heroCharacter.trim() && (
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                البطل المختار: {heroCharacter}
+                <button
+                  type="button"
+                  onClick={() => setHeroCharacter("")}
+                  className="text-primary/70 hover:text-primary"
+                  aria-label="إلغاء"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
           </div>
 
           {/* واتساب */}
