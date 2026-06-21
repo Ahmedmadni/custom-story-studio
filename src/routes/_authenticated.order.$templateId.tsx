@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Camera, Loader2, Send } from "lucide-react";
+import { Camera, Loader2, Send, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -13,6 +13,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
+import { LANGUAGE_OPTIONS, type LanguageMode } from "@/features/ai/storyTypes";
+import { cn } from "@/lib/utils";
+import photoModeRealImg from "@/assets/photo-mode-real.jpg";
+import photoModeCartoonImg from "@/assets/photo-mode-cartoon.jpg";
 
 export const Route = createFileRoute("/_authenticated/order/$templateId")({
   head: () => ({
@@ -22,6 +26,28 @@ export const Route = createFileRoute("/_authenticated/order/$templateId")({
 });
 
 const MAX_PHOTO_MB = 8;
+
+type PhotoMode = "real" | "cartoon";
+
+const PHOTO_MODE_OPTIONS: {
+  value: PhotoMode;
+  label: string;
+  desc: string;
+  image: string;
+}[] = [
+  {
+    value: "cartoon",
+    label: "شخصية كرتونية",
+    desc: "نحوّل وجه طفلك إلى شخصية ثلاثية الأبعاد بأسلوب أفلام ديزني/بيكسار",
+    image: photoModeCartoonImg,
+  },
+  {
+    value: "real",
+    label: "وجه حقيقي في مشهد كرتوني",
+    desc: "نُبقي وجه طفلك الحقيقي تماماً ونضعه داخل عالم كرتوني سينمائي (مثل أفلام Sonic / Tom & Jerry)",
+    image: photoModeRealImg,
+  },
+];
 
 function OrderPage() {
   const { templateId } = Route.useParams();
@@ -35,13 +61,16 @@ function OrderPage() {
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [language, setLanguage] = useState<LanguageMode>("ar");
+  const [photoMode, setPhotoMode] = useState<PhotoMode>("cartoon");
+  const [heroCharacter, setHeroCharacter] = useState("");
 
   const { data: template } = useQuery({
     queryKey: ["template", templateId],
     queryFn: async () => {
       const { data } = await supabase
         .from("story_templates")
-        .select("id, title, summary, cover_url")
+        .select("id, title, summary, cover_url, language")
         .eq("id", templateId)
         .maybeSingle();
       return data;
@@ -78,6 +107,12 @@ function OrderPage() {
         .upload(path, photo, { contentType: photo.type });
       if (uploadErr) throw new Error("تعذر رفع الصورة، حاول مرة أخرى");
 
+      const heroNote = heroCharacter.trim()
+        ? `البطل المفضل: ${heroCharacter.trim()}`
+        : "";
+      const userNote = notes.trim();
+      const combinedNotes = [heroNote, userNote].filter(Boolean).join(" — ") || null;
+
       const { error: insertErr } = await supabase.from("orders").insert({
         user_id: user.id,
         template_id: templateId,
@@ -85,7 +120,10 @@ function OrderPage() {
         child_age: childAge ? Number(childAge) : null,
         whatsapp: whatsapp.trim(),
         child_photo_path: path,
-        notes: notes.trim() || null,
+        language,
+        photo_mode: photoMode,
+        hero_character: heroCharacter.trim() || null,
+        notes: combinedNotes,
       });
       if (insertErr) throw new Error("تعذر إرسال الطلب");
 
@@ -106,11 +144,11 @@ function OrderPage() {
           اطلب قصة «{template?.title ?? "…"}»
         </h1>
         <p className="mt-2 text-muted-foreground">
-          ارفع صورة واضحة لوجه طفلك وسنحوله إلى بطل كرتوني ثلاثي الأبعاد في كل
-          صفحات القصة
+          خصّص القصة كما تحب: اللغة، شكل بطل القصة، وحتى البطل الخارق المفضل لطفلك
         </p>
 
-        <div className="mt-8 space-y-5 rounded-3xl border-2 border-border bg-card p-6 shadow-sm md:p-8">
+        <div className="mt-8 space-y-6 rounded-3xl border-2 border-border bg-card p-6 shadow-sm md:p-8">
+          {/* صورة الطفل */}
           <div>
             <Label className="font-bold">صورة الطفل</Label>
             <label className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-primary/40 bg-secondary/30 p-6 transition-colors hover:bg-secondary/60">
@@ -140,6 +178,7 @@ function OrderPage() {
             </p>
           </div>
 
+          {/* الاسم والعمر */}
           <div className="grid gap-5 md:grid-cols-2">
             <div>
               <Label htmlFor="cname" className="font-bold">اسم الطفل</Label>
@@ -166,6 +205,92 @@ function OrderPage() {
             </div>
           </div>
 
+          {/* اللغة */}
+          <div>
+            <Label className="font-bold">لغة القصة</Label>
+            <div className="mt-2 grid gap-2 md:grid-cols-3">
+              {LANGUAGE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setLanguage(opt.value as LanguageMode)}
+                  className={cn(
+                    "rounded-2xl border-2 p-3 text-right transition-all",
+                    language === opt.value
+                      ? "border-primary bg-primary/10 shadow-md"
+                      : "border-border bg-background hover:border-primary/40",
+                  )}
+                >
+                  <div className="font-bold">{opt.label}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">{opt.hint}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* نمط وجه الطفل */}
+          <div>
+            <Label className="font-bold">نمط بطل القصة (وجه طفلك)</Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              اختر الأسلوب الذي تحب أن نُظهر به طفلك في القصة
+            </p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              {PHOTO_MODE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setPhotoMode(opt.value)}
+                  className={cn(
+                    "group overflow-hidden rounded-2xl border-2 text-right transition-all",
+                    photoMode === opt.value
+                      ? "border-primary shadow-lg ring-2 ring-primary/20"
+                      : "border-border hover:border-primary/40",
+                  )}
+                >
+                  <div className="relative aspect-square w-full overflow-hidden bg-secondary/40">
+                    <img
+                      src={opt.image}
+                      alt={opt.label}
+                      loading="lazy"
+                      width={768}
+                      height={768}
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    />
+                    {photoMode === opt.value && (
+                      <div className="absolute right-2 top-2 rounded-full bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground shadow">
+                        ✓ مختار
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <div className="font-bold">{opt.label}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{opt.desc}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* البطل المفضل */}
+          <div>
+            <Label htmlFor="hero" className="flex items-center gap-2 font-bold">
+              <Sparkles className="h-4 w-4 text-primary" />
+              بطل خارق مفضل لطفلك (اختياري)
+            </Label>
+            <Input
+              id="hero"
+              value={heroCharacter}
+              onChange={(e) => setHeroCharacter(e.target.value)}
+              placeholder="مثال: سوبرمان، باتمان، سبايدر مان، شخصية أصلية…"
+              maxLength={60}
+              className="mt-2 rounded-xl"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              سنحاول إدماج هذا البطل أو روح شخصيته في القصة عند الإمكان
+            </p>
+          </div>
+
+          {/* واتساب */}
           <div>
             <Label htmlFor="wa" className="font-bold">رقم الواتساب لاستلام القصة</Label>
             <Input
@@ -179,6 +304,7 @@ function OrderPage() {
             />
           </div>
 
+          {/* ملاحظات */}
           <div>
             <Label htmlFor="notes" className="font-bold">ملاحظات (اختياري)</Label>
             <Textarea
