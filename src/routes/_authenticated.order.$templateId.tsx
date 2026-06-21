@@ -65,6 +65,21 @@ function OrderPage() {
   const [language, setLanguage] = useState<LanguageMode>("ar");
   const [photoMode, setPhotoMode] = useState<PhotoMode>("cartoon");
   const [heroCharacter, setHeroCharacter] = useState("");
+  const [heroQuery, setHeroQuery] = useState("");
+  const [heroCat, setHeroCat] = useState<"الكل" | HeroOption["category"]>("الكل");
+
+  const filteredHeroes = useMemo(() => {
+    const q = heroQuery.trim().toLowerCase();
+    return HERO_OPTIONS.filter((h) => {
+      if (heroCat !== "الكل" && h.category !== heroCat) return false;
+      if (!q) return true;
+      return (
+        h.name.toLowerCase().includes(q) ||
+        h.enName.toLowerCase().includes(q) ||
+        h.keywords.some((k) => k.toLowerCase().includes(q))
+      );
+    });
+  }, [heroQuery, heroCat]);
 
   const { data: template } = useQuery({
     queryKey: ["template", templateId],
