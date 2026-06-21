@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, Eye, FileDown, ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
 
 import { EmptyState } from "@/components/EmptyState";
 import { Footer } from "@/components/Footer";
@@ -12,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyPdfs } from "@/features/pdf/pdf.functions";
+import { updateMyOrderPreferences } from "@/features/admin/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/my-orders")({
   head: () => ({
