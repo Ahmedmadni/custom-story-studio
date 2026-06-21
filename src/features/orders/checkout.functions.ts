@@ -10,6 +10,9 @@ const ItemInput = z.object({
   gender: z.enum(["boy", "girl"]).default("boy"),
   childPhotoPath: z.string().min(1),
   notes: z.string().max(500).nullable().optional(),
+  language: z.enum(["ar", "en", "bilingual"]).default("ar"),
+  photoMode: z.enum(["cartoon", "real"]).default("cartoon"),
+  publishConsent: z.boolean().default(false),
 });
 
 const CheckoutInput = z.object({
@@ -39,6 +42,9 @@ export const submitCheckout = createServerFn({ method: "POST" })
       payment_status: "receipt_uploaded" as const,
       price_egp: 100,
       paid_at: new Date().toISOString(),
+      language: it.language,
+      photo_mode: it.photoMode,
+      publish_consent: it.publishConsent,
     }));
 
     const { data: inserted, error } = await context.supabase

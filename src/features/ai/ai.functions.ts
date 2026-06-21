@@ -295,6 +295,7 @@ ${englishGenderRule}
       : null;
 
     const slug = `custom-${crypto.randomUUID().slice(0, 8)}`;
+    const { DEFAULT_COVER_URL } = await import("@/lib/defaultCover");
     const { data: inserted, error } = await context.supabase
       .from("story_templates")
       .insert({
@@ -304,7 +305,7 @@ ${englishGenderRule}
         moral: story.moral,
         category: story.category,
         age_range: data.age ?? "4-8",
-        cover_url: null,
+        cover_url: DEFAULT_COVER_URL,
         pages: pages as unknown as never,
         is_published: false,
         is_custom: true,

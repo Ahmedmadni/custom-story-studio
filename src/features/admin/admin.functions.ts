@@ -1318,13 +1318,16 @@ export const adminPublishOrderStory = createServerFn({ method: "POST" })
     const { data: order, error: orderErr } = await supabaseAdmin
       .from("orders")
       .select(
-        "id, child_name, language, published_template_id, story_templates!template_id(id, title, summary, moral, category, age_range, content_type, language, pages, cover_url)",
+        "id, child_name, language, publish_consent, published_template_id, story_templates!template_id(id, title, summary, moral, category, age_range, content_type, language, pages, cover_url)",
       )
       .eq("id", data.orderId)
       .single();
     if (orderErr || !order) throw new Error("الطلب غير موجود");
     if (order.published_template_id) {
       throw new Error("هذه القصة منشورة بالفعل في المكتبة");
+    }
+    if (!order.publish_consent) {
+      throw new Error("العميل لم يوافق على نشر قصته في المعرض");
     }
     const tpl = order.story_templates as {
       id: string;
@@ -1368,7 +1371,6 @@ export const adminPublishOrderStory = createServerFn({ method: "POST" })
       };
     });
 
-    // غلاف عام: نوقّع رابطًا طويل الأمد لأول صفحة مولّدة (سنة كحد أقصى تسمح به Supabase)
     let coverUrl: string | null = tpl.cover_url ?? null;
     const firstImagePath = pageRows.find((r) => !!r.image_path)?.image_path;
     if (firstImagePath) {
@@ -1396,7 +1398,8 @@ export const adminPublishOrderStory = createServerFn({ method: "POST" })
         pages: mergedPages as unknown as object,
         cover_url: coverUrl,
         is_published: true,
-        is_custom: false,
+        is_custom: true,
+        source_template_id: tpl.id,
         approved_at: now,
         admin_approved_at: now,
         admin_approved_by: context.userId,
