@@ -300,6 +300,8 @@ function OrderDialog({
   const [generating, setGenerating] = useState<number | null>(null);
   const [batchRunning, setBatchRunning] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState<{ done: number; total: number } | null>(null);
 
   const { data: pages, refetch: refetchPages } = useQuery({
     queryKey: ["admin-order-pages", order.id],
