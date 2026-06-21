@@ -269,7 +269,7 @@ export const adminUpdateOrderPreferences = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context as unknown as AuthedContext);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = {};
+    const patch: { language?: string; photo_mode?: string } = {};
     if (data.language) patch.language = data.language;
     if (data.photoMode) patch.photo_mode = data.photoMode;
     if (Object.keys(patch).length === 0) return { ok: true };
@@ -301,7 +301,7 @@ export const updateMyOrderPreferences = createServerFn({ method: "POST" })
     if ((count ?? 0) > 0 || ["generating", "ready", "sent"].includes(order.status as string)) {
       throw new Error("لا يمكن تعديل التفضيلات بعد بدء توليد القصة");
     }
-    const patch: Record<string, unknown> = {};
+    const patch: { language?: string; photo_mode?: string } = {};
     if (data.language) patch.language = data.language;
     if (data.photoMode) patch.photo_mode = data.photoMode;
     if (Object.keys(patch).length === 0) return { ok: true };
