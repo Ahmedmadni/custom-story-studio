@@ -96,13 +96,16 @@ export type Database = {
           child_photo_path: string
           created_at: string
           gender: Database["public"]["Enums"]["child_gender"]
+          hero_character: string | null
           id: string
+          language: string
           notes: string | null
           paid_at: string | null
           payment_rejection_reason: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
           payment_verified_at: string | null
           payment_verified_by: string | null
+          photo_mode: string
           price_egp: number
           receipt_path: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -118,13 +121,16 @@ export type Database = {
           child_photo_path: string
           created_at?: string
           gender?: Database["public"]["Enums"]["child_gender"]
+          hero_character?: string | null
           id?: string
+          language?: string
           notes?: string | null
           paid_at?: string | null
           payment_rejection_reason?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           payment_verified_at?: string | null
           payment_verified_by?: string | null
+          photo_mode?: string
           price_egp?: number
           receipt_path?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -140,13 +146,16 @@ export type Database = {
           child_photo_path?: string
           created_at?: string
           gender?: Database["public"]["Enums"]["child_gender"]
+          hero_character?: string | null
           id?: string
+          language?: string
           notes?: string | null
           paid_at?: string | null
           payment_rejection_reason?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           payment_verified_at?: string | null
           payment_verified_by?: string | null
+          photo_mode?: string
           price_egp?: number
           receipt_path?: string | null
           status?: Database["public"]["Enums"]["order_status"]
