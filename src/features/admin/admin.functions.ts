@@ -171,9 +171,11 @@ export const adminListOrders = createServerFn({ method: "POST" })
           adminNotes: o.admin_notes,
           createdAt: o.created_at,
           storyTitle: o.story_templates?.title ?? "قصة محذوفة",
-          language: ((o.story_templates as { language?: string } | null)?.language ?? "ar") as "ar" | "en" | "bilingual",
+          language: ((o.language as string | null) ?? (o.story_templates as { language?: string } | null)?.language ?? "ar") as "ar" | "en" | "bilingual",
           contentType: (((o.story_templates as { content_type?: string } | null)?.content_type) === "book" ? "book" : "story") as "story" | "book",
           templateId: o.template_id,
+          photoMode: (o.photo_mode as "cartoon" | "real" | null) ?? "cartoon",
+          heroCharacter: (o.hero_character as string | null) ?? null,
           photoUrl,
           receiptUrl,
           totalPages,
@@ -296,6 +298,8 @@ export const adminGeneratePage = createServerFn({ method: "POST" })
     const isGirl = gender === "girl";
     const heroLabel = isGirl ? "girl" : "boy";
     const pronoun = isGirl ? "she/her" : "he/him";
+    const photoMode = ((order.photo_mode as string | null) ?? "cartoon") as "cartoon" | "real";
+    const heroCharacter = (order.hero_character as string | null)?.trim() || null;
 
     // جلب الصورة المرجعية للجنس (ولد/بنت) — تستخدم كـ "نموذج للشخصية" يتعلم منه الذكاء الاصطناعي شكل البطل المعتمد
     const refFile = isGirl ? "girl.jpg" : "boy.png";
@@ -304,10 +308,18 @@ export const adminGeneratePage = createServerFn({ method: "POST" })
       .createSignedUrl(refFile, 600);
     const refUrl = signedRef?.signedUrl ?? null;
 
+    const faceBlock = photoMode === "real"
+      ? `Keep the child's REAL face from PHOTO (image #1) unchanged — same exact facial features, skin, eyes, hair — and composite it naturally onto a 3D animated cartoon body and environment (Superman / Tom & Jerry style: real face on cartoon scene). The face stays photoreal; everything else is fully 3D cartoon.`
+      : `Transform the real child from the attached PHOTO (image #1) into an adorable 3D cartoon hero ${heroLabel} character. Keep the child's face clearly recognizable (same hair color and style, eye color, skin tone, facial features) but rendered as a beautiful enhanced 3D cartoon character like a Pixar movie star, with body proportions, outfit and overall maturity matching the child's real age.`;
+
+    const heroBlock = heroCharacter
+      ? `\nThe child is dressed and styled as ${heroCharacter} (costume, colors, signature accessories) — keep the child's own face; ${heroCharacter} provides only the outfit/theme inspiration.`
+      : "";
+
     const prompt = `${STORY_STYLE_PROMPT}.${agePart}
 The hero is a ${heroLabel} child (${pronoun}). ${isGirl ? "Render her as an adorable little girl character with feminine styling appropriate for her age." : "Render him as an adorable little boy character with masculine styling appropriate for his age."}
 ${refUrl ? `REFERENCE CHARACTER (image #2): use the cartoon ${heroLabel} in image #2 as the canonical visual style for the hero — same 3D cartoon aesthetic, body proportions, outfit vibe and overall mood. This is the "official" ${heroLabel} character of the platform.` : ""}
-Transform the real child from the attached PHOTO (image #1) into an adorable 3D cartoon hero ${heroLabel} character in this exact style. Keep the child's face clearly recognizable (same hair color and style, eye color, skin tone, facial features) but rendered as a beautiful enhanced 3D cartoon character like a Pixar movie star, with body proportions, outfit and overall maturity matching the child's real age.
+${faceBlock}${heroBlock}
 Scene to illustrate: ${page.scene}.
 The ${heroLabel} child is the main hero of the scene. Square children's storybook illustration, ${STYLE_NEGATIVE}.`;
 

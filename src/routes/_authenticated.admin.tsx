@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  BookOpen,
   Check,
   CreditCard,
   ExternalLink,
@@ -12,6 +13,7 @@ import {
   MessageCircle,
   Receipt,
   ShieldAlert,
+  ShieldCheck,
   Sparkles,
   Wand2,
   X,
@@ -75,6 +77,8 @@ type AdminOrder = {
   language: "ar" | "en" | "bilingual";
   contentType: "story" | "book";
   templateId: string | null;
+  photoMode: "cartoon" | "real";
+  heroCharacter: string | null;
   photoUrl: string | null;
   receiptUrl: string | null;
   totalPages: number;
@@ -299,6 +303,7 @@ function OrderDialog({
   const getPagesFn = useServerFn(adminGetOrderPages);
   const verifyFn = useServerFn(adminVerifyPayment);
   const rejectPayFn = useServerFn(adminRejectPayment);
+  const approveContentFn = useServerFn(adminApproveTemplate);
   const [generating, setGenerating] = useState<number | null>(null);
   const [batchRunning, setBatchRunning] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -348,6 +353,18 @@ function OrderDialog({
       );
       refresh();
       onClose();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const approveContentMutation = useMutation({
+    mutationFn: () => {
+      if (!order.templateId) throw new Error("لا يوجد قالب مرتبط بالطلب");
+      return approveContentFn({ data: { templateId: order.templateId } });
+    },
+    onSuccess: () => {
+      toast.success("تم اعتماد محتوى القصة — يمكن للعميل تنزيل PDF الآن ✅");
+      refresh();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -463,6 +480,19 @@ function OrderDialog({
             <p>
               <b>واتساب العميل:</b> <span dir="ltr">{order.whatsapp}</span>
             </p>
+            <div className="flex flex-wrap gap-1.5 pt-1 text-xs">
+              <span className="rounded-full bg-secondary px-2.5 py-1 font-semibold">
+                🌐 {order.language === "ar" ? "عربي" : order.language === "en" ? "English" : "عربي + إنجليزي"}
+              </span>
+              <span className="rounded-full bg-secondary px-2.5 py-1 font-semibold">
+                {order.photoMode === "real" ? "📷 وجه حقيقي" : "🎨 كرتوني"}
+              </span>
+              {order.heroCharacter && (
+                <span className="rounded-full bg-primary/15 px-2.5 py-1 font-semibold text-primary">
+                  🦸 {order.heroCharacter}
+                </span>
+              )}
+            </div>
             {order.notes && (
               <p>
                 <b>ملاحظات:</b> {order.notes}
@@ -471,6 +501,30 @@ function OrderDialog({
             <div className="flex flex-wrap gap-2 pt-1">
               <PaymentBadge status={order.paymentStatus} />
               <StatusBadge status={order.status} />
+            </div>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="rounded-full font-bold"
+              >
+                <a href={`/story/${order.id}`} target="_blank" rel="noreferrer">
+                  <BookOpen className="ms-1 h-4 w-4" />
+                  مراجعة القصة
+                </a>
+              </Button>
+              {order.templateId && (
+                <Button
+                  size="sm"
+                  className="rounded-full bg-grass font-bold text-grass-foreground hover:bg-grass/90"
+                  disabled={approveContentMutation.isPending}
+                  onClick={() => approveContentMutation.mutate()}
+                >
+                  <ShieldCheck className="ms-1 h-4 w-4" />
+                  اعتماد محتوى القصة
+                </Button>
+              )}
             </div>
           </div>
         </div>
