@@ -1,18 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Check, ImageIcon, Loader2, Sparkles, Upload, Wand2, X } from "lucide-react";
+import { Check, Eye, EyeOff, ImageIcon, Loader2, Sparkles, Trash2, Upload, Wand2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
+  adminDeleteTemplate,
   adminGetTemplate,
   adminListTemplates,
   adminRegenerateTemplatePageImage,
   adminRegenerateTemplatePageText,
+  adminSetTemplatePublished,
   adminUpdateTemplatePage,
   adminUploadTemplatePageImage,
 } from "@/features/admin/admin.functions";
 import { Button } from "@/components/ui/button";
+
 import {
   Dialog,
   DialogContent,
