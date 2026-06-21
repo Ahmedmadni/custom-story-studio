@@ -155,6 +155,9 @@ function CheckoutPage() {
     if (!isValidEgyptianMobile(whatsapp))
       return toast.error("اكتب رقم واتساب مصري صحيح مثل 01012345678");
     if (!receipt) return toast.error("ارفع صورة إيصال التحويل");
+    if (printCopy && deliveryAddress.trim().length < 10)
+      return toast.error("اكتب عنوان التوصيل بالتفصيل");
+
 
     for (const item of items) {
       const d = drafts[item.templateId];
