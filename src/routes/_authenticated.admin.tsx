@@ -706,6 +706,81 @@ function OrderDialog({
           )}
         </div>
 
+        {/* publish to library */}
+        {(order.status === "ready" || order.status === "sent") && (
+          <div className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-4">
+            <h3 className="flex items-center gap-2 font-display font-bold text-primary">
+              <Globe className="h-4 w-4" />
+              نشر القصة في مكتبة الحكايات
+            </h3>
+            {order.publishedToLibraryAt ? (
+              <div className="mt-3 space-y-2">
+                <p className="text-sm font-semibold text-grass">
+                  ✅ منشورة منذ {new Date(order.publishedToLibraryAt).toLocaleString("ar-EG")}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {order.publishedSlug && (
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full font-bold"
+                    >
+                      <a href={`/stories/${order.publishedSlug}`} target="_blank" rel="noreferrer">
+                        <ExternalLink className="ms-1 h-4 w-4" />
+                        فتح في المكتبة
+                      </a>
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-full font-bold text-destructive"
+                    disabled={unpublishMutation.isPending}
+                    onClick={() => unpublishMutation.mutate()}
+                  >
+                    <Undo2 className="ms-1 h-4 w-4" />
+                    إلغاء النشر
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  ستُنشر النسخة الكاملة لـ{order.childName} (الاسم + الصور المولّدة) في تصنيف القالب الأصلي تلقائيًا، ويراها زوار المكتبة.
+                </p>
+                <label className="flex items-start gap-2 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    className="mt-1 h-4 w-4 accent-primary"
+                  />
+                  <span>أؤكد أن العميل وافق على نشر قصة طفله علنًا في الموقع.</span>
+                </label>
+                <Button
+                  className="rounded-full bg-primary font-bold text-primary-foreground hover:bg-primary/90"
+                  disabled={!consent || publishMutation.isPending || (order.donePages < order.totalPages)}
+                  onClick={() => publishMutation.mutate()}
+                >
+                  {publishMutation.isPending ? (
+                    <Loader2 className="ms-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Globe className="ms-1 h-4 w-4" />
+                  )}
+                  نشر في مكتبة الحكايات
+                </Button>
+                {order.donePages < order.totalPages && (
+                  <p className="text-xs text-amber-700">
+                    اكتمل {order.donePages}/{order.totalPages} صفحة فقط — أكمل التوليد قبل النشر.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+
         {/* pages grid */}
         {order.status !== "pending" && order.status !== "rejected" && (
           <div className="border-t pt-4">
