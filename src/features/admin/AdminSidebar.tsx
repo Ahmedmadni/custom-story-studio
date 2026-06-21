@@ -66,6 +66,9 @@ export function AdminSidebar() {
   const isActive = (to: string) =>
     to === "/admin" ? pathname === "/admin" : pathname.startsWith(to);
 
+  const groupOpen = (to: string) =>
+    pathname === to || pathname.startsWith(to);
+
   return (
     <Sidebar side="right" collapsible="icon">
       <SidebarHeader className="border-b">
@@ -79,7 +82,7 @@ export function AdminSidebar() {
           <SidebarGroupLabel>لوحة التحكم</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {singleItems.map((item) => (
                 <SidebarMenuItem key={item.to}>
                   <SidebarMenuButton asChild isActive={isActive(item.to)} tooltip={item.label}>
                     <Link to={item.to} className="flex items-center gap-2">
@@ -88,6 +91,30 @@ export function AdminSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+              ))}
+              {groupItems.map((group) => (
+                <Collapsible key={group.to} defaultOpen={groupOpen(group.to)} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton tooltip={group.label}>
+                        <group.icon className="h-4 w-4" />
+                        <span>{group.label}</span>
+                        <ChevronLeft className="me-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-[-90deg]" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {group.children.map((child) => (
+                          <SidebarMenuSubItem key={child.to}>
+                            <SidebarMenuSubButton asChild isActive={isActive(child.to)}>
+                              <Link to={child.to}>{child.label}</Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
