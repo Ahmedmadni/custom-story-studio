@@ -21,7 +21,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { PRICE_PER_ITEM_EGP, useCart } from "@/features/cart/CartContext";
+import {
+  PAGES_OPTIONS,
+  PRINT_COPY_PRICE_EGP,
+  useCart,
+} from "@/features/cart/CartContext";
 import { submitCheckout } from "@/features/orders/checkout.functions";
 import {
   GENDER_OPTIONS,
