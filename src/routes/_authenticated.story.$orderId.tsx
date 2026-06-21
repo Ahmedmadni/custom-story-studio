@@ -78,15 +78,19 @@ function StoryViewer() {
           )}
         </div>
 
-        {!isApproved && (
+        {!isAdminApproved && (
           <div className="no-print mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-amber-400/50 bg-amber-50/60 p-4 text-amber-900">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <AlertCircle className="h-5 w-5" />
-              المحتوى لم يُعتمد بعد — لا يمكن تصدير PDF قبل الاعتماد
+              {isUserApproved
+                ? "تم اعتمادك للمحتوى — بانتظار اعتماد الإدارة قبل تفعيل التصدير"
+                : "المحتوى لم يُعتمد بعد — لا يمكن تصدير PDF قبل الاعتماد"}
             </div>
-            <Button asChild size="sm" className="rounded-full font-bold">
-              <Link to="/create">اذهب للاعتماد</Link>
-            </Button>
+            {!isUserApproved && (
+              <Button asChild size="sm" className="rounded-full font-bold">
+                <Link to="/create">اذهب للاعتماد</Link>
+              </Button>
+            )}
           </div>
         )}
 
