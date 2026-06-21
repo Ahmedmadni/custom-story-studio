@@ -75,6 +75,8 @@ type AdminOrder = {
   language: "ar" | "en" | "bilingual";
   contentType: "story" | "book";
   templateId: string | null;
+  photoMode: "cartoon" | "real";
+  heroCharacter: string | null;
   photoUrl: string | null;
   receiptUrl: string | null;
   totalPages: number;
