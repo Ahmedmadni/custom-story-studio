@@ -171,6 +171,8 @@ export const adminListOrders = createServerFn({ method: "POST" })
           adminNotes: o.admin_notes,
           createdAt: o.created_at,
           storyTitle: o.story_templates?.title ?? "قصة محذوفة",
+          language: ((o.story_templates as { language?: string } | null)?.language ?? "ar") as "ar" | "en" | "bilingual",
+          contentType: (((o.story_templates as { content_type?: string } | null)?.content_type) === "book" ? "book" : "story") as "story" | "book",
           templateId: o.template_id,
           photoUrl,
           receiptUrl,
