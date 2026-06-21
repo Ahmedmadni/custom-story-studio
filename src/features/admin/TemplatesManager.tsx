@@ -98,39 +98,15 @@ export function TemplatesManager() {
           </p>
         ) : (
           filtered.map((t) => (
-            <button
+            <TemplateCard
               key={t.id}
-              onClick={() => setSelectedId(t.id)}
-              className="group overflow-hidden rounded-3xl border-2 border-border bg-card text-start shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
-            >
-              <div className="relative aspect-square overflow-hidden bg-secondary">
-                {t.coverUrl ? (
-                  <img src={t.coverUrl} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <ImageIcon className="h-10 w-10 text-muted-foreground/50" />
-                  </div>
-                )}
-                <div className="absolute start-2 top-2 flex flex-wrap gap-1">
-                  {t.isPublished && (
-                    <span className="rounded-full bg-grass/90 px-2 py-0.5 text-[10px] font-bold text-grass-foreground">منشور</span>
-                  )}
-                  {t.isCustom && (
-                    <span className="rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-bold text-primary-foreground">مخصص</span>
-                  )}
-                </div>
-              </div>
-              <div className="p-3">
-                <h3 className="line-clamp-1 font-display text-sm font-bold">{t.title}</h3>
-                <p className="text-[11px] text-muted-foreground">
-                  {t.contentType === "book" ? "كتاب" : "قصة"} · {t.pageCount} صفحة
-                  {t.ageRange ? ` · ${t.ageRange}` : ""}
-                </p>
-              </div>
-            </button>
+              t={t}
+              onOpen={() => setSelectedId(t.id)}
+            />
           ))
         )}
       </div>
+
 
       {selectedId && <TemplateEditorDialog templateId={selectedId} onClose={() => setSelectedId(null)} />}
     </section>
