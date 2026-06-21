@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, Eye, FileDown, ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
 
 import { EmptyState } from "@/components/EmptyState";
 import { Footer } from "@/components/Footer";
@@ -12,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyPdfs } from "@/features/pdf/pdf.functions";
+import { updateMyOrderPreferences } from "@/features/admin/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/my-orders")({
   head: () => ({
@@ -23,6 +25,8 @@ export const Route = createFileRoute("/_authenticated/my-orders")({
 function MyOrders() {
   const { user } = useAuth();
   const fetchPdfs = useServerFn(listMyPdfs);
+  const updatePrefsFn = useServerFn(updateMyOrderPreferences);
+  const queryClient = useQueryClient();
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["my-orders", user?.id],
@@ -31,12 +35,26 @@ function MyOrders() {
       const { data } = await supabase
         .from("orders")
         .select(
-          "id, status, payment_status, payment_rejection_reason, child_name, created_at, story_templates!template_id(title, cover_url, slug)",
+          "id, status, payment_status, payment_rejection_reason, child_name, language, photo_mode, created_at, story_templates!template_id(title, cover_url, slug)",
         )
         .order("created_at", { ascending: false });
       return data ?? [];
     },
   });
+
+  const updatePrefs = useMutation({
+    mutationFn: (vars: {
+      orderId: string;
+      language?: "ar" | "en" | "bilingual";
+      photoMode?: "cartoon" | "real";
+    }) => updatePrefsFn({ data: vars }),
+    onSuccess: () => {
+      toast.success("تم تحديث تفضيلاتك");
+      void queryClient.invalidateQueries({ queryKey: ["my-orders", user?.id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const { data: myPdfs } = useQuery({
     queryKey: ["my-pdfs", user?.id],
@@ -102,6 +120,48 @@ function MyOrders() {
                     <p className="mt-2 rounded-xl bg-destructive/10 p-2 text-xs text-destructive">
                       سبب رفض الدفع: {o.payment_rejection_reason}
                     </p>
+                  )}
+                  {(["pending", "approved"].includes(o.status as string)) && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                      <span className="font-bold text-muted-foreground">
+                        تفضيلاتك (قابلة للتعديل قبل بدء التوليد):
+                      </span>
+                      <label className="flex items-center gap-1">
+                        🌐
+                        <select
+                          className="rounded-full border-2 border-border bg-secondary px-2 py-1 font-semibold"
+                          value={(o.language as string | null) ?? "ar"}
+                          disabled={updatePrefs.isPending}
+                          onChange={(e) =>
+                            updatePrefs.mutate({
+                              orderId: o.id,
+                              language: e.target.value as "ar" | "en" | "bilingual",
+                            })
+                          }
+                        >
+                          <option value="ar">عربي</option>
+                          <option value="en">English</option>
+                          <option value="bilingual">عربي + إنجليزي</option>
+                        </select>
+                      </label>
+                      <label className="flex items-center gap-1">
+                        🎭
+                        <select
+                          className="rounded-full border-2 border-border bg-secondary px-2 py-1 font-semibold"
+                          value={(o.photo_mode as string | null) ?? "cartoon"}
+                          disabled={updatePrefs.isPending}
+                          onChange={(e) =>
+                            updatePrefs.mutate({
+                              orderId: o.id,
+                              photoMode: e.target.value as "cartoon" | "real",
+                            })
+                          }
+                        >
+                          <option value="cartoon">🎨 كرتوني</option>
+                          <option value="real">📷 وجه حقيقي</option>
+                        </select>
+                      </label>
+                    </div>
                   )}
                 </div>
                 {(o.status === "ready" || o.status === "sent") && (

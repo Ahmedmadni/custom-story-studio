@@ -46,6 +46,7 @@ import {
   adminRejectPayment,
   adminSetStatus,
   adminUnpublishOrderStory,
+  adminUpdateOrderPreferences,
   adminVerifyPayment,
 } from "@/features/admin/admin.functions";
 
@@ -312,6 +313,16 @@ function OrderDialog({
   const approveContentFn = useServerFn(adminApproveTemplate);
   const publishFn = useServerFn(adminPublishOrderStory);
   const unpublishFn = useServerFn(adminUnpublishOrderStory);
+  const updatePrefsFn = useServerFn(adminUpdateOrderPreferences);
+  const updatePrefsMutation = useMutation({
+    mutationFn: (patch: { language?: AdminOrder["language"]; photoMode?: AdminOrder["photoMode"] }) =>
+      updatePrefsFn({ data: { orderId: order.id, ...patch } }),
+    onSuccess: () => {
+      toast.success("تم تحديث تفضيلات الطلب");
+      refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const [consent, setConsent] = useState(false);
   const [generating, setGenerating] = useState<number | null>(null);
   const [batchRunning, setBatchRunning] = useState(false);
@@ -508,13 +519,40 @@ function OrderDialog({
             <p>
               <b>واتساب العميل:</b> <span dir="ltr">{order.whatsapp}</span>
             </p>
-            <div className="flex flex-wrap gap-1.5 pt-1 text-xs">
-              <span className="rounded-full bg-secondary px-2.5 py-1 font-semibold">
-                🌐 {order.language === "ar" ? "عربي" : order.language === "en" ? "English" : "عربي + إنجليزي"}
-              </span>
-              <span className="rounded-full bg-secondary px-2.5 py-1 font-semibold">
-                {order.photoMode === "real" ? "📷 وجه حقيقي" : "🎨 كرتوني"}
-              </span>
+            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+              <label className="flex items-center gap-1">
+                <span className="font-bold">🌐</span>
+                <select
+                  className="rounded-full border-2 border-border bg-secondary px-2 py-1 font-semibold"
+                  value={order.language}
+                  disabled={updatePrefsMutation.isPending}
+                  onChange={(e) =>
+                    updatePrefsMutation.mutate({
+                      language: e.target.value as AdminOrder["language"],
+                    })
+                  }
+                >
+                  <option value="ar">عربي</option>
+                  <option value="en">English</option>
+                  <option value="bilingual">عربي + إنجليزي</option>
+                </select>
+              </label>
+              <label className="flex items-center gap-1">
+                <span className="font-bold">🎭</span>
+                <select
+                  className="rounded-full border-2 border-border bg-secondary px-2 py-1 font-semibold"
+                  value={order.photoMode}
+                  disabled={updatePrefsMutation.isPending}
+                  onChange={(e) =>
+                    updatePrefsMutation.mutate({
+                      photoMode: e.target.value as AdminOrder["photoMode"],
+                    })
+                  }
+                >
+                  <option value="cartoon">🎨 كرتوني</option>
+                  <option value="real">📷 وجه حقيقي</option>
+                </select>
+              </label>
               {order.heroCharacter && (
                 <span className="rounded-full bg-primary/15 px-2.5 py-1 font-semibold text-primary">
                   🦸 {order.heroCharacter}
