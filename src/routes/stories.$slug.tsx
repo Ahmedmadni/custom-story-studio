@@ -195,6 +195,47 @@ function StoryPreview() {
             </div>
           </div>
         )}
+
+        {story && previousWorks && previousWorks.length > 0 && (
+          <section className="mt-16 border-t-2 border-dashed border-border pt-10">
+            <div className="text-center">
+              <h2 className="font-display text-2xl font-extrabold md:text-3xl">
+                أعمالنا السابقة 🌟
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                قصص أطفال حقيقيين عاشوا مغامرة «{story.title}» — بإذنهم 💛
+              </p>
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+              {previousWorks.map((w) => (
+                <Link
+                  key={w.id}
+                  to="/stories/$slug"
+                  params={{ slug: w.slug }}
+                  className="group overflow-hidden rounded-2xl border-2 border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-lg"
+                >
+                  <div className="aspect-square overflow-hidden bg-secondary">
+                    {w.cover_url ? (
+                      <img
+                        src={w.cover_url}
+                        alt={w.title}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <BookOpen className="h-10 w-10 text-primary/40" />
+                      </div>
+                    )}
+                  </div>
+                  <p className="line-clamp-2 p-3 text-center text-sm font-bold">
+                    {w.title}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
       <Footer />
     </div>
