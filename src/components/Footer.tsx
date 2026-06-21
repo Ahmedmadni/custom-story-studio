@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { BookOpen, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
+import kidzyLogo from "@/assets/kidzy-logo.png.asset.json";
 import { adminWaLink } from "@/features/orders/whatsapp";
 
 export function Footer() {

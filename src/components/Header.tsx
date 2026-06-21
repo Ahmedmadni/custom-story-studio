@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { BookOpen, LogOut, Menu, Shield, ShoppingCart, Sparkles, X } from "lucide-react";
+import { LogOut, Menu, Shield, ShoppingCart, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 
+import kidzyLogo from "@/assets/kidzy-logo.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/features/cart/CartContext";
