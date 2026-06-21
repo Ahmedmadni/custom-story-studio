@@ -85,11 +85,14 @@ function CheckoutPage() {
           language: "ar" as LanguageMode,
           photoMode: "cartoon" as PhotoMode,
           publishConsent: false,
+          pagesCount: 10 as 10 | 16,
         },
       ]),
     ),
   );
   const [whatsapp, setWhatsapp] = useState("");
+  const [printCopy, setPrintCopy] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
   const [receipt, setReceipt] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
