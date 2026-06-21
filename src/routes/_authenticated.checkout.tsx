@@ -230,6 +230,16 @@ function CheckoutPage() {
     }
   };
 
+  const itemsSubtotal = items.reduce((sum, it) => {
+    const d = drafts[it.templateId];
+    const opt = PAGES_OPTIONS.find((o) => o.pages === d?.pagesCount);
+    return sum + (opt?.price ?? PAGES_OPTIONS[0].price);
+  }, 0);
+  const printExtra = printCopy ? PRINT_COPY_PRICE_EGP : 0;
+  const grandTotal = itemsSubtotal + printExtra;
+
+
+
   return (
     <div className="min-h-screen">
       <Header />
