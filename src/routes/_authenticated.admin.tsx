@@ -313,6 +313,16 @@ function OrderDialog({
   const approveContentFn = useServerFn(adminApproveTemplate);
   const publishFn = useServerFn(adminPublishOrderStory);
   const unpublishFn = useServerFn(adminUnpublishOrderStory);
+  const updatePrefsFn = useServerFn(adminUpdateOrderPreferences);
+  const updatePrefsMutation = useMutation({
+    mutationFn: (patch: { language?: AdminOrder["language"]; photoMode?: AdminOrder["photoMode"] }) =>
+      updatePrefsFn({ data: { orderId: order.id, ...patch } }),
+    onSuccess: () => {
+      toast.success("تم تحديث تفضيلات الطلب");
+      refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const [consent, setConsent] = useState(false);
   const [generating, setGenerating] = useState<number | null>(null);
   const [batchRunning, setBatchRunning] = useState(false);
