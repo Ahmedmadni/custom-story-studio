@@ -23,7 +23,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { PRICE_PER_ITEM_EGP, useCart } from "@/features/cart/CartContext";
 import { submitCheckout } from "@/features/orders/checkout.functions";
-import { GENDER_OPTIONS, type Gender } from "@/features/ai/storyTypes";
+import {
+  GENDER_OPTIONS,
+  LANGUAGE_OPTIONS,
+  type Gender,
+  type LanguageMode,
+} from "@/features/ai/storyTypes";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ADMIN_WHATSAPP,
   isValidEgyptianMobile,
@@ -39,6 +45,8 @@ export const Route = createFileRoute("/_authenticated/checkout")({
 const MAX_PHOTO_MB = 8;
 const VODAFONE_NUMBER = "01120016502";
 
+type PhotoMode = "cartoon" | "real";
+
 type ItemDraft = {
   childName: string;
   childAge: string;
@@ -46,6 +54,9 @@ type ItemDraft = {
   notes: string;
   photo: File | null;
   preview: string | null;
+  language: LanguageMode;
+  photoMode: PhotoMode;
+  publishConsent: boolean;
 };
 
 function CheckoutPage() {
