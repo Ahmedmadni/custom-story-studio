@@ -49,7 +49,7 @@ export function TemplatesManager() {
     queryFn: () => listFn(),
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "story" | "book" | "custom" | "published">("all");
+  const [filter, setFilter] = useState<"all" | "story" | "book" | "custom" | "published" | "hidden" | "heroes">("all");
 
   const filtered = (items ?? []).filter((t) => {
     if (filter === "all") return true;
@@ -57,6 +57,8 @@ export function TemplatesManager() {
     if (filter === "book") return t.contentType === "book";
     if (filter === "custom") return t.isCustom;
     if (filter === "published") return t.isPublished;
+    if (filter === "hidden") return !t.isPublished;
+    if (filter === "heroes") return (t.category ?? "").includes("خارق");
     return true;
   });
 
