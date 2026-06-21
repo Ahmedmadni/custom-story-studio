@@ -256,6 +256,63 @@ export const adminSetStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const UpdatePrefsInput = z.object({
+  orderId: z.string().uuid(),
+  language: z.enum(["ar", "en", "bilingual"]).optional(),
+  photoMode: z.enum(["cartoon", "real"]).optional(),
+});
+
+/** الأدمن: تعديل تفضيلات الطلب (لغة + نمط صورة الشخصية) في أي وقت */
+export const adminUpdateOrderPreferences = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => UpdatePrefsInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const patch: Record<string, unknown> = {};
+    if (data.language) patch.language = data.language;
+    if (data.photoMode) patch.photo_mode = data.photoMode;
+    if (Object.keys(patch).length === 0) return { ok: true };
+    const { error } = await supabaseAdmin
+      .from("orders")
+      .update(patch)
+      .eq("id", data.orderId);
+    if (error) throw new Error("تعذر تحديث تفضيلات الطلب");
+    return { ok: true };
+  });
+
+/** العميل: تعديل تفضيلاته قبل بدء توليد الصفحات */
+export const updateMyOrderPreferences = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => UpdatePrefsInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: order, error: oErr } = await supabaseAdmin
+      .from("orders")
+      .select("id, user_id, status")
+      .eq("id", data.orderId)
+      .single();
+    if (oErr || !order) throw new Error("الطلب غير موجود");
+    if (order.user_id !== context.userId) throw new Error("غير مصرح");
+    const { count } = await supabaseAdmin
+      .from("generated_pages")
+      .select("id", { count: "exact", head: true })
+      .eq("order_id", data.orderId);
+    if ((count ?? 0) > 0 || ["generating", "ready", "sent"].includes(order.status as string)) {
+      throw new Error("لا يمكن تعديل التفضيلات بعد بدء توليد القصة");
+    }
+    const patch: Record<string, unknown> = {};
+    if (data.language) patch.language = data.language;
+    if (data.photoMode) patch.photo_mode = data.photoMode;
+    if (Object.keys(patch).length === 0) return { ok: true };
+    const { error } = await supabaseAdmin
+      .from("orders")
+      .update(patch)
+      .eq("id", data.orderId);
+    if (error) throw new Error("تعذر تحديث تفضيلاتك");
+    return { ok: true };
+  });
+
 const GeneratePageInput = z.object({
   orderId: z.string().uuid(),
   pageNumber: z.number().int().min(1).max(12),
