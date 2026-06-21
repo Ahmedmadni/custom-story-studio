@@ -158,7 +158,7 @@ function StoryPreview() {
                     onClick={addToCart}
                   >
                     <ShoppingCart className="ms-2 h-5 w-5" />
-                    أضف للسلة — {PRICE_PER_ITEM_EGP} ج
+                    أضف للسلة — ابتداءً من {STARTING_PRICE_EGP} ج
                   </Button>
                 )}
               </div>
