@@ -61,15 +61,17 @@ type ItemDraft = {
   language: LanguageMode;
   photoMode: PhotoMode;
   publishConsent: boolean;
+  pagesCount: 10 | 16;
 };
 
 function CheckoutPage() {
   const { user } = useAuth();
-  const { items, totalEgp, clear } = useCart();
+  const { items, clear } = useCart();
   const navigate = useNavigate();
   const submitFn = useServerFn(submitCheckout);
 
   const [drafts, setDrafts] = useState<Record<string, ItemDraft>>(() =>
+
     Object.fromEntries(
       items.map((i) => [
         i.templateId,
