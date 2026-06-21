@@ -5,6 +5,7 @@ import {
   Check,
   CreditCard,
   ExternalLink,
+  FileDown,
   ImageIcon,
   KeyRound,
   Loader2,
