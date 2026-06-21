@@ -14,7 +14,7 @@ import { parsePages } from "@/features/ai/storyTypes";
 
 export const Route = createFileRoute("/stories/$slug")({
   head: () => ({
-    meta: [{ title: "معاينة القصة — حكايتي" }],
+    meta: [{ title: "معاينة القصة — كيدزي" }],
   }),
   component: StoryPreview,
 });

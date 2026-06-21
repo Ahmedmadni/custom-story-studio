@@ -10,9 +10,9 @@ import { useAllPuzzleProgress } from "@/features/puzzles/usePuzzleProgress";
 export const Route = createFileRoute("/puzzles")({
   head: () => ({
     meta: [
-      { title: "ألغاز وألعاب ذكاء للأطفال — حكايتي" },
+      { title: "ألغاز وألعاب ذكاء للأطفال — كيدزي" },
       { name: "description", content: "مجموعة ألغاز تفاعلية للأطفال 3-8 سنوات: ذاكرة، تركيز، أنماط، تصنيف وأكثر." },
-      { property: "og:title", content: "ألغاز الأطفال — حكايتي" },
+      { property: "og:title", content: "ألغاز الأطفال — كيدزي" },
       { property: "og:description", content: "أكثر من 20 لعبة ذكاء قصيرة لتنمية مهارات الطفل." },
     ],
   }),

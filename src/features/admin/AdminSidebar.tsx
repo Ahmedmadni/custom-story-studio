@@ -74,7 +74,7 @@ export function AdminSidebar() {
       <SidebarHeader className="border-b">
         <div className="flex items-center gap-2 px-2 py-1.5">
           <BookOpen className="h-5 w-5 text-primary" />
-          <span className="font-display text-base font-extrabold">حكايتي · إدارة</span>
+          <span className="font-display text-base font-extrabold">كيدزي · إدارة</span>
         </div>
       </SidebarHeader>
       <SidebarContent>

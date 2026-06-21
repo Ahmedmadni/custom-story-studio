@@ -16,7 +16,7 @@ import { CATEGORIES } from "@/features/ai/storyTypes";
 export const Route = createFileRoute("/stories/")({
   head: () => ({
     meta: [
-      { title: "مكتبة القصص — حكايتي" },
+      { title: "مكتبة القصص — كيدزي" },
       {
         name: "description",
         content:

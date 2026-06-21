@@ -11,9 +11,9 @@ import { ArrowRight, Gamepad2 } from "lucide-react";
 export const Route = createFileRoute("/games")({
   head: () => ({
     meta: [
-      { title: "ألعاب وتعليم للأطفال — حكايتي" },
+      { title: "ألعاب وتعليم للأطفال — كيدزي" },
       { name: "description", content: "ألعاب ذكاء تفاعلية لتعليم الأطفال الأرقام والحروف والأشكال والألوان والتلوين." },
-      { property: "og:title", content: "ألعاب وتعليم — حكايتي" },
+      { property: "og:title", content: "ألعاب وتعليم — كيدزي" },
       { property: "og:description", content: "ألعاب تعليمية ممتعة لتنمية مهارات طفلك." },
     ],
   }),

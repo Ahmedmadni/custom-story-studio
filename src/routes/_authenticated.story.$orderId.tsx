@@ -18,7 +18,7 @@ import { getMyStory } from "@/features/orders/story.functions";
 
 export const Route = createFileRoute("/_authenticated/story/$orderId")({
   head: () => ({
-    meta: [{ title: "قصتك المخصصة — حكايتي" }],
+    meta: [{ title: "قصتك المخصصة — كيدزي" }],
   }),
   component: StoryViewer,
 });

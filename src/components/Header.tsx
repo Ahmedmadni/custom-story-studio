@@ -28,7 +28,7 @@ export function Header() {
             <BookOpen className="h-5 w-5" />
           </span>
           <span className="font-display text-2xl font-bold text-primary">
-            حكايتي
+            كيدزي
           </span>
         </Link>
 

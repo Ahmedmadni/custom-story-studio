@@ -108,7 +108,7 @@ export function PdfActions({
       const blob = await ensurePdf();
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       const typeLabel = contentType === "book" ? "كتاب تعليمي" : "قصة";
-      const msg = `${typeLabel} «${title}»${childName ? ` لبطلنا ${childName}` : ""} من منصة حكايتي ✨\n${origin}`;
+      const msg = `${typeLabel} «${title}»${childName ? ` لبطلنا ${childName}` : ""} من منصة كيدزي ✨\n${origin}`;
 
       const file = new File([blob], fileName, { type: "application/pdf" });
       if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [file] })) {

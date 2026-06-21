@@ -13,7 +13,7 @@ export function Footer() {
               <BookOpen className="h-4 w-4" />
             </span>
             <span className="font-display text-xl font-bold text-primary">
-              حكايتي
+              كيدزي
             </span>
           </div>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
@@ -49,7 +49,7 @@ export function Footer() {
         <div>
           <h3 className="font-display text-lg font-bold">تواصل معنا</h3>
           <a
-            href={adminWaLink("مرحباً! لدي استفسار عن قصص حكايتي 📖")}
+            href={adminWaLink("مرحباً! لدي استفسار عن قصص كيدزي 📖")}
             target="_blank"
             rel="noreferrer"
             className="mt-3 inline-flex items-center gap-2 rounded-full bg-grass px-5 py-2.5 text-sm font-bold text-grass-foreground shadow-md transition-transform hover:scale-105"
@@ -60,7 +60,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t py-4 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} حكايتي — قصص تزرع القيم في قلوب الأطفال
+        © {new Date().getFullYear()} كيدزي — قصص تزرع القيم في قلوب الأطفال
       </div>
     </footer>
   );

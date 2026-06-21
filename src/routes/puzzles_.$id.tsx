@@ -14,7 +14,7 @@ export const Route = createFileRoute("/puzzles_/$id")({
     const p = getPuzzleById(params.id);
     return {
       meta: [
-        { title: p ? `${p.title} — ألغاز حكايتي` : "لعبة — حكايتي" },
+        { title: p ? `${p.title} — ألغاز كيدزي` : "لعبة — كيدزي" },
         { name: "description", content: p?.description ?? "لعبة ذكاء للأطفال" },
       ],
     };

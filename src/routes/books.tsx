@@ -15,13 +15,13 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/books")({
   head: () => ({
     meta: [
-      { title: "الكتب التعليمية — حكايتي" },
+      { title: "الكتب التعليمية — كيدزي" },
       {
         name: "description",
         content:
           "كتب تعليمية ممتعة للأطفال: الحروف والأرقام والألوان والأشكال والعلوم، بأسلوب كرتوني ثلاثي الأبعاد وطفلك هو بطل التعلم.",
       },
-      { property: "og:title", content: "الكتب التعليمية — حكايتي" },
+      { property: "og:title", content: "الكتب التعليمية — كيدزي" },
       {
         property: "og:description",
         content: "كتب تعليمية ممتعة للأطفال بأسلوب كرتوني ثلاثي الأبعاد.",

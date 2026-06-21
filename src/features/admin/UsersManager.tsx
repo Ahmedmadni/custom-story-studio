@@ -60,7 +60,7 @@ export function UsersManager({ mode = "users" }: { mode?: Mode }) {
           <p className="text-sm text-muted-foreground">
             {mode === "roles"
               ? "امنح أو اسحب صلاحية الأدمن من المستخدمين"
-              : "كل المستخدمين المسجّلين في حكايتي"}
+              : "كل المستخدمين المسجّلين في كيدزي"}
           </p>
         </div>
         <div className="relative w-full max-w-xs">
