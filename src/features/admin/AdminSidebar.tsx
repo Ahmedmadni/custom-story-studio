@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BookOpen,
+  ChevronLeft,
   LayoutDashboard,
   Library,
   Package,
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -20,6 +22,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 
 type NavItem = {
@@ -28,13 +33,31 @@ type NavItem = {
   icon: ComponentType<{ className?: string }>;
 };
 
-const items: NavItem[] = [
+type NavGroup = {
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+  to: string;
+  children: { to: string; label: string }[];
+};
+
+const singleItems: NavItem[] = [
   { to: "/admin", label: "نظرة عامة", icon: LayoutDashboard },
   { to: "/admin/orders", label: "الطلبات", icon: Package },
   { to: "/admin/approvals", label: "اعتماد المحتوى", icon: ShieldCheck },
-  { to: "/admin/templates", label: "القوالب", icon: Library },
   { to: "/admin/users", label: "المستخدمون", icon: Users },
   { to: "/admin/roles", label: "الصلاحيات", icon: ShieldCheck },
+];
+
+const groupItems: NavGroup[] = [
+  {
+    label: "القوالب",
+    icon: Library,
+    to: "/admin/templates",
+    children: [
+      { to: "/create", label: "قالب جديد" },
+      { to: "/admin/templates", label: "إدارة القوالب" },
+    ],
+  },
 ];
 
 export function AdminSidebar() {
@@ -42,6 +65,9 @@ export function AdminSidebar() {
 
   const isActive = (to: string) =>
     to === "/admin" ? pathname === "/admin" : pathname.startsWith(to);
+
+  const groupOpen = (to: string) =>
+    pathname === to || pathname.startsWith(to);
 
   return (
     <Sidebar side="right" collapsible="icon">
@@ -56,7 +82,7 @@ export function AdminSidebar() {
           <SidebarGroupLabel>لوحة التحكم</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {singleItems.map((item) => (
                 <SidebarMenuItem key={item.to}>
                   <SidebarMenuButton asChild isActive={isActive(item.to)} tooltip={item.label}>
                     <Link to={item.to} className="flex items-center gap-2">
@@ -65,6 +91,30 @@ export function AdminSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+              ))}
+              {groupItems.map((group) => (
+                <Collapsible key={group.to} defaultOpen={groupOpen(group.to)} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton tooltip={group.label}>
+                        <group.icon className="h-4 w-4" />
+                        <span>{group.label}</span>
+                        <ChevronLeft className="me-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-[-90deg]" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {group.children.map((child) => (
+                          <SidebarMenuSubItem key={child.to}>
+                            <SidebarMenuSubButton asChild isActive={isActive(child.to)}>
+                              <Link to={child.to}>{child.label}</Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
