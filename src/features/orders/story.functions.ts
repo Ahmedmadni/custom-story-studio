@@ -14,7 +14,7 @@ export const getMyStory = createServerFn({ method: "POST" })
     const { data: order, error } = await context.supabase
       .from("orders")
       .select(
-        "id, child_name, status, template_id, story_templates(id, title, moral, pages, language, content_type, approved_at)",
+        "id, child_name, status, template_id, story_templates(id, title, moral, pages, language, content_type, approved_at, admin_approved_at)",
       )
       .eq("id", data.orderId)
       .single();
