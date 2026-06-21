@@ -39,6 +39,7 @@ type TemplateRow = {
   adminApprovedAt: string | null;
   coverUrl: string | null;
   pageCount: number;
+  category: string | null;
 };
 
 export function TemplatesManager() {
