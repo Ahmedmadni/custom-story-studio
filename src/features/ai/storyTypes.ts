@@ -46,6 +46,7 @@ export const CATEGORIES = [
   "مغامرات وشجاعة",
   "عادات وحياة",
   "الطبيعة والحيوان",
+  "أبطال خارقون",
 ] as const;
 
 export const STATUS_LABELS: Record<string, string> = {
