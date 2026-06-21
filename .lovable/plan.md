@@ -1,84 +1,55 @@
 ## الهدف
-تحويل صفحة `/admin` الحالية (ملف واحد ضخم بطول 1000+ سطر) إلى **لوحة تحكم احترافية بقائمة جانبية**، وفصل إدارة القوالب عنها، وتحسين شاشة إدارة الطلبات لتكون أوضح وأكثر احترافية.
 
-## البنية الجديدة للراوتس
+1. نقل اختيار **اللغة** و**نمط صورة الطفل** إلى صفحة إتمام الطلب (لكل قصة في السلة)، وإضافة **موافقة العميل على نشر** القصة في المعرض.
+2. عند الموافقة وموافقة الإدارة، تظهر النسخة المنشورة **داخل صفحة القالب الأصلي** فقط ضمن قسم «أعمالنا السابقة» — ولا تتكرر في المكتبة الرئيسية.
+3. توفير **غلاف افتراضي** للقوالب الجديدة التي ينشئها الأدمن دون رفع صورة.
 
-```text
-src/routes/
-  _authenticated.admin.tsx              ← Layout يحتوي Sidebar + <Outlet/>
-  _authenticated.admin.index.tsx        ← /admin → نظرة عامة (إحصاءات + اختصارات)
-  _authenticated.admin.orders.tsx       ← /admin/orders → إدارة الطلبات
-  _authenticated.admin.templates.tsx    ← /admin/templates → إدارة القوالب
-  _authenticated.admin.approvals.tsx    ← /admin/approvals → اعتماد محتوى المستخدمين
-  _authenticated.admin.users.tsx        ← /admin/users → إدارة المستخدمين
-  _authenticated.admin.roles.tsx        ← /admin/roles → إدارة الصلاحيات (إسناد/سحب admin)
-```
+## خطوات التنفيذ
 
-كل صفحة تستخدم `Route.useRouteContext` للتأكد أن المستخدم Admin، وإلا تعرض رسالة "مخصص للإدارة فقط".
+### 1) قاعدة البيانات (migration واحد)
+- `orders.publish_consent boolean NOT NULL DEFAULT false`.
+- `story_templates.source_template_id uuid` (FK → `story_templates.id`, ON DELETE SET NULL, INDEX) لربط النسخ المنشورة بالقالب الأصلي.
 
-## القائمة الجانبية
+### 2) صفحة إتمام الطلب `src/routes/_authenticated.checkout.tsx`
+لكل عنصر في السلة، إضافة داخل بطاقة القصة:
+- **نمط الصورة**: زرّان (كرتوني / وجه حقيقي على مشهد 3D) — افتراضي `cartoon`.
+- **اللغة**: 3 خيارات (عربي، إنجليزي، ثنائي) — افتراضي `ar`.
+- **Checkbox للنشر**: «أوافق على نشر قصتي ضمن "أعمالنا السابقة" في صفحة القصة الأصلية بعد اعتماد الإدارة». افتراضي غير مفعّل.
 
-مكوّن جديد `src/features/admin/AdminSidebar.tsx` يستخدم shadcn `Sidebar` (`collapsible="icon"`) مع روابط:
-- 🏠 نظرة عامة → `/admin`
-- 📦 الطلبات → `/admin/orders`
-- ✅ اعتماد المحتوى → `/admin/approvals` (مع badge لعدد المعلّقة)
-- 📚 القوالب → `/admin/templates`
-- 👥 المستخدمون → `/admin/users`
-- 🛡️ الصلاحيات → `/admin/roles`
+تمرير القيم في `submitFn({ data: { items: [...] } })`.
 
-الـ Layout يلفّ كل شيء بـ `SidebarProvider` ويضع `SidebarTrigger` في header علوي صغير. RTL مدعوم (الـ Sidebar على اليمين عبر `side="right"`).
+### 3) دالة `submitCheckout` (`src/features/orders/checkout.functions.ts`)
+توسيع `ItemInput` بـ: `language` و`photoMode` و`publishConsent`، وحفظها على كل صف من `orders`.
 
-## تحسينات شاشة إدارة الطلبات `/admin/orders`
+### 4) دالة النشر `adminPublishOrderStory`
+- رفض النشر إذا كان `publish_consent = false`.
+- في الإدراج: تعيين `is_custom = true` و`source_template_id = <القالب الأصلي>` بدلًا من `is_custom = false`.
+- النتيجة: لا تظهر هذه النسخ في المكتبات الرئيسية (`stories.index`, `books.tsx`, `index.tsx`) لأنها تفلتر بـ `is_custom = false`.
 
-اليوم: قائمة بطاقات + Dialog ضخم لكل طلب. التحديثات:
+### 5) صفحة معاينة القصة `src/routes/stories.$slug.tsx`
+إضافة قسم جديد أسفل المحتوى: **«أعمالنا السابقة 🌟»**.
+- استعلام `story_templates` حيث `source_template_id = story.id` و`is_published = true`.
+- شبكة بطاقات (غلاف + اسم/عنوان مخصّص)، كل بطاقة تفتح `/stories/<slug>` لتصفّح النسخة المنشورة.
 
-1. **شريط فلاتر علوي واضح**: حالة الطلب (الكل / بانتظار الدفع / مُعتمد / قيد التوليد / جاهز / مُرسل / مرفوض) + بحث باسم الطفل أو رقم الواتساب + فلتر "بحاجة لإجراء" (دفع غير مؤكد أو جاهز للإرسال).
-2. **جدول احترافي** بدل البطاقات (باستخدام `Table` من shadcn): الأعمدة = الطفل/العمر، القصة، الحالة، الدفع، التقدّم (X/Y)، الواتساب، آخر تحديث، إجراءات سريعة (👁 فتح، 💬 واتساب، ⬇ PDF).
-3. **Dialog الطلب يُعاد تنظيمه بتبويبات** (`Tabs`):
-   - **معلومات** — بيانات الطفل + التفضيلات (لغة، نمط الصورة) قابلة للتعديل، الواتساب، الملاحظات.
-   - **الدفع** — صورة الإيصال + زر تأكيد/رفض مع سبب.
-   - **الصفحات** — شبكة الصور المُولّدة + زر "توليد/إعادة توليد" لكل صفحة + زر اعتماد إداري نهائي.
-   - **التسليم** — تحميل PDF، إرسال واتساب (رسالة جاهزة)، تغيير الحالة، النشر في المكتبة العامة (مع checkbox موافقة العميل).
-4. **شريط حالة علوي ملوّن** داخل الـ Dialog يظهر بوضوح: الحالة الحالية + الخطوة التالية المقترحة (مثلاً: "الطلب جاهز — أرسل الـ PDF على واتساب").
-5. **Toast واضح** بعد كل إجراء + إعادة جلب تلقائية للقائمة.
+### 6) غلاف افتراضي للقوالب الجديدة
+- توليد صورة غلاف افتراضية (سحرية/كتاب أطفال) وحفظها في `src/assets/default-cover.jpg`.
+- تصدير ثابت `DEFAULT_COVER_URL` يستورد الصورة عبر ES module.
+- في `TemplatesManager.tsx` (إنشاء/تعديل قالب الأدمن): إن لم يرفع الأدمن صورة، يُحفظ `cover_url = DEFAULT_COVER_URL` تلقائيًا.
+- في `StoryCard.tsx` وأي مكان يعرض الغلاف: الرجوع إلى نفس الصورة الافتراضية إذا كان `cover_url` فارغًا (حماية للقوالب القديمة).
 
-## إدارة المستخدمين والصلاحيات
+## ملفات ستُعدّل أو تُنشأ
 
-- **Server functions جديدة** في `src/features/admin/users.functions.ts`:
-  - `adminListUsers` — يقرأ من `auth.users` عبر `supabaseAdmin.auth.admin.listUsers()` + يجمع مع `user_roles` + عدد الطلبات لكل مستخدم.
-  - `adminGrantRole` / `adminRevokeRole` — إدراج/حذف من `user_roles` (admin يمنع حذف نفسه).
-  كلاهما محمي بـ `requireSupabaseAuth` + فحص `has_role(..., 'admin')`.
-- **صفحة المستخدمين**: جدول (الإيميل، تاريخ التسجيل، آخر دخول، عدد الطلبات، الأدوار، إجراءات).
-- **صفحة الصلاحيات**: نفس المستخدمين لكن مركّزة على إدارة الأدوار (Toggle/Badge لكل دور، زر "ترقية لـ Admin" / "إزالة Admin" مع تأكيد).
+- جديد: `supabase/migrations/<timestamp>_publish_consent_and_source_template.sql`
+- جديد: `src/assets/default-cover.jpg` (تُولَّد بـ imagegen)
+- جديد: `src/lib/defaultCover.ts` (يصدّر `DEFAULT_COVER_URL`)
+- تعديل: `src/routes/_authenticated.checkout.tsx`
+- تعديل: `src/features/orders/checkout.functions.ts`
+- تعديل: `src/features/admin/admin.functions.ts` (دالة `adminPublishOrderStory`)
+- تعديل: `src/features/admin/TemplatesManager.tsx` (استخدام الغلاف الافتراضي)
+- تعديل: `src/routes/stories.$slug.tsx` (قسم أعمالنا السابقة)
+- تعديل: `src/features/library/StoryCard.tsx` (fallback للغلاف)
+- تحديث تلقائي: `src/integrations/supabase/types.ts` بعد الـ migration
 
-لا حاجة لـ migration: جدول `user_roles` و enum `app_role` موجودان بالفعل.
-
-## فصل القوالب
-
-`TemplatesManager` ينتقل كما هو إلى `_authenticated.admin.templates.tsx` ويُحذف استدعاؤه من الصفحة الرئيسية. مكوّنات اعتماد قوالب المستخدمين المعلّقة (`PendingTemplatesList`) تنتقل إلى `/admin/approvals`.
-
-## ملفات سيتم إنشاؤها/تعديلها
-
-**إنشاء:**
-- `src/features/admin/AdminSidebar.tsx`
-- `src/features/admin/users.functions.ts`
-- `src/features/admin/OrdersTable.tsx` (الجدول + الفلاتر)
-- `src/features/admin/OrderDetailsDialog.tsx` (الـ Dialog بتبويبات — استخراج من الملف الحالي)
-- `src/routes/_authenticated.admin.index.tsx`
-- `src/routes/_authenticated.admin.orders.tsx`
-- `src/routes/_authenticated.admin.templates.tsx`
-- `src/routes/_authenticated.admin.approvals.tsx`
-- `src/routes/_authenticated.admin.users.tsx`
-- `src/routes/_authenticated.admin.roles.tsx`
-
-**تعديل:**
-- `src/routes/_authenticated.admin.tsx` ← يصبح Layout (`<Outlet/>` + Sidebar) بدلاً من صفحة كاملة.
-
-**حذف منطقي:** المحتوى الحالي للصفحة يُوزَّع على الراوتس الجديدة، ولا تُحذف أي server function.
-
-## ملاحظات تقنية
-
-- لا تغييرات على قاعدة البيانات.
-- استخدام `Link` + `params` من `@tanstack/react-router` للتنقّل داخل اللوحة (لا `<a href>`).
-- استخدام `var(--sidebar-width)` لتفادي مشكلة Tailwind 4 المعروفة.
-- جميع server functions الجديدة تستعمل `requireSupabaseAuth` + فحص دور admin (نفس النمط الموجود).
+## ملاحظات
+- الطلبات والقوالب القديمة لن تتأثر؛ الغلاف الافتراضي يُستخدم فقط عند غياب `cover_url`.
+- الطلبات قبل التغيير: `publish_consent = false` افتراضيًا — لن تُنشر إلا بعد موافقة العميل لاحقًا.
