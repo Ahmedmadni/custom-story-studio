@@ -76,7 +76,9 @@ export function TemplatesManager() {
             { v: "all", l: "الكل" },
             { v: "story", l: "قصص" },
             { v: "book", l: "كتب" },
+            { v: "heroes", l: "🦸 أبطال خارقون" },
             { v: "published", l: "منشور" },
+            { v: "hidden", l: "مخفي" },
             { v: "custom", l: "مخصص" },
           ].map((o) => (
             <button
