@@ -202,6 +202,8 @@ function CheckoutPage() {
         data: {
           whatsapp: whatsapp.trim(),
           receiptPath,
+          printCopy,
+          deliveryAddress: printCopy ? deliveryAddress.trim() : null,
           items: uploadedItems.map((it) => {
             const d = drafts[it.templateId];
             return {
@@ -209,6 +211,7 @@ function CheckoutPage() {
               language: d.language,
               photoMode: d.photoMode,
               publishConsent: d.publishConsent,
+              pagesCount: d.pagesCount,
             };
           }),
         },
