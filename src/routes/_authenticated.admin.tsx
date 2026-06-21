@@ -378,6 +378,25 @@ function OrderDialog({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const publishMutation = useMutation({
+    mutationFn: () => publishFn({ data: { orderId: order.id } }),
+    onSuccess: (res) => {
+      toast.success("تم نشر القصة في مكتبة الحكايات 🎉");
+      if (res?.slug) window.open(`/stories/${res.slug}`, "_blank", "noreferrer");
+      refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const unpublishMutation = useMutation({
+    mutationFn: () => unpublishFn({ data: { orderId: order.id } }),
+    onSuccess: () => {
+      toast.success("تم إلغاء نشر القصة من المكتبة");
+      refresh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const generateOne = async (n: number) => {
     setGenerating(n);
     try {
