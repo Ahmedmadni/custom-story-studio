@@ -193,7 +193,15 @@ function CheckoutPage() {
         data: {
           whatsapp: whatsapp.trim(),
           receiptPath,
-          items: uploadedItems,
+          items: uploadedItems.map((it) => {
+            const d = drafts[it.templateId];
+            return {
+              ...it,
+              language: d.language,
+              photoMode: d.photoMode,
+              publishConsent: d.publishConsent,
+            };
+          }),
         },
       });
 
@@ -334,6 +342,93 @@ function CheckoutPage() {
                     placeholder="أي تفاصيل تحب إضافتها…"
                   />
                 </div>
+
+                <div className="mt-4">
+                  <Label className="font-bold">لغة القصة</Label>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {LANGUAGE_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() =>
+                          updateDraft(item.templateId, {
+                            language: opt.value as LanguageMode,
+                          })
+                        }
+                        className={`rounded-xl border-2 p-3 text-start transition-colors ${
+                          d.language === opt.value
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <span className="block text-sm font-bold">{opt.label}</span>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {opt.hint}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <Label className="font-bold">نمط صورة الطفل في القصة</Label>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {[
+                      {
+                        v: "cartoon" as const,
+                        emoji: "🎨",
+                        label: "كرتوني",
+                        hint: "يتحول الطفل لشخصية كرتونية لطيفة",
+                      },
+                      {
+                        v: "real" as const,
+                        emoji: "📸",
+                        label: "وجه حقيقي",
+                        hint: "وجه الطفل الحقيقي داخل مشهد 3D سينمائي",
+                      },
+                    ].map((opt) => (
+                      <button
+                        key={opt.v}
+                        type="button"
+                        onClick={() =>
+                          updateDraft(item.templateId, { photoMode: opt.v })
+                        }
+                        className={`rounded-xl border-2 p-3 text-start transition-colors ${
+                          d.photoMode === opt.v
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 font-bold">
+                          <span className="text-xl">{opt.emoji}</span>
+                          {opt.label}
+                        </span>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {opt.hint}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border-2 border-dashed border-accent/40 bg-accent/5 p-3 transition-colors hover:bg-accent/10">
+                  <Checkbox
+                    checked={d.publishConsent}
+                    onCheckedChange={(c) =>
+                      updateDraft(item.templateId, { publishConsent: Boolean(c) })
+                    }
+                    className="mt-0.5"
+                  />
+                  <span className="text-sm leading-relaxed">
+                    <span className="block font-bold">
+                      🌟 أوافق على نشر قصة طفلي ضمن «أعمالنا السابقة»
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ستظهر فقط أسفل صفحة هذه القصة الأصلية بعد اعتماد الإدارة —
+                      ولن تتكرر في معرض القصص الرئيسي.
+                    </span>
+                  </span>
+                </label>
               </div>
             );
           })}

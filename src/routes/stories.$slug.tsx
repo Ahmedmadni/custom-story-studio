@@ -36,6 +36,21 @@ function StoryPreview() {
     },
   });
 
+  const { data: previousWorks } = useQuery({
+    queryKey: ["story-previous-works", story?.id],
+    enabled: Boolean(story?.id),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("story_templates")
+        .select("id, slug, title, cover_url, created_at")
+        .eq("source_template_id", story!.id)
+        .eq("is_published", true)
+        .order("created_at", { ascending: false })
+        .limit(24);
+      return data ?? [];
+    },
+  });
+
   const inCart = story ? has(story.id) : false;
   const addToCart = () => {
     if (!story) return;
