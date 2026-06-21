@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { PRICE_PER_ITEM_EGP, useCart } from "@/features/cart/CartContext";
+import { STARTING_PRICE_EGP, useCart } from "@/features/cart/CartContext";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
