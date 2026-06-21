@@ -36,6 +36,7 @@ export const getMyStory = createServerFn({ method: "POST" })
           language?: string | null;
           content_type?: string | null;
           approved_at?: string | null;
+          admin_approved_at?: string | null;
         }
       | null;
 
