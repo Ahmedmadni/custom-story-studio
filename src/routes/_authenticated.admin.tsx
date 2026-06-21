@@ -310,6 +310,9 @@ function OrderDialog({
   const verifyFn = useServerFn(adminVerifyPayment);
   const rejectPayFn = useServerFn(adminRejectPayment);
   const approveContentFn = useServerFn(adminApproveTemplate);
+  const publishFn = useServerFn(adminPublishOrderStory);
+  const unpublishFn = useServerFn(adminUnpublishOrderStory);
+  const [consent, setConsent] = useState(false);
   const [generating, setGenerating] = useState<number | null>(null);
   const [batchRunning, setBatchRunning] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
