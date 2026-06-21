@@ -27,7 +27,21 @@ interface CartState {
 }
 
 const STORAGE_KEY = "hakayati_cart_v1";
-export const PRICE_PER_ITEM_EGP = 100;
+
+/** خيارات عدد صفحات القصة وسعر كل خيار */
+export const PAGES_OPTIONS = [
+  { pages: 10, price: 150 },
+  { pages: 16, price: 200 },
+] as const;
+
+/** السعر الابتدائي (للعرض في بطاقات القصص والسلة) */
+export const STARTING_PRICE_EGP = PAGES_OPTIONS[0].price;
+
+/** تكلفة إضافة نسخة مطبوعة وشحنها */
+export const PRINT_COPY_PRICE_EGP = 200;
+
+/** متروك للتوافق مع كود قديم — يساوي السعر الابتدائي */
+export const PRICE_PER_ITEM_EGP = STARTING_PRICE_EGP;
 
 const CartCtx = createContext<CartState | null>(null);
 
