@@ -502,6 +502,60 @@ function CheckoutPage() {
           />
         </section>
 
+        {/* print + delivery */}
+        <section className="mt-6 rounded-3xl border-2 border-border bg-card p-5 shadow-sm">
+          <h2 className="font-display text-xl font-extrabold">طريقة الاستلام</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            📄 تُسلَّم القصة افتراضياً كملف PDF عبر واتساب. يمكنك أيضاً طلب نسخة ورقية مطبوعة.
+          </p>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setPrintCopy(false)}
+              className={`rounded-2xl border-2 p-4 text-start transition-colors ${
+                !printCopy ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+              }`}
+            >
+              <span className="block font-bold">📱 ملف PDF فقط</span>
+              <p className="mt-1 text-xs text-muted-foreground">يُرسل عبر واتساب — مجاناً</p>
+              <p className="mt-1 text-xs font-extrabold text-primary">بدون رسوم إضافية</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPrintCopy(true)}
+              className={`rounded-2xl border-2 p-4 text-start transition-colors ${
+                printCopy ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+              }`}
+            >
+              <span className="block font-bold">🖨️ PDF + نسخة مطبوعة</span>
+              <p className="mt-1 text-xs text-muted-foreground">
+                نطبع القصة بجودة عالية ونوصلها لعنوانك
+              </p>
+              <p className="mt-1 text-xs font-extrabold text-primary">
+                + {PRINT_COPY_PRICE_EGP} جنيه (طباعة وشحن)
+              </p>
+            </button>
+          </div>
+
+          {printCopy && (
+            <div className="mt-4">
+              <Label className="font-bold">عنوان التوصيل بالتفصيل</Label>
+              <Textarea
+                value={deliveryAddress}
+                onChange={(e) => setDeliveryAddress(e.target.value)}
+                rows={3}
+                maxLength={500}
+                placeholder="المحافظة — المدينة — الحي — الشارع — رقم العمارة والشقة — أي معلم قريب"
+                className="mt-2 rounded-xl"
+              />
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                سيتواصل معك مندوب الشحن على رقم الواتساب لتأكيد الموعد.
+              </p>
+            </div>
+          )}
+        </section>
+
         {/* payment */}
         <section className="mt-6 rounded-3xl border-2 border-grass/40 bg-grass/5 p-5 shadow-sm">
           <h2 className="flex items-center gap-2 font-display text-xl font-extrabold text-grass-foreground">
@@ -519,15 +573,26 @@ function CheckoutPage() {
               <Copy className="ms-1 h-4 w-4" /> نسخ الرقم
             </Button>
           </div>
-          <div className="mt-3 rounded-2xl bg-card p-4">
-            <p className="text-xs text-muted-foreground">المبلغ المطلوب تحويله</p>
-            <p className="font-display text-3xl font-extrabold text-primary">
-              {totalEgp} جنيه
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              ({items.length} عنصر × {PRICE_PER_ITEM_EGP} ج)
-            </p>
+          <div className="mt-3 space-y-2 rounded-2xl bg-card p-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">قصص ({items.length})</span>
+              <span className="font-bold">{itemsSubtotal} ج</span>
+            </div>
+            {printCopy && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">طباعة وشحن</span>
+                <span className="font-bold">{PRINT_COPY_PRICE_EGP} ج</span>
+              </div>
+            )}
+            <div className="my-2 h-px bg-border" />
+            <div className="flex items-center justify-between">
+              <span className="font-bold">المبلغ المطلوب تحويله</span>
+              <span className="font-display text-3xl font-extrabold text-primary">
+                {grandTotal} ج
+              </span>
+            </div>
           </div>
+
 
           <div className="mt-5">
             <Label className="flex items-center gap-2 font-bold">
