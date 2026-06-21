@@ -7,6 +7,7 @@ import {
   CreditCard,
   ExternalLink,
   FileDown,
+  Globe,
   ImageIcon,
   KeyRound,
   Loader2,
@@ -15,6 +16,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Sparkles,
+  Undo2,
   Wand2,
   X,
 } from "lucide-react";
