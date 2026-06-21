@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, RotateCcw, Sparkles, Trophy } from "lucide-react";
+import { Lightbulb, RotateCcw, Sparkles, Trophy, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import type { PuzzleDef } from "./types";
+import {
+  isSfxEnabled,
+  playCorrect,
+  playPair,
+  playTap,
+  playWin,
+  playWrong,
+  setSfxEnabled,
+} from "./sounds";
 
-// Shared content pools
+// ---------- Expanded content pools (more variety = less repetition) ----------
 const ANIMALS = [
   { name: "أرنب", emoji: "🐰", cat: "حيوان" },
   { name: "قطة", emoji: "🐱", cat: "حيوان" },
@@ -12,6 +21,16 @@ const ANIMALS = [
   { name: "دب", emoji: "🐻", cat: "حيوان" },
   { name: "أسد", emoji: "🦁", cat: "حيوان" },
   { name: "فيل", emoji: "🐘", cat: "حيوان" },
+  { name: "حصان", emoji: "🐴", cat: "حيوان" },
+  { name: "بقرة", emoji: "🐮", cat: "حيوان" },
+  { name: "خروف", emoji: "🐑", cat: "حيوان" },
+  { name: "قرد", emoji: "🐵", cat: "حيوان" },
+  { name: "ضفدع", emoji: "🐸", cat: "حيوان" },
+  { name: "نمر", emoji: "🐯", cat: "حيوان" },
+  { name: "زرافة", emoji: "🦒", cat: "حيوان" },
+  { name: "بطريق", emoji: "🐧", cat: "حيوان" },
+  { name: "بومة", emoji: "🦉", cat: "حيوان" },
+  { name: "فأر", emoji: "🐭", cat: "حيوان" },
 ];
 const FRUITS = [
   { name: "تفاحة", emoji: "🍎", cat: "فاكهة" },
@@ -19,12 +38,23 @@ const FRUITS = [
   { name: "عنب", emoji: "🍇", cat: "فاكهة" },
   { name: "فراولة", emoji: "🍓", cat: "فاكهة" },
   { name: "بطيخ", emoji: "🍉", cat: "فاكهة" },
+  { name: "أناناس", emoji: "🍍", cat: "فاكهة" },
+  { name: "برتقالة", emoji: "🍊", cat: "فاكهة" },
+  { name: "كرز", emoji: "🍒", cat: "فاكهة" },
+  { name: "خوخ", emoji: "🍑", cat: "فاكهة" },
+  { name: "ليمون", emoji: "🍋", cat: "فاكهة" },
+  { name: "كمثرى", emoji: "🍐", cat: "فاكهة" },
+  { name: "مانجو", emoji: "🥭", cat: "فاكهة" },
 ];
 const VEHICLES = [
   { name: "سيارة", emoji: "🚗", cat: "مركبة" },
   { name: "حافلة", emoji: "🚌", cat: "مركبة" },
   { name: "طائرة", emoji: "✈️", cat: "مركبة" },
   { name: "قطار", emoji: "🚂", cat: "مركبة" },
+  { name: "دراجة", emoji: "🚲", cat: "مركبة" },
+  { name: "مركب", emoji: "⛵", cat: "مركبة" },
+  { name: "صاروخ", emoji: "🚀", cat: "مركبة" },
+  { name: "شاحنة", emoji: "🚚", cat: "مركبة" },
 ];
 const COLORS_LIST = [
   { name: "أحمر", hex: "#ef4444" },
@@ -33,17 +63,37 @@ const COLORS_LIST = [
   { name: "أخضر", hex: "#22c55e" },
   { name: "برتقالي", hex: "#fb923c" },
   { name: "بنفسجي", hex: "#a855f7" },
+  { name: "وردي", hex: "#ec4899" },
+  { name: "بني", hex: "#92400e" },
+  { name: "أسود", hex: "#1f2937" },
+  { name: "سماوي", hex: "#06b6d4" },
 ];
-const SHAPES_LIST = ["⭐", "🔺", "🟦", "🟢", "❤️", "🔶"];
+const SHAPES_LIST = ["⭐", "🔺", "🟦", "🟢", "❤️", "🔶", "⬛", "🟣", "🔷", "🟧"];
 const ARABIC_WORDS = [
   { letter: "أ", word: "أرنب", emoji: "🐰" },
   { letter: "ب", word: "بطة", emoji: "🦆" },
   { letter: "ت", word: "تفاحة", emoji: "🍎" },
+  { letter: "ث", word: "ثعلب", emoji: "🦊" },
   { letter: "ج", word: "جمل", emoji: "🐪" },
+  { letter: "ح", word: "حصان", emoji: "🐴" },
   { letter: "د", word: "دب", emoji: "🐻" },
+  { letter: "ذ", word: "ذرة", emoji: "🌽" },
+  { letter: "ر", word: "رمان", emoji: "🍎" },
+  { letter: "ز", word: "زرافة", emoji: "🦒" },
   { letter: "س", word: "سمكة", emoji: "🐟" },
+  { letter: "ش", word: "شمس", emoji: "☀️" },
+  { letter: "ص", word: "صقر", emoji: "🦅" },
+  { letter: "ط", word: "طائر", emoji: "🐦" },
+  { letter: "ع", word: "عنب", emoji: "🍇" },
   { letter: "ف", word: "فيل", emoji: "🐘" },
   { letter: "ق", word: "قطة", emoji: "🐱" },
+  { letter: "ك", word: "كلب", emoji: "🐶" },
+  { letter: "ل", word: "ليمون", emoji: "🍋" },
+  { letter: "م", word: "موزة", emoji: "🍌" },
+  { letter: "ن", word: "نملة", emoji: "🐜" },
+  { letter: "ه", word: "هدهد", emoji: "🐦" },
+  { letter: "و", word: "وردة", emoji: "🌹" },
+  { letter: "ي", word: "يمامة", emoji: "🕊️" },
 ];
 
 function shuffle<T>(arr: T[]): T[] {
@@ -57,6 +107,23 @@ function shuffle<T>(arr: T[]): T[] {
 function pickN<T>(arr: T[], n: number): T[] { return shuffle(arr).slice(0, n); }
 
 // ---------- UI primitives ----------
+function SfxToggle() {
+  const [on, setOn] = useState(true);
+  useEffect(() => { setOn(isSfxEnabled()); }, []);
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="rounded-full touch-manipulation"
+      onClick={() => { const v = !on; setSfxEnabled(v); setOn(v); }}
+      aria-label={on ? "كتم الصوت" : "تشغيل الصوت"}
+      title={on ? "كتم الصوت" : "تشغيل الصوت"}
+    >
+      {on ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+    </Button>
+  );
+}
+
 function ToolBar({
   round, total, score, onHint, onRetry,
 }: { round: number; total: number; score: number; onHint?: () => void; onRetry: () => void }) {
@@ -71,6 +138,7 @@ function ToolBar({
         </span>
       </div>
       <div className="flex shrink-0 gap-2">
+        <SfxToggle />
         {onHint && (
           <Button variant="outline" size="sm" onClick={onHint} className="rounded-full touch-manipulation">
             <Lightbulb className="me-1 h-4 w-4" /> تلميح
@@ -89,6 +157,7 @@ function ResultScreen({
 }: { score: number; total: number; onRetry: () => void }) {
   const ratio = total > 0 ? score / total : 0;
   const stars = ratio >= 0.85 ? 3 : ratio >= 0.6 ? 2 : ratio > 0 ? 1 : 0;
+  useEffect(() => { playWin(); }, []);
   return (
     <div className="rounded-3xl bg-card p-8 text-center shadow-lg">
       <Trophy className="mx-auto mb-3 h-14 w-14 text-accent" />
@@ -133,8 +202,14 @@ function ChoiceGame({
     if (picked) return;
     setPicked(key);
     const ok = key === current.correct;
-    if (ok) { setScore((s) => s + 1); toast.success("أحسنت! 🌟"); }
-    else toast.error("حاول مرة أخرى");
+    if (ok) {
+      playCorrect();
+      setScore((s) => s + 1);
+      toast.success("أحسنت! 🌟");
+    } else {
+      playWrong();
+      toast.error("حاول مرة أخرى");
+    }
     setTimeout(() => setI((x) => x + 1), 800);
   }
 
@@ -161,7 +236,7 @@ function ChoiceGame({
               <button
                 key={opt.key}
                 disabled={!!picked}
-                onClick={() => pick(opt.key)}
+                onClick={() => { playTap(); pick(opt.key); }}
                 className={`flex min-h-24 select-none touch-manipulation items-center justify-center rounded-2xl border-4 p-3 text-center text-4xl font-extrabold transition-transform active:scale-95 sm:min-h-28 sm:p-4 sm:hover:scale-105 disabled:active:scale-100 disabled:sm:hover:scale-100 ${
                   state === "ok" ? "border-grass bg-grass/20"
                     : state === "bad" ? "border-destructive bg-destructive/10"
@@ -180,8 +255,8 @@ function ChoiceGame({
 
 // ---------- Round builders per engine ----------
 function buildCounting(): ChoiceRound {
-  const item = pickN(ANIMALS, 1)[0];
-  const count = 2 + Math.floor(Math.random() * 7);
+  const item = pickN([...ANIMALS, ...FRUITS], 1)[0];
+  const count = 2 + Math.floor(Math.random() * 8);
   const opts = Array.from(new Set([count, count - 1, count + 1, Math.max(1, count - 2)]))
     .filter((n) => n > 0).slice(0, 4);
   return {
@@ -193,14 +268,22 @@ function buildCounting(): ChoiceRound {
 }
 
 function buildOddOneOut(): ChoiceRound {
-  const group = pickN(ANIMALS, 3);
-  const odd = pickN(FRUITS, 1)[0];
+  const pools = [
+    { group: ANIMALS, odd: FRUITS },
+    { group: FRUITS, odd: ANIMALS },
+    { group: VEHICLES, odd: ANIMALS },
+    { group: ANIMALS, odd: VEHICLES },
+    { group: FRUITS, odd: VEHICLES },
+  ];
+  const p = pickN(pools, 1)[0];
+  const group = pickN(p.group, 3);
+  const odd = pickN(p.odd, 1)[0];
   const all = shuffle([...group, odd]);
   return {
     question: "أيها مختلف عن الباقي؟",
     options: all.map((it) => ({ key: it.name, render: <span className="text-5xl">{it.emoji}</span> })),
     correct: odd.name,
-    hint: "لاحظ النوع: حيوان أم فاكهة؟",
+    hint: "لاحظ النوع: حيوان، فاكهة، أم مركبة؟",
   };
 }
 
@@ -228,8 +311,8 @@ function buildColorMatch(): ChoiceRound {
 }
 
 function buildShadow(): ChoiceRound {
-  const target = pickN([...ANIMALS, ...FRUITS], 1)[0];
-  const others = pickN([...ANIMALS, ...FRUITS].filter((a) => a.name !== target.name), 3);
+  const target = pickN([...ANIMALS, ...FRUITS, ...VEHICLES], 1)[0];
+  const others = pickN([...ANIMALS, ...FRUITS, ...VEHICLES].filter((a) => a.name !== target.name), 3);
   return {
     question: (
       <div>
@@ -255,25 +338,29 @@ function buildLetterPicture(): ChoiceRound {
 
 function buildPattern(): ChoiceRound {
   const [a, b] = pickN(SHAPES_LIST, 2);
-  const seq = [a, b, a, b, a];
-  const correct = b;
-  const others = shuffle(SHAPES_LIST.filter((s) => s !== correct)).slice(0, 3);
+  const variants = [
+    { seq: [a, b, a, b, a], correct: b },
+    { seq: [a, a, b, a, a], correct: b },
+    { seq: [a, b, b, a, b], correct: b },
+  ];
+  const v = pickN(variants, 1)[0];
+  const others = shuffle(SHAPES_LIST.filter((s) => s !== v.correct)).slice(0, 3);
   return {
     question: (
       <div>
         أكمل النمط:
-        <div className="my-3 text-4xl tracking-widest">{seq.join(" ")} ❓</div>
+        <div className="my-3 text-4xl tracking-widest">{v.seq.join(" ")} ❓</div>
       </div>
     ),
-    options: shuffle([correct, ...others]).map((s) => ({ key: s, render: <span className="text-5xl">{s}</span> })),
-    correct,
+    options: shuffle([v.correct, ...others]).map((s) => ({ key: s, render: <span className="text-5xl">{s}</span> })),
+    correct: v.correct,
     hint: "لاحظ الترتيب المتكرر",
   };
 }
 
 function buildMissingPiece(): ChoiceRound {
-  const target = pickN(ANIMALS, 1)[0];
-  const others = pickN(ANIMALS.filter((a) => a.name !== target.name), 3);
+  const target = pickN([...ANIMALS, ...FRUITS], 1)[0];
+  const others = pickN([...ANIMALS, ...FRUITS].filter((a) => a.name !== target.name), 3);
   return {
     question: (
       <div>
@@ -313,6 +400,11 @@ function buildCauseEffect(): ChoiceRound {
     { q: "ما الذي يكبر إذا سقيناه؟", correct: "نبتة 🌱", others: ["حجر 🪨", "كرسي 🪑", "قلم ✏️"] },
     { q: "إذا أظلمت الغرفة، ماذا نشغّل؟", correct: "المصباح 💡", others: ["الراديو 📻", "الثلاجة 🧊", "الساعة ⏰"] },
     { q: "ما الذي يطفو على الماء؟", correct: "قارب ⛵", others: ["حجر 🪨", "حديد ⚙️", "ذهب 🏆"] },
+    { q: "إذا جعت، ماذا تأكل؟", correct: "طعام 🍽️", others: ["ثلج 🧊", "ورق 📄", "صابون 🧼"] },
+    { q: "إذا كنت تعباً، ماذا تفعل؟", correct: "أنام 😴", others: ["أركض 🏃", "أغني 🎤", "أقفز 🤸"] },
+    { q: "ما الذي يضيء في الليل؟", correct: "القمر 🌙", others: ["الزهرة 🌸", "الحجر 🪨", "الكتاب 📖"] },
+    { q: "إذا أصبح الجو حاراً، ماذا نلبس؟", correct: "ملابس خفيفة 👕", others: ["معطف ثقيل 🧥", "قبعة شتاء 🧣", "أحذية جلد 🥾"] },
+    { q: "ماذا يأكل الأرنب؟", correct: "جزر 🥕", others: ["لحم 🥩", "حلوى 🍬", "صابون 🧼"] },
   ];
   const s = pickN(scenarios, 1)[0];
   return {
@@ -349,6 +441,12 @@ function buildLogic(): ChoiceRound {
     { q: "الطيور تسبح تحت الماء طوال الوقت.", correct: "خطأ ❌", others: ["صح ✅"] },
     { q: "2 + 2 = 4. صحيح؟", correct: "صح ✅", others: ["خطأ ❌"] },
     { q: "الثلج ساخن. صحيح؟", correct: "خطأ ❌", others: ["صح ✅"] },
+    { q: "النحلة تصنع العسل. صحيح؟", correct: "صح ✅", others: ["خطأ ❌"] },
+    { q: "السيارة تطير في السماء. صحيح؟", correct: "خطأ ❌", others: ["صح ✅"] },
+    { q: "الدجاجة تبيض. صحيح؟", correct: "صح ✅", others: ["خطأ ❌"] },
+    { q: "الجبال أكبر من البيت. صحيح؟", correct: "صح ✅", others: ["خطأ ❌"] },
+    { q: "3 + 1 = 5. صحيح؟", correct: "خطأ ❌", others: ["صح ✅"] },
+    { q: "النار باردة. صحيح؟", correct: "خطأ ❌", others: ["صح ✅"] },
   ];
   const s = pickN(qs, 1)[0];
   return {
@@ -359,17 +457,22 @@ function buildLogic(): ChoiceRound {
 }
 
 function buildSequenceOrder(): ChoiceRound {
-  const nums = pickN([1, 2, 3, 4, 5, 6, 7, 8, 9], 3).sort((a, b) => a - b);
-  const correctFirst = String(nums[0]);
+  const nums = pickN([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 4).sort((a, b) => a - b);
+  const askSmallest = Math.random() < 0.5;
+  const correct = askSmallest ? nums[0] : nums[nums.length - 1];
   return {
-    question: <div>ما أصغر رقم؟ <div className="my-3 text-3xl tracking-widest">{shuffle(nums).join("  ")}</div></div>,
+    question: (
+      <div>
+        ما {askSmallest ? "أصغر" : "أكبر"} رقم؟
+        <div className="my-3 text-3xl tracking-widest">{shuffle(nums).join("  ")}</div>
+      </div>
+    ),
     options: shuffle(nums).map((n) => ({ key: String(n), render: <span>{n}</span> })),
-    correct: correctFirst,
+    correct: String(correct),
   };
 }
 
 function buildSpotDifference(): ChoiceRound {
-  // Two simulated "scenes" — child picks which scene has the extra item
   const base = pickN(ANIMALS, 3);
   const extra = pickN(ANIMALS.filter((a) => !base.find((b) => b.name === a.name)), 1)[0];
   const sceneAhasExtra = Math.random() < 0.5;
@@ -403,6 +506,8 @@ function buildStoryOrder(): ChoiceRound {
     { steps: ["🌱 بذرة", "🌿 نبتة", "🌳 شجرة"], q: "ما الذي يأتي أولاً؟", correct: "🌱 بذرة" },
     { steps: ["☀️ صباح", "🌇 مساء", "🌙 ليل"], q: "ما الذي يأتي أولاً؟", correct: "☀️ صباح" },
     { steps: ["👶 رضيع", "🧒 طفل", "🧑 شاب"], q: "ما الذي يأتي أولاً؟", correct: "👶 رضيع" },
+    { steps: ["🐛 يرقة", "🦋 فراشة"], q: "ما الذي يأتي أولاً؟", correct: "🐛 يرقة" },
+    { steps: ["🍎 بذرة تفاح", "🌳 شجرة تفاح", "🍎 ثمرة"], q: "ما الذي يأتي أولاً؟", correct: "🍎 بذرة تفاح" },
   ];
   const s = pickN(stories, 1)[0];
   return {
@@ -413,17 +518,17 @@ function buildStoryOrder(): ChoiceRound {
 }
 
 function buildDailyMini(): ChoiceRound {
-  // Mix of small puzzles
-  const builders = [buildCounting, buildOddOneOut, buildShapeMatch, buildLetterPicture, buildLogic];
+  const builders = [buildCounting, buildOddOneOut, buildShapeMatch, buildLetterPicture, buildLogic, buildSorting, buildCauseEffect];
   return builders[Math.floor(Math.random() * builders.length)]();
 }
 
 function buildMaze(): ChoiceRound {
-  // Simplified: pick the path direction
   const directions = [
     { q: "الأرنب 🐰 يريد الوصول للجزرة 🥕. الجزرة على اليمين. أي اتجاه؟", correct: "يمين ➡️", others: ["يسار ⬅️", "أعلى ⬆️", "أسفل ⬇️"] },
     { q: "القطة 🐱 تريد الحليب 🥛 الذي في الأعلى. أي اتجاه؟", correct: "أعلى ⬆️", others: ["يمين ➡️", "يسار ⬅️", "أسفل ⬇️"] },
     { q: "السمكة 🐟 ترى طعاماً 🍤 على اليسار. أي اتجاه؟", correct: "يسار ⬅️", others: ["يمين ➡️", "أعلى ⬆️", "أسفل ⬇️"] },
+    { q: "الفأر 🐭 يبحث عن جبنة 🧀 في الأسفل. أي اتجاه؟", correct: "أسفل ⬇️", others: ["يمين ➡️", "يسار ⬅️", "أعلى ⬆️"] },
+    { q: "الطائر 🐦 يطير نحو عشّه في الأعلى. أي اتجاه؟", correct: "أعلى ⬆️", others: ["يمين ➡️", "يسار ⬅️", "أسفل ⬇️"] },
   ];
   const s = pickN(directions, 1)[0];
   return {
@@ -434,7 +539,6 @@ function buildMaze(): ChoiceRound {
 }
 
 function buildAudio(): ChoiceRound {
-  // Use browser TTS for the cue
   const target = pickN(ARABIC_WORDS, 1)[0];
   const others = pickN(ARABIC_WORDS.filter((w) => w.letter !== target.letter), 3);
   if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -455,7 +559,6 @@ function buildAudio(): ChoiceRound {
 }
 
 function buildJigsawRotate(): ChoiceRound {
-  // Pick the correctly-oriented image among rotated decoys
   const target = pickN([...ANIMALS, ...FRUITS], 1)[0];
   const rotations = [0, 90, 180, 270];
   const correctRot = 0;
@@ -474,7 +577,6 @@ function buildJigsawRotate(): ChoiceRound {
 }
 
 function buildDragMatch(): ChoiceRound {
-  // Simplified: pick which item goes to a given basket
   return buildSorting();
 }
 
@@ -492,15 +594,21 @@ function MemoryPairs({ onDone }: { onDone: (score: number) => void }) {
   function flip(uid: number) {
     if (revealed.includes(uid) || matched.includes(cards[uid].key)) return;
     if (revealed.length === 2) return;
+    playTap();
     const next = [...revealed, uid];
     setRevealed(next);
     if (next.length === 2) {
       setMoves((m) => m + 1);
       const [a, b] = next;
       if (cards[a].key === cards[b].key) {
-        setTimeout(() => { setMatched((m) => [...m, cards[a].key]); setRevealed([]); toast.success("زوج! ⭐"); }, 600);
+        setTimeout(() => {
+          playPair();
+          setMatched((m) => [...m, cards[a].key]);
+          setRevealed([]);
+          toast.success("زوج! ⭐");
+        }, 600);
       } else {
-        setTimeout(() => setRevealed([]), 900);
+        setTimeout(() => { playWrong(); setRevealed([]); }, 900);
       }
     }
   }
@@ -540,7 +648,7 @@ function MemoryPairs({ onDone }: { onDone: (score: number) => void }) {
 
 // ---------- Main engine ----------
 export function PuzzleEngine({ puzzle, onComplete }: { puzzle: PuzzleDef; onComplete: (stars: number) => void }) {
-  const total = puzzle.rounds ?? 5;
+  const total = Math.max(puzzle.rounds ?? 5, 8); // ضمان حد أدنى 8 جولات لتقليل التكرار
   const [sessionId, setSessionId] = useState(0);
 
   function handleDone(score: number) {
@@ -578,7 +686,22 @@ export function PuzzleEngine({ puzzle, onComplete }: { puzzle: PuzzleDef; onComp
   };
 
   const build = builders[puzzle.engine] ?? buildLogic;
-  const rounds = useMemo(() => Array.from({ length: total }, () => build()), [sessionId, total, build]);
+  // توليد جولات فريدة قدر الإمكان ضمن البنك المتاح (محاولة تجنّب التكرار المباشر)
+  const rounds = useMemo(() => {
+    const out: ChoiceRound[] = [];
+    const seenCorrect = new Set<string>();
+    let attempts = 0;
+    while (out.length < total && attempts < total * 6) {
+      const r = build();
+      if (!seenCorrect.has(r.correct) || out.length >= 10) {
+        out.push(r);
+        seenCorrect.add(r.correct);
+      }
+      attempts++;
+    }
+    while (out.length < total) out.push(build());
+    return out;
+  }, [sessionId, total, build]);
 
   return <ChoiceGame key={sessionId} rounds={rounds} total={total} onDone={handleDone} />;
 }

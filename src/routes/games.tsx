@@ -28,7 +28,7 @@ function GamesPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 pb-12">
         <div className="mb-6 text-center">
           <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-1.5 text-sm font-bold">
             <Gamepad2 className="h-4 w-4" /> العب وتعلّم

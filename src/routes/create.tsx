@@ -349,7 +349,10 @@ function CreateWizard() {
       setStep(6);
       void generateImages(data, {});
     },
-    onError: (e: Error) => toast.error(e.message || "تعذر التوليد"),
+    onError: (e: Error) => {
+      console.error("generate story error", e);
+      toast.error(e?.message || "تعذر إرسال الطلب — تأكد من الاتصال وأعد المحاولة");
+    },
   });
 
   const result = mutation.data;

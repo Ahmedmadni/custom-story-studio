@@ -174,33 +174,68 @@ ${pageRules}
 ${jsonShape(language)}`;
 }
 
-async function callLlm(systemPrompt: string, userPrompt: string, key: string) {
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-    }),
-  });
-  if (res.status === 429)
-    throw new Error("الخدمة مشغولة حالياً، انتظر قليلاً ثم أعد المحاولة");
-  if (res.status === 402)
-    throw new Error("نفد رصيد الذكاء الاصطناعي، تواصل مع إدارة الموقع");
-  if (!res.ok) {
-    console.error("AI generate error", res.status, await res.text());
-    throw new Error("تعذر التوليد، حاول مرة أخرى");
+async function callLlmOnce(systemPrompt: string, userPrompt: string, key: string) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 55000);
+  try {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+      signal: controller.signal,
+    });
+    if (res.status === 429)
+      throw new Error("الخدمة مشغولة حالياً، انتظر قليلاً ثم أعد المحاولة");
+    if (res.status === 402)
+      throw new Error("نفد رصيد الذكاء الاصطناعي، تواصل مع إدارة الموقع");
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error("AI generate error", res.status, body.slice(0, 500));
+      const e = new Error(
+        `تعذر التوليد (${res.status})${body ? ` — ${body.slice(0, 120)}` : ""}`,
+      ) as Error & { status?: number };
+      e.status = res.status;
+      throw e;
+    }
+    const json = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    return extractJson(json.choices?.[0]?.message?.content ?? "");
+  } finally {
+    clearTimeout(timer);
   }
-  const json = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
-  };
-  return extractJson(json.choices?.[0]?.message?.content ?? "");
+}
+
+async function callLlm(systemPrompt: string, userPrompt: string, key: string) {
+  try {
+    return await callLlmOnce(systemPrompt, userPrompt, key);
+  } catch (e) {
+    const err = e as Error & { status?: number; name?: string };
+    const isRetryable =
+      err.name === "AbortError" ||
+      (typeof err.status === "number" && err.status >= 500) ||
+      /fetch|network|ECONN/i.test(err.message ?? "");
+    if (!isRetryable) throw err;
+    console.warn("AI retry after:", err.message);
+    try {
+      return await callLlmOnce(systemPrompt, userPrompt, key);
+    } catch (e2) {
+      const e2err = e2 as Error & { name?: string };
+      if (e2err.name === "AbortError") {
+        throw new Error("استغرق التوليد وقتاً طويلاً، حاول مرة أخرى");
+      }
+      throw e2;
+    }
+  }
 }
 
 export const generateAiStory = createServerFn({ method: "POST" })
