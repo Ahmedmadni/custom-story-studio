@@ -120,6 +120,7 @@ function MyOrders() {
                     <p className="mt-2 rounded-xl bg-destructive/10 p-2 text-xs text-destructive">
                       سبب رفض الدفع: {o.payment_rejection_reason}
                     </p>
+                  )}
                   {(["pending", "approved"].includes(o.status as string)) && (
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                       <span className="font-bold text-muted-foreground">
