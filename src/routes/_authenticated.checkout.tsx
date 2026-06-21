@@ -23,7 +23,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { PRICE_PER_ITEM_EGP, useCart } from "@/features/cart/CartContext";
 import { submitCheckout } from "@/features/orders/checkout.functions";
-import { GENDER_OPTIONS, type Gender } from "@/features/ai/storyTypes";
+import {
+  GENDER_OPTIONS,
+  LANGUAGE_OPTIONS,
+  type Gender,
+  type LanguageMode,
+} from "@/features/ai/storyTypes";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ADMIN_WHATSAPP,
   isValidEgyptianMobile,
@@ -39,6 +45,8 @@ export const Route = createFileRoute("/_authenticated/checkout")({
 const MAX_PHOTO_MB = 8;
 const VODAFONE_NUMBER = "01120016502";
 
+type PhotoMode = "cartoon" | "real";
+
 type ItemDraft = {
   childName: string;
   childAge: string;
@@ -46,6 +54,9 @@ type ItemDraft = {
   notes: string;
   photo: File | null;
   preview: string | null;
+  language: LanguageMode;
+  photoMode: PhotoMode;
+  publishConsent: boolean;
 };
 
 function CheckoutPage() {
@@ -58,7 +69,17 @@ function CheckoutPage() {
     Object.fromEntries(
       items.map((i) => [
         i.templateId,
-        { childName: "", childAge: "", gender: "" as const, notes: "", photo: null, preview: null },
+        {
+          childName: "",
+          childAge: "",
+          gender: "" as const,
+          notes: "",
+          photo: null,
+          preview: null,
+          language: "ar" as LanguageMode,
+          photoMode: "cartoon" as PhotoMode,
+          publishConsent: false,
+        },
       ]),
     ),
   );
@@ -172,7 +193,15 @@ function CheckoutPage() {
         data: {
           whatsapp: whatsapp.trim(),
           receiptPath,
-          items: uploadedItems,
+          items: uploadedItems.map((it) => {
+            const d = drafts[it.templateId];
+            return {
+              ...it,
+              language: d.language,
+              photoMode: d.photoMode,
+              publishConsent: d.publishConsent,
+            };
+          }),
         },
       });
 
@@ -313,6 +342,93 @@ function CheckoutPage() {
                     placeholder="أي تفاصيل تحب إضافتها…"
                   />
                 </div>
+
+                <div className="mt-4">
+                  <Label className="font-bold">لغة القصة</Label>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {LANGUAGE_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() =>
+                          updateDraft(item.templateId, {
+                            language: opt.value as LanguageMode,
+                          })
+                        }
+                        className={`rounded-xl border-2 p-3 text-start transition-colors ${
+                          d.language === opt.value
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <span className="block text-sm font-bold">{opt.label}</span>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {opt.hint}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <Label className="font-bold">نمط صورة الطفل في القصة</Label>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {[
+                      {
+                        v: "cartoon" as const,
+                        emoji: "🎨",
+                        label: "كرتوني",
+                        hint: "يتحول الطفل لشخصية كرتونية لطيفة",
+                      },
+                      {
+                        v: "real" as const,
+                        emoji: "📸",
+                        label: "وجه حقيقي",
+                        hint: "وجه الطفل الحقيقي داخل مشهد 3D سينمائي",
+                      },
+                    ].map((opt) => (
+                      <button
+                        key={opt.v}
+                        type="button"
+                        onClick={() =>
+                          updateDraft(item.templateId, { photoMode: opt.v })
+                        }
+                        className={`rounded-xl border-2 p-3 text-start transition-colors ${
+                          d.photoMode === opt.v
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 font-bold">
+                          <span className="text-xl">{opt.emoji}</span>
+                          {opt.label}
+                        </span>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {opt.hint}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border-2 border-dashed border-accent/40 bg-accent/5 p-3 transition-colors hover:bg-accent/10">
+                  <Checkbox
+                    checked={d.publishConsent}
+                    onCheckedChange={(c) =>
+                      updateDraft(item.templateId, { publishConsent: Boolean(c) })
+                    }
+                    className="mt-0.5"
+                  />
+                  <span className="text-sm leading-relaxed">
+                    <span className="block font-bold">
+                      🌟 أوافق على نشر قصة طفلي ضمن «أعمالنا السابقة»
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ستظهر فقط أسفل صفحة هذه القصة الأصلية بعد اعتماد الإدارة —
+                      ولن تتكرر في معرض القصص الرئيسي.
+                    </span>
+                  </span>
+                </label>
               </div>
             );
           })}

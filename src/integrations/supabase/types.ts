@@ -107,6 +107,7 @@ export type Database = {
           payment_verified_by: string | null
           photo_mode: string
           price_egp: number
+          publish_consent: boolean
           published_template_id: string | null
           published_to_library_at: string | null
           receipt_path: string | null
@@ -134,6 +135,7 @@ export type Database = {
           payment_verified_by?: string | null
           photo_mode?: string
           price_egp?: number
+          publish_consent?: boolean
           published_template_id?: string | null
           published_to_library_at?: string | null
           receipt_path?: string | null
@@ -161,6 +163,7 @@ export type Database = {
           payment_verified_by?: string | null
           photo_mode?: string
           price_egp?: number
+          publish_consent?: boolean
           published_template_id?: string | null
           published_to_library_at?: string | null
           receipt_path?: string | null
@@ -230,6 +233,7 @@ export type Database = {
           moral: string
           pages: Json
           slug: string
+          source_template_id: string | null
           summary: string
           title: string
           updated_at: string
@@ -252,6 +256,7 @@ export type Database = {
           moral: string
           pages?: Json
           slug: string
+          source_template_id?: string | null
           summary: string
           title: string
           updated_at?: string
@@ -274,11 +279,20 @@ export type Database = {
           moral?: string
           pages?: Json
           slug?: string
+          source_template_id?: string | null
           summary?: string
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "story_templates_source_template_id_fkey"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "story_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
