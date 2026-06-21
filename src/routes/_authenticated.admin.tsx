@@ -5,6 +5,7 @@ import {
   Check,
   CreditCard,
   ExternalLink,
+  FileDown,
   ImageIcon,
   KeyRound,
   Loader2,
@@ -48,6 +49,7 @@ import {
   adminRejectTemplate,
 } from "@/features/ai/ai.functions";
 import { waLink } from "@/features/orders/whatsapp";
+import { generateStoryPdf, type PdfStoryPage } from "@/features/pdf/storyPdf";
 import { TemplatesManager } from "@/features/admin/TemplatesManager";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -70,6 +72,8 @@ type AdminOrder = {
   adminNotes: string | null;
   createdAt: string;
   storyTitle: string;
+  language: "ar" | "en" | "bilingual";
+  contentType: "story" | "book";
   templateId: string | null;
   photoUrl: string | null;
   receiptUrl: string | null;
@@ -298,6 +302,8 @@ function OrderDialog({
   const [generating, setGenerating] = useState<number | null>(null);
   const [batchRunning, setBatchRunning] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState<{ done: number; total: number } | null>(null);
 
   const { data: pages, refetch: refetchPages } = useQuery({
     queryKey: ["admin-order-pages", order.id],
@@ -386,6 +392,54 @@ function OrderDialog({
 
   const pageNumbers = Array.from({ length: order.totalPages }, (_, i) => i + 1);
   const pageMap = new Map((pages ?? []).map((p) => [p.pageNumber, p]));
+  const readyCount = (pages ?? []).filter((p) => !!p.imageUrl).length;
+
+  const handleAdminExport = async () => {
+    const pdfPages: PdfStoryPage[] = (pages ?? [])
+      .filter((p) => !!p.imageUrl)
+      .map((p) => ({
+        n: p.pageNumber,
+        text: p.text ?? "",
+        imageUrl: p.imageUrl,
+      }))
+      .sort((a, b) => a.n - b.n);
+
+    if (pdfPages.length === 0) {
+      toast.error("لا توجد صفحات مولدة للتصدير");
+      return;
+    }
+    if (pdfPages.length < order.totalPages) {
+      toast.info(`تنبيه: سيُصدَّر ${pdfPages.length}/${order.totalPages} صفحة فقط`);
+    }
+
+    setExportingPdf(true);
+    setPdfProgress({ done: 0, total: pdfPages.length });
+    try {
+      const blob = await generateStoryPdf({
+        title: order.storyTitle,
+        childName: order.childName,
+        language: order.language,
+        contentType: order.contentType,
+        pages: pdfPages,
+        onProgress: (done, total) => setPdfProgress({ done, total }),
+      });
+      const safeTitle = order.storyTitle.replace(/[\\/:*?"<>|]/g, "");
+      const safeChild = (order.childName ?? "").replace(/[\\/:*?"<>|]/g, "");
+      const fileName = `${safeTitle}${safeChild ? ` - ${safeChild}` : ""}.pdf`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("تم تنزيل PDF — أرفقه في محادثة الواتساب 📎");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "تعذر تصدير PDF");
+    } finally {
+      setExportingPdf(false);
+      setPdfProgress(null);
+    }
+  };
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -534,6 +588,39 @@ function OrderDialog({
                 إرسال عبر الواتساب
               </a>
             </Button>
+          )}
+          {(order.status === "approved" ||
+            order.status === "generating" ||
+            order.status === "ready" ||
+            order.status === "sent") && (
+            <div className="flex flex-col items-start gap-1">
+              <Button
+                variant="outline"
+                className="rounded-full border-2 border-primary px-5 font-bold text-primary hover:bg-primary hover:text-primary-foreground"
+                disabled={exportingPdf || batchRunning || generating !== null || readyCount === 0}
+                onClick={() => void handleAdminExport()}
+              >
+                {exportingPdf ? (
+                  <Loader2 className="ms-1 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="ms-1 h-4 w-4" />
+                )}
+                تصدير PDF (أدمن)
+              </Button>
+              {pdfProgress ? (
+                <span className="text-xs font-semibold text-muted-foreground">
+                  📄 جارٍ التجهيز… {pdfProgress.done}/{pdfProgress.total}
+                </span>
+              ) : readyCount === 0 ? (
+                <span className="text-xs text-muted-foreground">
+                  ولّد الصفحات أولاً للتصدير
+                </span>
+              ) : readyCount < order.totalPages ? (
+                <span className="text-xs text-muted-foreground">
+                  اكتمل {readyCount}/{order.totalPages} صورة
+                </span>
+              ) : null}
+            </div>
           )}
         </div>
 
