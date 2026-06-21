@@ -56,7 +56,8 @@ function StoryViewer() {
   const pages = story.pages;
   const page = pages[current];
   const isBilingual = story.language === "bilingual";
-  const isApproved = !!story.approvedAt;
+  const isUserApproved = !!story.approvedAt;
+  const isAdminApproved = !!story.adminApprovedAt;
 
   return (
     <div className="min-h-screen">
