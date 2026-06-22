@@ -109,7 +109,7 @@ interface DraftPayload {
 }
 
 function CreateWizard() {
-  const { user, loading } = useAuth();
+  const { user, isAdmin, loading } = useAuth();
   const generateFn = useServerFn(generateAiStory);
   const imageFn = useServerFn(generatePageImage);
   const updateFn = useServerFn(updatePageText);
@@ -129,6 +129,7 @@ function CreateWizard() {
   const [photoMode, setPhotoMode] = useState<"cartoon" | "real">("real");
   const [whatsapp, setWhatsapp] = useState("");
   const [contentType, setContentType] = useState<"story" | "book">("story");
+  const [pagesCount, setPagesCount] = useState<10 | 16>(10);
   const [topic, setTopic] = useState("");
   // Book-specific
   const [bookCategory, setBookCategory] = useState<BookCategoryValue | "">("");
