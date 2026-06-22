@@ -165,6 +165,13 @@ function StoryPreview() {
               <p className="mt-3 text-xs text-muted-foreground">
                 ادفع عبر فودافون كاش، ارفع صورة طفلك وإيصال السداد، وستصلك القصة على واتساب كملف PDF ✨
               </p>
+              <div className="mt-4 inline-flex flex-wrap gap-2 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-3 text-xs font-bold text-primary">
+                <span>📄 10 صفحات = 150 ج</span>
+                <span className="text-primary/40">•</span>
+                <span>📄 16 صفحة = 200 ج</span>
+                <span className="text-primary/40">•</span>
+                <span>🖨️ نسخة مطبوعة +200 ج (مع التوصيل)</span>
+              </div>
 
 
               {pages.length > 0 && (

@@ -7,20 +7,22 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/features/cart/CartContext";
 
-const navLinks = [
+const baseNavLinks = [
   { to: "/", label: "الرئيسية" },
   { to: "/stories", label: "القصص" },
-  { to: "/create", label: "أنشئ قصة" },
   { to: "/books", label: "كتب" },
   { to: "/games", label: "ألعاب" },
   { to: "/puzzles", label: "ألغاز" },
 ];
+const adminOnlyLinks = [{ to: "/create", label: "أنشئ قصة" }];
 
 export function Header() {
   const { user, isAdmin, signOut } = useAuth();
   const { count } = useCart();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const navLinks = isAdmin ? [...baseNavLinks, ...adminOnlyLinks] : baseNavLinks;
+
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-card/80 backdrop-blur-xl no-print">
