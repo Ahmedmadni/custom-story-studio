@@ -613,6 +613,17 @@ function CreateWizard() {
               <Link to="/auth">تسجيل الدخول</Link>
             </Button>
           </div>
+        ) : !loading && user && !isAdmin ? (
+          <div className="mt-10 rounded-3xl border-2 border-border bg-card p-8 text-center">
+            <p className="font-display text-2xl font-extrabold">🔒 هذه الصفحة للإدارة فقط</p>
+            <p className="mt-2 text-muted-foreground">
+              إنشاء قوالب القصص الجديدة من صلاحيات الإدارة. لطلب قصة مخصصة لطفلك،
+              اختر إحدى القصص من مكتبتنا وسنُجهّزها لك.
+            </p>
+            <Button asChild className="mt-5 rounded-full px-8 font-bold">
+              <Link to="/stories">تصفّح القصص</Link>
+            </Button>
+          </div>
         ) : (
           <>
             {/* Stepper */}
@@ -867,19 +878,49 @@ function CreateWizard() {
                   </div>
 
                   {contentType === "story" ? (
-                    <div className="mt-5">
-                      <Label htmlFor="topic" className="font-bold">
-                        فكرة القصة أو القيمة المطلوبة
-                      </Label>
-                      <Textarea
-                        id="topic"
-                        value={topic}
-                        onChange={(e) => setTopic(e.target.value)}
-                        placeholder="مثال: قصة عن الصدق ومساعدة الجيران…"
-                        maxLength={300}
-                        rows={3}
-                        className="mt-2 rounded-xl"
-                      />
+                    <div className="mt-5 space-y-5">
+                      <div>
+                        <Label htmlFor="topic" className="font-bold">
+                          فكرة القصة أو القيمة المطلوبة
+                        </Label>
+                        <Textarea
+                          id="topic"
+                          value={topic}
+                          onChange={(e) => setTopic(e.target.value)}
+                          placeholder="مثال: قصة عن الصدق ومساعدة الجيران…"
+                          maxLength={300}
+                          rows={3}
+                          className="mt-2 rounded-xl"
+                        />
+                      </div>
+                      <div>
+                        <Label className="font-bold">عدد صفحات القصة</Label>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          هذا يحدد عدد المشاهد المرسومة في القصة وسعرها للعميل
+                        </p>
+                        <div className="mt-3 grid grid-cols-2 gap-3">
+                          {([
+                            { n: 10 as const, price: 150 },
+                            { n: 16 as const, price: 200 },
+                          ]).map((opt) => (
+                            <button
+                              key={opt.n}
+                              type="button"
+                              onClick={() => setPagesCount(opt.n)}
+                              className={`rounded-2xl border-2 p-4 text-center transition-colors ${
+                                pagesCount === opt.n
+                                  ? "border-primary bg-primary/10"
+                                  : "border-border hover:border-primary/50"
+                              }`}
+                            >
+                              <div className="font-display text-2xl font-extrabold">{opt.n}</div>
+                              <div className="text-xs font-bold text-muted-foreground">
+                                صفحة — {opt.price} ج للعميل
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="mt-5 space-y-5">
