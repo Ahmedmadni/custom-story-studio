@@ -1021,7 +1021,10 @@ function CreateWizard() {
                         <p>📖 <b>المستوى:</b> {READING_LEVELS.find((l) => l.value === readingLevel)?.label} • {BOOK_LENGTHS.find((l) => l.value === bookLength)?.label}</p>
                       </>
                     ) : (
-                      <p>💡 <b>الموضوع:</b> {topic.trim()}</p>
+                      <>
+                        <p>💡 <b>الموضوع:</b> {topic.trim()}</p>
+                        <p>📄 <b>عدد الصفحات:</b> {pagesCount} صفحة ({pagesCount === 10 ? "150" : "200"} ج للعميل)</p>
+                      </>
                     )}
                     <p>
                       📸 <b>صورة الطفل:</b>{" "}
