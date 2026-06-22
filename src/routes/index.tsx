@@ -140,7 +140,7 @@ function Index() {
     queryFn: async () => {
       const { data } = await supabase
         .from("orders")
-        .select("id, child_name, status, template:story_templates(id, slug, title, cover_url)")
+        .select("id, child_name, status, template:story_templates!orders_template_id_fkey(id, slug, title, cover_url)")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(6);
