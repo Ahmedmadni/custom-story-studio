@@ -51,37 +51,6 @@ const categories = [
   { label: "قصص القيم والأخلاق", icon: "💛", from: "from-emerald-400/20", to: "to-teal-400/15" },
 ];
 
-const plans = [
-  {
-    name: "مجاني",
-    price: "0",
-    tag: "ابدأ مجاناً",
-    perks: ["قراءة قصص مختارة", "تجربة محدودة لإنشاء القصص", "الوصول من أي جهاز"],
-    cta: "ابدأ الآن",
-    highlight: false,
-  },
-  {
-    name: "Premium",
-    price: "99",
-    tag: "الأكثر شعبية",
-    perks: [
-      "قصص مصوّرة غير محدودة",
-      "محتوى حصري بريميوم",
-      "إنشاء قصص بالذكاء الاصطناعي",
-      "تنزيل كملفات PDF",
-    ],
-    cta: "اشترك Premium",
-    highlight: true,
-  },
-  {
-    name: "Family",
-    price: "159",
-    tag: "للعائلة",
-    perks: ["كل مزايا Premium", "حتى 4 ملفات أطفال", "تقارير قراءة شهرية", "أولوية الدعم"],
-    cta: "خطة العائلة",
-    highlight: false,
-  },
-];
 
 const testimonials = [
   {
@@ -513,67 +482,6 @@ function Index() {
         </section>
       )}
 
-      {/* ============ SUBSCRIPTION ============ */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="text-center">
-          <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-extrabold text-primary">
-            <Crown className="h-4 w-4" />
-            خطط الاشتراك
-          </span>
-          <h2 className="mt-4 font-display text-3xl font-extrabold md:text-5xl">
-            اختر الخطّة المناسبة لعائلتك
-          </h2>
-          <p className="mt-3 text-muted-foreground">
-            ألغِ في أي وقت — بدون التزامات
-          </p>
-        </div>
-
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
-          {plans.map((p) => (
-            <div
-              key={p.name}
-              className={`relative rounded-3xl border-2 p-8 transition-all hover:-translate-y-1 ${
-                p.highlight
-                  ? "border-primary bg-gradient-to-b from-primary/10 to-card shadow-[var(--shadow-card)]"
-                  : "border-border bg-card shadow-sm"
-              }`}
-            >
-              {p.highlight && (
-                <span className="absolute -top-3 start-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-xs font-extrabold text-primary-foreground shadow">
-                  {p.tag}
-                </span>
-              )}
-              <h3 className="font-display text-2xl font-extrabold">{p.name}</h3>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="font-display text-5xl font-extrabold text-primary">
-                  {p.price}
-                </span>
-                <span className="text-sm text-muted-foreground">ج.م / شهرياً</span>
-              </div>
-              <ul className="mt-6 space-y-3 text-sm">
-                {p.perks.map((perk) => (
-                  <li key={perk} className="flex items-start gap-2">
-                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/15 text-primary">
-                      <Check className="h-3 w-3" />
-                    </span>
-                    <span className="font-semibold text-foreground">{perk}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button
-                asChild
-                className={`mt-8 h-12 w-full rounded-2xl font-extrabold ${
-                  p.highlight
-                    ? "bg-primary text-primary-foreground shadow-[var(--shadow-soft)]"
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                }`}
-              >
-                <Link to="/stories">{p.cta}</Link>
-              </Button>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* ============ TESTIMONIALS ============ */}
       <section className="container mx-auto px-4 py-16">
