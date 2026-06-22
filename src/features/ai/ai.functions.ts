@@ -38,6 +38,7 @@ const GenerateInput = z.object({
   gender: z.enum(["boy", "girl"]).default("boy"),
   language: z.enum(["ar", "en", "bilingual"]).default("ar"),
   contentType: z.enum(["story", "book"]).default("story"),
+  pagesCount: z.union([z.literal(10), z.literal(16)]).optional(),
   bookMeta: BookMetaInput.optional(),
 });
 
@@ -248,7 +249,7 @@ export const generateAiStory = createServerFn({ method: "POST" })
     const pageCount =
       data.contentType === "book" && data.bookMeta
         ? pagesForLength(data.bookMeta.length)
-        : 6;
+        : (data.pagesCount ?? 10);
 
     const typeLabel = data.contentType === "book" ? "كتاب تعليمي" : "قصة";
     const themeLine =

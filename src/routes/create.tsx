@@ -300,6 +300,7 @@ function CreateWizard() {
           gender: gender as Gender,
           language: language as LanguageMode,
           contentType,
+          pagesCount: contentType === "story" ? pagesCount : undefined,
           bookMeta:
             contentType === "book" && bookCategory
               ? {
