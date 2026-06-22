@@ -10,9 +10,10 @@ import { useCart } from "@/features/cart/CartContext";
 const navLinks = [
   { to: "/", label: "الرئيسية" },
   { to: "/stories", label: "القصص" },
-  { to: "/books", label: "الكتب التعليمية" },
-  { to: "/games", label: "ألعاب وتعليم" },
-  { to: "/puzzles", label: "الألغاز" },
+  { to: "/create", label: "أنشئ قصة" },
+  { to: "/books", label: "كتب" },
+  { to: "/games", label: "ألعاب" },
+  { to: "/puzzles", label: "ألغاز" },
 ];
 
 export function Header() {
@@ -22,7 +23,7 @@ export function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b-4 border-secondary bg-card/95 backdrop-blur no-print">
+    <header className="sticky top-0 z-50 border-b border-border/60 bg-card/80 backdrop-blur-xl no-print">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
           <img
