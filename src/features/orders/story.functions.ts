@@ -14,7 +14,7 @@ export const getMyStory = createServerFn({ method: "POST" })
     const { data: order, error } = await context.supabase
       .from("orders")
       .select(
-        "id, child_name, status, template_id, story_templates!template_id(id, title, moral, pages, language, content_type, approved_at, admin_approved_at)",
+        "id, child_name, status, template_id, gifted_by_name, gifted_by_relation, publish_consent, published_to_library_at, story_templates!template_id(id, title, moral, pages, language, content_type, approved_at, admin_approved_at)",
       )
       .eq("id", data.orderId)
       .single();
@@ -76,6 +76,31 @@ export const getMyStory = createServerFn({ method: "POST" })
       contentType: (tpl?.content_type ?? "story") as "story" | "book",
       approvedAt: tpl?.approved_at ?? null,
       adminApprovedAt: tpl?.admin_approved_at ?? null,
+      gifterName: (order as { gifted_by_name?: string | null }).gifted_by_name ?? null,
+      gifterRelation: (order as { gifted_by_relation?: string | null }).gifted_by_relation ?? null,
+      publishConsent: !!(order as { publish_consent?: boolean }).publish_consent,
+      publishedToLibraryAt:
+        (order as { published_to_library_at?: string | null }).published_to_library_at ?? null,
       pages,
     };
   });
+
+const ConsentInput = z.object({
+  orderId: z.string().uuid(),
+  consent: z.boolean(),
+});
+
+/** يسمح للعميل بتفعيل/إيقاف موافقته على نشر قصته في «من أعمالنا» */
+export const setPublishConsent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ConsentInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("orders")
+      .update({ publish_consent: data.consent } as never)
+      .eq("id", data.orderId)
+      .eq("user_id", context.userId);
+    if (error) throw new Error("تعذر حفظ موافقة النشر");
+    return { ok: true, consent: data.consent };
+  });
+
