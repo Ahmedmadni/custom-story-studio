@@ -288,9 +288,17 @@ export function OrdersManager() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Button size="sm" variant="ghost" className="h-8 rounded-full" onClick={(e) => { e.stopPropagation(); setSelected(o); }}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button size="sm" variant="ghost" className="h-8 rounded-full" title="عرض" onClick={(e) => { e.stopPropagation(); setSelected(o); }}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 rounded-full" title="تعديل" onClick={(e) => { e.stopPropagation(); setEditing(o); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 rounded-full text-destructive hover:bg-destructive/10" title="حذف" onClick={(e) => { e.stopPropagation(); setDeleting(o); }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -300,7 +308,135 @@ export function OrdersManager() {
       </div>
 
       {selected && <OrderDialog order={selected} onClose={() => setSelected(null)} />}
+      {editing && (
+        <AdminOrderEditDialog
+          order={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            void queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+          }}
+        />
+      )}
+
+      <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف الطلب نهائياً؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف الطلب «{deleting?.storyTitle} — {deleting?.childName}» وكل صفحاته المولّدة وصورة الطفل وإيصال الدفع. لا يمكن التراجع.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleting && deleteMutation.mutate(deleting.id)}
+            >
+              نعم، احذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+}
+
+function AdminOrderEditDialog({
+  order,
+  onClose,
+  onSaved,
+}: {
+  order: AdminOrder;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const updateFn = useServerFn(adminUpdateOrder);
+  const [childName, setChildName] = useState(order.childName);
+  const [childAge, setChildAge] = useState<string>(order.childAge ? String(order.childAge) : "");
+  const [whatsapp, setWhatsapp] = useState(order.whatsapp);
+  const [priceEgp, setPriceEgp] = useState<string>(String(order.priceEgp));
+  const [notes, setNotes] = useState(order.notes ?? "");
+  const [adminNotes, setAdminNotes] = useState(order.adminNotes ?? "");
+  const [giftedByName, setGiftedByName] = useState(order.giftedByName ?? "");
+  const [giftedByRelation, setGiftedByRelation] = useState(order.giftedByRelation ?? "");
+
+  const save = useMutation({
+    mutationFn: () =>
+      updateFn({
+        data: {
+          orderId: order.id,
+          childName: childName.trim(),
+          childAge: childAge ? Number(childAge) : null,
+          whatsapp: whatsapp.trim(),
+          priceEgp: priceEgp ? Number(priceEgp) : undefined,
+          notes: notes.trim() || null,
+          adminNotes: adminNotes.trim() || null,
+          giftedByName: giftedByName.trim() || null,
+          giftedByRelation: giftedByRelation.trim() || null,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("تم حفظ التعديلات");
+      onSaved();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="font-display text-xl">تعديل الطلب</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <Label>اسم الطفل</Label>
+            <Input value={childName} onChange={(e) => setChildName(e.target.value)} maxLength={40} />
+          </div>
+          <div>
+            <Label>العمر</Label>
+            <Input type="number" min={1} max={14} value={childAge} onChange={(e) => setChildAge(e.target.value)} />
+          </div>
+          <div>
+            <Label>الواتساب</Label>
+            <Input dir="ltr" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
+          </div>
+          <div>
+            <Label>السعر (جنيه)</Label>
+            <Input type="number" min={0} value={priceEgp} onChange={(e) => setPriceEgp(e.target.value)} />
+          </div>
+          <div>
+            <Label>اسم مُهدي القصة</Label>
+            <Input value={giftedByName} onChange={(e) => setGiftedByName(e.target.value)} maxLength={60} />
+          </div>
+          <div>
+            <Label>صلة مُهدي القصة</Label>
+            <Input value={giftedByRelation} onChange={(e) => setGiftedByRelation(e.target.value)} maxLength={40} />
+          </div>
+          <div className="md:col-span-2">
+            <Label>ملاحظات العميل</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} rows={2} />
+          </div>
+          <div className="md:col-span-2">
+            <Label>ملاحظات إدارية (داخلية)</Label>
+            <Textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} maxLength={500} rows={2} />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" className="rounded-full" onClick={onClose}>إلغاء</Button>
+          <Button
+            className="rounded-full font-bold"
+            disabled={save.isPending || !childName.trim() || !whatsapp.trim()}
+            onClick={() => save.mutate()}
+          >
+            {save.isPending ? <Loader2 className="ms-1 h-4 w-4 animate-spin" /> : <Check className="ms-1 h-4 w-4" />}
+            حفظ
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
