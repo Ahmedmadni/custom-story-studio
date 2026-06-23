@@ -42,6 +42,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PaymentBadge, StatusBadge } from "@/features/orders/StatusBadge";
 import {
+  adminDeleteOrder,
   adminGeneratePage,
   adminGetOrderPages,
   adminListOrders,
@@ -49,10 +50,23 @@ import {
   adminRejectPayment,
   adminSetStatus,
   adminUnpublishOrderStory,
+  adminUpdateOrder,
   adminUpdateOrderPreferences,
   adminVerifyPayment,
 } from "@/features/admin/admin.functions";
 import { adminApproveTemplate } from "@/features/ai/ai.functions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { waLink } from "@/features/orders/whatsapp";
 import { generateStoryPdf, type PdfStoryPage } from "@/features/pdf/storyPdf";
 
