@@ -78,6 +78,9 @@ type AdminOrder = {
   donePages: number;
   publishedToLibraryAt: string | null;
   publishedSlug: string | null;
+  giftedByName: string | null;
+  giftedByRelation: string | null;
+  publishConsent: boolean;
 };
 
 type StatusFilter = "all" | "action" | "pending" | "approved" | "generating" | "ready" | "sent" | "rejected";
