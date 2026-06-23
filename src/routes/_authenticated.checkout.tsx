@@ -221,6 +221,8 @@ function CheckoutPage() {
               photoMode: d.photoMode,
               publishConsent: d.publishConsent,
               pagesCount: d.pagesCount,
+              gifterName: d.gifterName.trim() || null,
+              gifterRelation: d.gifterRelation.trim() || null,
             };
           }),
         },
