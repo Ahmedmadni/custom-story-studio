@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpen, Eye, FileDown, ShoppingCart } from "lucide-react";
+import { BookOpen, Eye, FileDown, Pencil, ShoppingCart, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/EmptyState";
@@ -13,7 +14,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyPdfs } from "@/features/pdf/pdf.functions";
-import { updateMyOrderPreferences } from "@/features/admin/admin.functions";
+import { updateMyOrderPreferences, deleteMyOrder } from "@/features/admin/admin.functions";
+import { OrderEditDialog, type EditableOrder } from "@/features/orders/OrderEditDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/my-orders")({
   head: () => ({
@@ -28,6 +40,11 @@ function MyOrders() {
   const updatePrefsFn = useServerFn(updateMyOrderPreferences);
   const queryClient = useQueryClient();
 
+  const deleteFn = useServerFn(deleteMyOrder);
+  const [editing, setEditing] = useState<EditableOrder | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const { data: orders, isLoading } = useQuery({
     queryKey: ["my-orders", user?.id],
     enabled: Boolean(user),
@@ -35,7 +52,7 @@ function MyOrders() {
       const { data } = await supabase
         .from("orders")
         .select(
-          "id, status, payment_status, payment_rejection_reason, child_name, language, photo_mode, created_at, story_templates!template_id(title, cover_url, slug)",
+          "id, status, payment_status, payment_rejection_reason, child_name, child_name_en, child_age, gender, whatsapp, notes, language, photo_mode, pages_count, print_copy, delivery_address, gifted_by_name, gifted_by_relation, publish_consent, created_at, story_templates!template_id(title, cover_url, slug, is_custom)",
         )
         .order("created_at", { ascending: false });
       return data ?? [];
@@ -55,12 +72,27 @@ function MyOrders() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (orderId: string) => deleteFn({ data: { orderId } }),
+    onSuccess: () => {
+      toast.success("تم حذف الطلب");
+      setDeletingId(null);
+      void queryClient.invalidateQueries({ queryKey: ["my-orders", user?.id] });
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setDeletingId(null);
+    },
+  });
 
   const { data: myPdfs } = useQuery({
     queryKey: ["my-pdfs", user?.id],
     enabled: Boolean(user),
     queryFn: () => fetchPdfs(),
   });
+
+  const canEdit = (o: { status: string; payment_status: string | null }) =>
+    o.status === "pending" && (o.payment_status ?? "unpaid") !== "verified";
 
   return (
     <div className="min-h-screen">
@@ -164,18 +196,87 @@ function MyOrders() {
                     </div>
                   )}
                 </div>
-                {(o.status === "ready" || o.status === "sent") && (
-                  <Button asChild className="rounded-full font-bold">
-                    <Link to="/story/$orderId" params={{ orderId: o.id }}>
-                      <Eye className="ms-1 h-4 w-4" />
-                      شاهد القصة
-                    </Link>
-                  </Button>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {(o.status === "ready" || o.status === "sent") && (
+                    <Button asChild className="rounded-full font-bold">
+                      <Link to="/story/$orderId" params={{ orderId: o.id }}>
+                        <Eye className="ms-1 h-4 w-4" />
+                        شاهد القصة
+                      </Link>
+                    </Button>
+                  )}
+                  {canEdit({
+                    status: o.status as string,
+                    payment_status: (o.payment_status as string | null) ?? null,
+                  }) && (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="rounded-full font-bold"
+                        onClick={() => {
+                          setEditing({
+                            id: o.id,
+                            child_name: o.child_name,
+                            child_name_en: (o as { child_name_en?: string | null }).child_name_en ?? null,
+                            child_age: (o as { child_age?: number | null }).child_age ?? null,
+                            gender: (o as { gender?: string }).gender ?? "boy",
+                            whatsapp: (o as { whatsapp?: string }).whatsapp ?? "",
+                            notes: (o as { notes?: string | null }).notes ?? null,
+                            language: (o.language as string) ?? "ar",
+                            photo_mode: (o.photo_mode as string) ?? "cartoon",
+                            pages_count: (o as { pages_count?: number }).pages_count ?? 10,
+                            print_copy: Boolean((o as { print_copy?: boolean }).print_copy),
+                            delivery_address: (o as { delivery_address?: string | null }).delivery_address ?? null,
+                            gifted_by_name: (o as { gifted_by_name?: string | null }).gifted_by_name ?? null,
+                            gifted_by_relation: (o as { gifted_by_relation?: string | null }).gifted_by_relation ?? null,
+                            publish_consent: Boolean((o as { publish_consent?: boolean }).publish_consent),
+                            isCustom: Boolean(o.story_templates?.is_custom),
+                            title: o.story_templates?.title ?? "قصة",
+                          });
+                          setEditOpen(true);
+                        }}
+                      >
+                        <Pencil className="ms-1 h-4 w-4" />
+                        تعديل
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="rounded-full font-bold text-destructive hover:bg-destructive/10"
+                        onClick={() => setDeletingId(o.id)}
+                      >
+                        <Trash2 className="ms-1 h-4 w-4" />
+                        حذف
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             ))
           )}
         </div>
+
+        <OrderEditDialog order={editing} open={editOpen} onOpenChange={setEditOpen} />
+
+        <AlertDialog open={!!deletingId} onOpenChange={(v) => !v && setDeletingId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>حذف الطلب؟</AlertDialogTitle>
+              <AlertDialogDescription>
+                سيتم حذف الطلب نهائياً مع صورة الطفل وإيصال التحويل. لا يمكن التراجع عن هذا الإجراء.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={deleteMutation.isPending}
+                onClick={() => deletingId && deleteMutation.mutate(deletingId)}
+              >
+                نعم، احذف
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {(myPdfs ?? []).length > 0 && (
           <div className="mt-12">

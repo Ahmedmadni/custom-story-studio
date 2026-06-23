@@ -22,7 +22,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  PAGES_OPTIONS,
+  pagesOptionsFor,
+  pricePerPages,
   PRINT_COPY_PRICE_EGP,
   useCart,
 } from "@/features/cart/CartContext";
@@ -243,8 +244,8 @@ function CheckoutPage() {
 
   const itemsSubtotal = items.reduce((sum, it) => {
     const d = drafts[it.templateId];
-    const opt = PAGES_OPTIONS.find((o) => o.pages === d?.pagesCount);
-    return sum + (opt?.price ?? PAGES_OPTIONS[0].price);
+    const isCustom = Boolean(it.isCustom);
+    return sum + pricePerPages((d?.pagesCount ?? 10) as 10 | 16, isCustom);
   }, 0);
   const printExtra = printCopy ? PRINT_COPY_PRICE_EGP : 0;
   const grandTotal = itemsSubtotal + printExtra;
@@ -536,8 +537,13 @@ function CheckoutPage() {
 
                 <div className="mt-4">
                   <Label className="font-bold">عدد صفحات القصة</Label>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {item.isCustom
+                      ? "🪄 قصة مخصصة بأفكارك — التسعير: 10 صفحات 200 ج، 16 صفحة 250 ج"
+                      : "📚 قصة من المكتبة — التسعير: 10 صفحات 150 ج، 16 صفحة 200 ج"}
+                  </p>
                   <div className="mt-2 grid grid-cols-2 gap-2">
-                    {PAGES_OPTIONS.map((opt) => (
+                    {pagesOptionsFor(Boolean(item.isCustom)).map((opt) => (
                       <button
                         key={opt.pages}
                         type="button"

@@ -316,6 +316,159 @@ export const updateMyOrderPreferences = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * تحقق أن الطلب يخص المستخدم ولم يعتمده الادمن (لا تعديل/حذف بعد التأكيد).
+ * نسمح بالتعديل ما دامت الحالة pending ولم يتم تأكيد الدفع.
+ */
+async function assertOrderEditable(
+  supabaseAdmin: import("@supabase/supabase-js").SupabaseClient,
+  orderId: string,
+  userId: string,
+) {
+  const { data: order, error } = await supabaseAdmin
+    .from("orders")
+    .select("id, user_id, status, payment_status, child_photo_path, receipt_path")
+    .eq("id", orderId)
+    .single();
+  if (error || !order) throw new Error("الطلب غير موجود");
+  if (order.user_id !== userId) throw new Error("غير مصرح");
+  if ((order.payment_status as string) === "verified")
+    throw new Error("لا يمكن التعديل بعد اعتماد الدفع من الإدارة");
+  if (!["pending"].includes(order.status as string))
+    throw new Error("لا يمكن التعديل بعد بدء معالجة الطلب");
+  const { count } = await supabaseAdmin
+    .from("generated_pages")
+    .select("id", { count: "exact", head: true })
+    .eq("order_id", orderId);
+  if ((count ?? 0) > 0) throw new Error("لا يمكن التعديل بعد بدء توليد الصفحات");
+  return order as {
+    id: string;
+    user_id: string;
+    status: string;
+    payment_status: string;
+    child_photo_path: string | null;
+    receipt_path: string | null;
+  };
+}
+
+const UpdateMyOrderInput = z.object({
+  orderId: z.string().uuid(),
+  childName: z.string().trim().min(1).max(40),
+  childNameEn: z.string().trim().max(40).nullable().optional(),
+  childAge: z.number().int().min(1).max(14).nullable().optional(),
+  gender: z.enum(["boy", "girl"]),
+  whatsapp: z.string().trim().min(8).max(20),
+  notes: z.string().trim().max(500).nullable().optional(),
+  language: z.enum(["ar", "en", "bilingual"]),
+  photoMode: z.enum(["cartoon", "real"]),
+  pagesCount: z.union([z.literal(10), z.literal(16)]),
+  printCopy: z.boolean(),
+  deliveryAddress: z.string().trim().max(500).nullable().optional(),
+  gifterName: z.string().trim().max(60).nullable().optional(),
+  gifterRelation: z.string().trim().max(40).nullable().optional(),
+  publishConsent: z.boolean().optional(),
+  /** مسار صورة طفل جديدة (إن رفعها العميل) */
+  newChildPhotoPath: z.string().min(1).nullable().optional(),
+  /** مسار إيصال جديد (إن رفعه العميل) */
+  newReceiptPath: z.string().min(1).nullable().optional(),
+});
+
+/** العميل: تعديل بياناته كاملةً قبل اعتماد الدفع */
+export const updateMyOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => UpdateMyOrderInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const existing = await assertOrderEditable(supabaseAdmin, data.orderId, context.userId);
+
+    // إعادة احتساب السعر حسب نوع القالب
+    const { data: orderTpl } = await supabaseAdmin
+      .from("orders")
+      .select("template_id, story_templates!template_id(is_custom)")
+      .eq("id", data.orderId)
+      .single();
+    const isCustom = Boolean(
+      (orderTpl as { story_templates?: { is_custom?: boolean } } | null)?.story_templates?.is_custom,
+    );
+    const { pricePerPages, PRINT_COPY_PRICE_EGP } = await import("@/features/cart/pricing");
+    const base = pricePerPages(data.pagesCount, isCustom);
+    const priceEgp = base + (data.printCopy ? PRINT_COPY_PRICE_EGP : 0);
+
+    if (data.printCopy && !(data.deliveryAddress ?? "").trim()) {
+      throw new Error("اكتب عنوان التوصيل لطلب نسخة مطبوعة");
+    }
+
+    const patch: Record<string, unknown> = {
+      child_name: data.childName,
+      child_name_en: data.childNameEn?.trim() || null,
+      child_age: data.childAge ?? null,
+      gender: data.gender,
+      whatsapp: data.whatsapp,
+      notes: data.notes?.trim() || null,
+      language: data.language,
+      photo_mode: data.photoMode,
+      pages_count: data.pagesCount,
+      print_copy: data.printCopy,
+      delivery_address: data.printCopy ? (data.deliveryAddress ?? "").trim() : null,
+      gifted_by_name: data.gifterName?.trim() || null,
+      gifted_by_relation: data.gifterRelation?.trim() || null,
+      price_egp: priceEgp,
+    };
+    if (data.publishConsent !== undefined) patch.publish_consent = data.publishConsent;
+    if (data.newChildPhotoPath) patch.child_photo_path = data.newChildPhotoPath;
+    if (data.newReceiptPath) {
+      patch.receipt_path = data.newReceiptPath;
+      patch.payment_status = "receipt_uploaded";
+      patch.payment_rejection_reason = null;
+    }
+
+    const { error } = await supabaseAdmin
+      .from("orders")
+      .update(patch as never)
+      .eq("id", data.orderId);
+    if (error) throw new Error("تعذر تحديث الطلب");
+
+    // نظافة: نحذف الملفات القديمة لو تم استبدالها
+    const removals: Array<{ bucket: string; path: string }> = [];
+    if (data.newChildPhotoPath && existing.child_photo_path && existing.child_photo_path !== data.newChildPhotoPath) {
+      removals.push({ bucket: "child-photos", path: existing.child_photo_path });
+    }
+    if (data.newReceiptPath && existing.receipt_path && existing.receipt_path !== data.newReceiptPath) {
+      removals.push({ bucket: "payment-receipts", path: existing.receipt_path });
+    }
+    await Promise.all(
+      removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])),
+    );
+
+    return { ok: true };
+  });
+
+const DeleteMyOrderInput = z.object({ orderId: z.string().uuid() });
+
+/** العميل: حذف الطلب قبل اعتماد الدفع */
+export const deleteMyOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => DeleteMyOrderInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const existing = await assertOrderEditable(supabaseAdmin, data.orderId, context.userId);
+    const { error } = await supabaseAdmin
+      .from("orders")
+      .delete()
+      .eq("id", data.orderId);
+    if (error) throw new Error("تعذر حذف الطلب");
+    // نظافة ملفات
+    const removals: Array<{ bucket: string; path: string }> = [];
+    if (existing.child_photo_path)
+      removals.push({ bucket: "child-photos", path: existing.child_photo_path });
+    if (existing.receipt_path)
+      removals.push({ bucket: "payment-receipts", path: existing.receipt_path });
+    await Promise.all(
+      removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])),
+    );
+    return { ok: true };
+  });
+
 const GeneratePageInput = z.object({
   orderId: z.string().uuid(),
   pageNumber: z.number().int().min(1).max(12),
