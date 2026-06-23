@@ -216,7 +216,25 @@ export function OrdersManager() {
                         </div>
                       )}
                       <div>
-                        <p className="font-bold">{o.childName}{o.childAge ? ` · ${o.childAge}س` : ""}</p>
+                        <p className="font-bold">
+                          {o.childName}{o.childAge ? ` · ${o.childAge}س` : ""}
+                          {o.giftedByName && (
+                            <span
+                              className="ms-2 rounded-full bg-pink-100 px-2 py-0.5 text-[10px] font-bold text-pink-700"
+                              title={`إهداء من ${o.giftedByRelation ?? ""} ${o.giftedByName}`}
+                            >
+                              💝 إهداء
+                            </span>
+                          )}
+                          {o.publishConsent && (
+                            <span
+                              className="ms-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary"
+                              title="وافق العميل على نشر القصة في «من أعمالنا»"
+                            >
+                              🌟 نشر
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-muted-foreground line-clamp-1">{o.storyTitle}</p>
                       </div>
                     </div>
