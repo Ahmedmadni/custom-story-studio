@@ -50,9 +50,11 @@ const PHOTO_MODE_OPTIONS: {
   },
 ];
 
+const RELATION_OPTIONS = ["الأب", "الأم", "الجد", "الجدة", "العم", "العمة", "الخال", "الخالة", "الأخ", "الأخت", "صديق العائلة"];
+
 function OrderPage() {
   const { templateId } = Route.useParams();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const [childName, setChildName] = useState("");
@@ -67,6 +69,9 @@ function OrderPage() {
   const [heroCharacter, setHeroCharacter] = useState("");
   const [heroQuery, setHeroQuery] = useState("");
   const [heroCat, setHeroCat] = useState<"الكل" | HeroOption["category"]>("الكل");
+  const [gifterName, setGifterName] = useState("");
+  const [gifterRelation, setGifterRelation] = useState("");
+  const [publishConsent, setPublishConsent] = useState(false);
 
   const filteredHeroes = useMemo(() => {
     const q = heroQuery.trim().toLowerCase();
@@ -80,6 +85,7 @@ function OrderPage() {
       );
     });
   }, [heroQuery, heroCat]);
+
 
   const { data: template } = useQuery({
     queryKey: ["template", templateId],
@@ -140,17 +146,28 @@ function OrderPage() {
         photo_mode: photoMode,
         hero_character: heroCharacter.trim() || null,
         notes: combinedNotes,
+        gifted_by_name: gifterName.trim() || null,
+        gifted_by_relation: gifterRelation.trim() || null,
+        publish_consent: publishConsent,
+        ...(isAdmin
+          ? { payment_status: "verified", status: "approved", price_egp: 0, paid_at: new Date().toISOString() }
+          : {}),
       });
       if (insertErr) throw new Error("تعذر إرسال الطلب");
 
-      toast.success("تم استلام طلبك! سنراجعه ونتواصل معك قريباً 🎉");
-      void navigate({ to: "/my-orders" });
+      toast.success(
+        isAdmin
+          ? "تم إنشاء الطلب واعتماده — يمكنك الآن توليد القصة من لوحة التحكم 🎉"
+          : "تم استلام طلبك! سنراجعه ونتواصل معك قريباً 🎉",
+      );
+      void navigate({ to: isAdmin ? "/admin/orders" : "/my-orders" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "حدث خطأ");
     } finally {
       setSubmitting(false);
     }
   };
+
 
   return (
     <div className="min-h-screen">
@@ -376,6 +393,61 @@ function OrderPage() {
               </div>
             )}
           </div>
+
+          {/* إهداء القصة */}
+          <div className="rounded-2xl border-2 border-pink-200 bg-pink-50/40 p-4">
+            <Label className="flex items-center gap-2 font-bold">
+              💝 إهداء القصة (اختياري)
+            </Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              اكتب اسم مهدي القصة (الأب/الأم/الجد…) — سيظهر في غلاف القصة وفي صفحة الإهداء داخل النص.
+            </p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div>
+                <Label htmlFor="gifter-name" className="text-sm">اسم المُهدي</Label>
+                <Input
+                  id="gifter-name"
+                  value={gifterName}
+                  onChange={(e) => setGifterName(e.target.value)}
+                  placeholder="مثال: أحمد"
+                  maxLength={60}
+                  className="mt-1 rounded-xl"
+                />
+              </div>
+              <div>
+                <Label htmlFor="gifter-rel" className="text-sm">العلاقة</Label>
+                <select
+                  id="gifter-rel"
+                  value={gifterRelation}
+                  onChange={(e) => setGifterRelation(e.target.value)}
+                  className="mt-1 w-full rounded-xl border-2 border-border bg-background p-2 text-sm"
+                >
+                  <option value="">— اختر —</option>
+                  {RELATION_OPTIONS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* موافقة النشر */}
+          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border-2 border-border bg-secondary/20 p-4">
+            <input
+              type="checkbox"
+              checked={publishConsent}
+              onChange={(e) => setPublishConsent(e.target.checked)}
+              className="mt-1 h-5 w-5 accent-primary"
+            />
+            <div className="text-sm">
+              <div className="font-bold">أوافق على نشر قصتي ضمن «من أعمالنا» في المكتبة 🌟</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                هذا اختياري تماماً — يمكنك تغيير الموافقة لاحقاً من صفحة القصة بعد التسليم.
+              </div>
+            </div>
+          </label>
+
+
 
           {/* واتساب */}
           <div>

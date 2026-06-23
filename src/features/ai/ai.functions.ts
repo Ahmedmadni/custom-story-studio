@@ -17,7 +17,9 @@ import {
   ageStylePrompt,
   bakedTitlePrompt,
   photoModePrompt,
+  gifterDedicationPrompt,
 } from "@/features/ai/storyStyle";
+
 import { parsePages, type StoryPage } from "@/features/ai/storyTypes";
 
 const BookMetaInput = z.object({
@@ -44,7 +46,10 @@ const GenerateInput = z.object({
   contentType: z.enum(["story", "book"]).default("story"),
   pagesCount: z.union([z.literal(10), z.literal(16)]).optional(),
   bookMeta: BookMetaInput.optional(),
+  gifterName: z.string().trim().max(60).optional(),
+  gifterRelation: z.string().trim().max(40).optional(),
 });
+
 
 interface AiPage {
   n: number;
@@ -269,6 +274,7 @@ export const generateAiStory = createServerFn({ method: "POST" })
       ? "The hero is a GIRL. Use she/her pronouns everywhere in English. Describe her as a girl child."
       : "The hero is a BOY. Use he/him pronouns everywhere in English. Describe him as a boy child.";
 
+    const dedication = gifterDedicationPrompt(data.gifterName, data.gifterRelation);
     const userPrompt = `${themeLine}
 اسم الطفل سيكون: ${data.childName} (استخدم {child} في النص)
 عمر الطفل: ${data.age ?? "4-8"} سنوات
@@ -276,7 +282,9 @@ export const generateAiStory = createServerFn({ method: "POST" })
 ${arabicGenderRule}
 ${englishGenderRule}
 في حقل character اذكر أن البطل ${isGirl ? "girl" : "boy"} child.
-لغة المحتوى: ${data.language === "ar" ? "العربية فقط" : data.language === "en" ? "English only" : "Bilingual Arabic + English"}`;
+لغة المحتوى: ${data.language === "ar" ? "العربية فقط" : data.language === "en" ? "English only" : "Bilingual Arabic + English"}
+${dedication}`;
+
 
     const story = await callLlm(
       buildSystemPrompt(data.contentType, data.language, pageCount, data.bookMeta),
@@ -576,20 +584,36 @@ export const reorderPages = createServerFn({ method: "POST" })
 
 const ApproveInput = z.object({ templateId: z.string().uuid() });
 
-/** اعتماد المحتوى نهائياً — شرط مسبق لتصدير PDF ومشاركته */
+/** اعتماد المحتوى نهائياً — شرط مسبق لتصدير PDF ومشاركته.
+ *  إن كان المُستدعي مسؤولاً (admin) فإن الاعتماد يتم نهائياً مباشرةً
+ *  بدون الحاجة لمرحلة مراجعة الإدارة، ويُفعّل النشر تلقائياً. */
 export const approveTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ApproveInput.parse(input))
   .handler(async ({ data, context }) => {
     await ensureOwnerOrAdmin(context, data.templateId);
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const now = new Date().toISOString();
+    const payload = isAdmin
+      ? {
+          approved_at: now,
+          admin_approved_at: now,
+          admin_approved_by: context.userId,
+          is_published: true,
+        }
+      : { approved_at: now };
     const { error } = await supabaseAdmin
       .from("story_templates")
-      .update({ approved_at: new Date().toISOString() } as never)
+      .update(payload as never)
       .eq("id", data.templateId);
     if (error) throw new Error("تعذر اعتماد المحتوى");
-    return { ok: true, approvedAt: new Date().toISOString() };
+    return { ok: true, approvedAt: now, adminApprovedAt: isAdmin ? now : null };
   });
+
 
 const TemplateIdInput = z.object({ templateId: z.string().uuid() });
 

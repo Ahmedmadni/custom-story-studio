@@ -97,6 +97,8 @@ export type Database = {
           created_at: string
           delivery_address: string | null
           gender: Database["public"]["Enums"]["child_gender"]
+          gifted_by_name: string | null
+          gifted_by_relation: string | null
           hero_character: string | null
           id: string
           language: string
@@ -111,6 +113,7 @@ export type Database = {
           price_egp: number
           print_copy: boolean
           publish_consent: boolean
+          published_at: string | null
           published_template_id: string | null
           published_to_library_at: string | null
           receipt_path: string | null
@@ -128,6 +131,8 @@ export type Database = {
           created_at?: string
           delivery_address?: string | null
           gender?: Database["public"]["Enums"]["child_gender"]
+          gifted_by_name?: string | null
+          gifted_by_relation?: string | null
           hero_character?: string | null
           id?: string
           language?: string
@@ -142,6 +147,7 @@ export type Database = {
           price_egp?: number
           print_copy?: boolean
           publish_consent?: boolean
+          published_at?: string | null
           published_template_id?: string | null
           published_to_library_at?: string | null
           receipt_path?: string | null
@@ -159,6 +165,8 @@ export type Database = {
           created_at?: string
           delivery_address?: string | null
           gender?: Database["public"]["Enums"]["child_gender"]
+          gifted_by_name?: string | null
+          gifted_by_relation?: string | null
           hero_character?: string | null
           id?: string
           language?: string
@@ -173,6 +181,7 @@ export type Database = {
           price_egp?: number
           print_copy?: boolean
           publish_consent?: boolean
+          published_at?: string | null
           published_template_id?: string | null
           published_to_library_at?: string | null
           receipt_path?: string | null
@@ -237,11 +246,13 @@ export type Database = {
           created_by: string | null
           id: string
           is_custom: boolean
+          is_gallery: boolean
           is_published: boolean
           language: string
           moral: string
           pages: Json
           slug: string
+          source_order_id: string | null
           source_template_id: string | null
           summary: string
           title: string
@@ -260,11 +271,13 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_custom?: boolean
+          is_gallery?: boolean
           is_published?: boolean
           language?: string
           moral: string
           pages?: Json
           slug: string
+          source_order_id?: string | null
           source_template_id?: string | null
           summary: string
           title: string
@@ -283,17 +296,26 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_custom?: boolean
+          is_gallery?: boolean
           is_published?: boolean
           language?: string
           moral?: string
           pages?: Json
           slug?: string
+          source_order_id?: string | null
           source_template_id?: string | null
           summary?: string
           title?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "story_templates_source_order_id_fkey"
+            columns: ["source_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "story_templates_source_template_id_fkey"
             columns: ["source_template_id"]

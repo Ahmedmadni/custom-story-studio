@@ -17,6 +17,8 @@ interface PdfActionsProps {
   pages: PdfStoryPage[];
   /** templateId يُرسل للخادم لإثبات اعتماد المحتوى قبل الحفظ */
   templateId?: string;
+  gifterName?: string | null;
+  gifterRelation?: string | null;
   /** تعطيل مؤقت (مثلاً قبل الاعتماد أو أثناء توليد الصور) */
   disabled?: boolean;
   /** سبب التعطيل (يُعرض للمستخدم بدلاً من الرسالة الافتراضية) */
@@ -40,6 +42,8 @@ export function PdfActions({
   contentType = "story",
   pages,
   templateId,
+  gifterName,
+  gifterRelation,
   disabled,
   disabledReason,
 }: PdfActionsProps) {
@@ -50,7 +54,7 @@ export function PdfActions({
   const cacheRef = useRef<{ sig: string; blob: Blob } | null>(null);
   const savedSigRef = useRef<string | null>(null);
 
-  const sig = JSON.stringify([title, childName, language, ...pages.map((p) => [p.n, p.imageUrl ?? ""])]);
+  const sig = JSON.stringify([title, childName, language, gifterName, gifterRelation, ...pages.map((p) => [p.n, p.imageUrl ?? ""])]);
   const fileName = `${title.replace(/[\\/:*?"<>|]/g, "")}.pdf`;
 
   const ensurePdf = async (): Promise<Blob> => {
@@ -62,12 +66,15 @@ export function PdfActions({
       language,
       contentType,
       pages,
+      gifterName,
+      gifterRelation,
       onProgress: (done, total) => setProgress({ done, total }),
     });
     cacheRef.current = { sig, blob };
     setProgress(null);
     return blob;
   };
+
 
   const saveToAccount = async (blob: Blob) => {
     if (savedSigRef.current === sig) return;

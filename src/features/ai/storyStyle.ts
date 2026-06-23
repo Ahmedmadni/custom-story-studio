@@ -56,9 +56,21 @@ export type PhotoMode = "cartoon" | "real";
 
 export function photoModePrompt(mode: PhotoMode): string {
   if (mode === "real") {
-    return "ABSOLUTE TOP PRIORITY — REAL FACE PRESERVATION (live-action photo head on a fully 3D cartoon world). A reference photo of the real hero child is attached. You MUST keep the child's real photographic face 100% IDENTICAL to the reference photo — same face shape, same skin tone, same eyes (color, shape, position), same nose, same mouth, same hair (color, style, length), same eyebrows, same age. The face must look like an actual photograph, NOT illustrated, NOT cartoonized, NOT smoothed, NOT redrawn, NOT aged up/down. Treat the face as if it was photo-composited (cut and pasted) from the reference image onto the scene, then only color-matched to the scene's lighting. The BODY, OUTFIT (hero costume / themed clothes), POSE, BACKGROUND, PROPS, OTHER CHARACTERS, SKY, GROUND, ANIMALS, OBJECTS, and ALL SURROUNDINGS are fully rendered as premium cinematic 3D cartoon movie illustration. Direct references to copy this exact contrast: Superman (2025) live-action movie posters where a real human face stands inside a stylized comic world, Sonic the Hedgehog (2020) movie posters where a real human actor stands beside a fully CGI cartoon hedgehog, Tom & Jerry (2021) movie posters where real human actors interact with 3D cartoon characters, Detective Pikachu posters, Peter Rabbit posters. The contrast between the REAL photographic face and the fully 3D illustrated cartoon world around it is the entire point and must be preserved. Do NOT illustrate the face. Do NOT make it look painted.";
+    return "ABSOLUTE TOP PRIORITY — REAL FACE PRESERVATION (live-action photo head on a fully 3D cartoon world). A reference photo of the real hero child is attached. You MUST keep the child's real photographic face 100% IDENTICAL to the reference photo on EVERY SINGLE PAGE of the book without ANY exception — same face shape, same skin tone, same eyes (color, shape, position), same nose, same mouth, same hair (color, style, length), same eyebrows, same age, same freckles/marks, same ears, same jawline. The face must look like an actual photograph, NOT illustrated, NOT cartoonized, NOT smoothed, NOT redrawn, NOT aged up/down, NOT re-lit beyond color-matching, NOT stylized. Treat the face as if it was photo-composited (cut and pasted) from the reference image onto the scene, then ONLY color-matched to the scene's lighting. Do NOT illustrate the face. Do NOT make it look painted. Do NOT alter facial proportions between pages. The face must read as the SAME real human across all pages — same exact identity from page 1 to last page. The BODY, OUTFIT (hero costume / themed clothes), POSE, BACKGROUND, PROPS, OTHER CHARACTERS, SKY, GROUND, ANIMALS, OBJECTS, and ALL SURROUNDINGS are fully rendered as premium cinematic 3D cartoon movie illustration. Direct references to copy this exact contrast: Superman (2025) live-action movie posters where a real human face stands inside a stylized comic world, Sonic the Hedgehog (2020) movie posters, Tom & Jerry (2021) movie posters, Detective Pikachu posters, Peter Rabbit posters. The contrast between the REAL photographic face and the fully 3D illustrated cartoon world around it is the entire point and must be preserved on every page.";
   }
-  return "A reference photo of the real hero child is attached. Transform this exact child into an adorable 3D cartoon hero fully consistent with the story art style: keep the child clearly recognizable (same face shape, hairstyle, hair color, skin tone, eye color) but render entirely as a premium cinematic 3D cartoon character matching all other illustrations";
+  return "A reference photo of the real hero child is attached. Transform this exact child into an adorable 3D cartoon hero fully consistent with the story art style: keep the child clearly recognizable (same face shape, hairstyle, hair color, skin tone, eye color) but render entirely as a premium cinematic 3D cartoon character matching all other illustrations. The cartoon face must look IDENTICAL across every page of the book.";
+}
+
+/** نص إهداء يُحقن في system prompt عند توفر اسم مُهدي القصة */
+export function gifterDedicationPrompt(
+  gifterName?: string | null,
+  gifterRelation?: string | null,
+): string {
+  const name = (gifterName ?? "").trim();
+  if (!name) return "";
+  const relation = (gifterRelation ?? "").trim();
+  const who = relation ? `${relation} ${name}` : name;
+  return `إهداء خاص: هذه القصة مُهداة من ${who} إلى الطفل البطل. اجعل الصفحة الأولى من القصة تبدأ بسطر إهداء قصير يقول مثلاً: "إهداء حبيب من ${who} 💝". واذكر ${who} مرة واحدة بطريقة طبيعية ودافئة داخل أحد مشاهد القصة (مثلاً يحضنه/يحكي له/يهديه شيئاً)، دون مبالغة.`;
 }
 
 /**
@@ -71,3 +83,4 @@ export function bakedTitlePrompt(title?: string | null): string {
   if (!clean) return "";
   return `Bake this exact short English title text into the top of the image as a polished movie-poster style logotype (clear, perfectly readable, no spelling errors, no extra letters): "${clean}". The title text must be inside the image, integrated into the artwork like a children's movie poster.`;
 }
+
