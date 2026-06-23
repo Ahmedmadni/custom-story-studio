@@ -237,6 +237,7 @@ function OrderPage() {
                 onChange={(e) => setChildAge(e.target.value)}
                 className="mt-2 rounded-xl"
               />
+            </div>
           </div>
 
           {(language === "en" || language === "bilingual") && (
@@ -258,8 +259,6 @@ function OrderPage() {
               </p>
             </div>
           )}
-
-          </div>
 
           {/* اللغة */}
           <div>
