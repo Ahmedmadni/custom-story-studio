@@ -160,22 +160,11 @@ function Index() {
               <Button
                 asChild
                 size="lg"
-                className="h-14 rounded-2xl bg-primary px-8 text-base font-bold text-primary-foreground shadow-[var(--shadow-soft)] hover:opacity-95"
+                className="h-16 rounded-2xl bg-primary px-10 text-lg font-bold text-primary-foreground shadow-[var(--shadow-soft)] hover:opacity-95"
               >
                 <Link to="/stories">
-                  <PlayCircle className="ms-2 h-5 w-5" />
-                  ابدأ القراءة
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="h-14 rounded-2xl border-2 border-border bg-card px-8 text-base font-bold hover:border-primary hover:text-primary"
-              >
-                <Link to="/create">
-                  <Wand2 className="ms-2 h-5 w-5" />
-                  أنشئ قصة لطفلك
+                  <PlayCircle className="ms-2 h-6 w-6" />
+                  تصفّح القصص
                 </Link>
               </Button>
             </div>
