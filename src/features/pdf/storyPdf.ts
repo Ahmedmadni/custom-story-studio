@@ -142,12 +142,23 @@ function buildCover(input: StoryPdfInput, coverImg: string | null, logoData: str
     box.appendChild(hero);
   }
 
+  if (input.gifterName) {
+    const who = input.gifterRelation
+      ? `${input.gifterRelation} ${input.gifterName}`
+      : input.gifterName;
+    const ded = document.createElement("div");
+    ded.style.cssText = `margin-top:14px;display:inline-block;background:rgba(255,255,255,0.92);color:#9d174d;border-radius:999px;padding:10px 28px;font-size:22px;font-weight:800;box-shadow:0 4px 16px rgba(0,0,0,0.35);`;
+    ded.textContent = `💝 إهداء من ${who}`;
+    box.appendChild(ded);
+  }
+
   if (input.language === "bilingual") {
     const tag = document.createElement("div");
     tag.style.cssText = `margin-top:14px;font-size:16px;font-weight:700;color:#fff;opacity:.9;`;
     tag.textContent = "Bilingual edition — عربي / English";
     box.appendChild(tag);
   }
+
 
   el.appendChild(box);
   return el;
