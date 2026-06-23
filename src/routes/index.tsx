@@ -487,31 +487,18 @@ function Index() {
               </Button>
             </div>
             <div className="relative">
-              <div className="grid gap-3">
-                {[
-                  { label: "اسم الطفل", value: "ليان", icon: "👧" },
-                  { label: "العمر", value: "5 سنوات", icon: "🎂" },
-                  { label: "الموضوع", value: "مغامرة فضائية", icon: "🚀" },
-                  { label: "الدرس", value: "الشجاعة وحب الاكتشاف", icon: "💫" },
-                ].map((f, i) => (
-                  <div
-                    key={f.label}
-                    className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm backdrop-blur"
-                    style={{ animation: `pop-in 0.5s ${i * 0.1}s both` }}
-                  >
-                    <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-xl">
-                      {f.icon}
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-muted-foreground">{f.label}</p>
-                      <p className="font-display text-lg font-extrabold">{f.value}</p>
-                    </div>
-                  </div>
-                ))}
-                <div className="rounded-2xl bg-gradient-to-l from-primary to-candy p-4 text-center font-extrabold text-white shadow-[var(--shadow-soft)]">
-                  ✨ قصة ليان جاهزة في 12 ثانية!
-                </div>
-              </div>
+              <span className="pointer-events-none absolute right-4 top-2 text-2xl">⭐</span>
+              <span className="pointer-events-none absolute left-2 top-10 h-4 w-4 rounded-full bg-pink-400/80" />
+              <span className="pointer-events-none absolute right-10 bottom-6 h-5 w-5 rounded-full bg-sky-400/80" />
+              <span className="pointer-events-none absolute left-8 bottom-2 h-4 w-4 rounded-full bg-emerald-400/80" />
+              <img
+                src={aiLaptop}
+                alt="إنشاء قصة بالذكاء الاصطناعي على كيدزي"
+                width={1024}
+                height={768}
+                loading="lazy"
+                className="relative mx-auto w-full max-w-[520px] drop-shadow-[0_20px_40px_rgba(108,77,255,0.25)]"
+              />
             </div>
           </div>
         </div>
