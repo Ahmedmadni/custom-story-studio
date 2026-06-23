@@ -60,6 +60,7 @@ function StoryPreview() {
       title: story.title,
       coverUrl: story.cover_url,
       contentType: (story.content_type ?? "story") as "story" | "book",
+      isCustom: Boolean((story as { is_custom?: boolean }).is_custom),
     });
     toast.success(`أُضيف «${story.title}» للسلة — ${items.length + 1} عنصر`);
   };
