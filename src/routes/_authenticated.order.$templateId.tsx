@@ -146,17 +146,28 @@ function OrderPage() {
         photo_mode: photoMode,
         hero_character: heroCharacter.trim() || null,
         notes: combinedNotes,
+        gifted_by_name: gifterName.trim() || null,
+        gifted_by_relation: gifterRelation.trim() || null,
+        publish_consent: publishConsent,
+        ...(isAdmin
+          ? { payment_status: "verified", status: "approved", price_egp: 0, paid_at: new Date().toISOString() }
+          : {}),
       });
       if (insertErr) throw new Error("تعذر إرسال الطلب");
 
-      toast.success("تم استلام طلبك! سنراجعه ونتواصل معك قريباً 🎉");
-      void navigate({ to: "/my-orders" });
+      toast.success(
+        isAdmin
+          ? "تم إنشاء الطلب واعتماده — يمكنك الآن توليد القصة من لوحة التحكم 🎉"
+          : "تم استلام طلبك! سنراجعه ونتواصل معك قريباً 🎉",
+      );
+      void navigate({ to: isAdmin ? "/admin/orders" : "/my-orders" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "حدث خطأ");
     } finally {
       setSubmitting(false);
     }
   };
+
 
   return (
     <div className="min-h-screen">
