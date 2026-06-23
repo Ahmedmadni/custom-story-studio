@@ -58,6 +58,7 @@ function OrderPage() {
   const navigate = useNavigate();
 
   const [childName, setChildName] = useState("");
+  const [childNameEn, setChildNameEn] = useState("");
   const [childAge, setChildAge] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [notes, setNotes] = useState("");
@@ -139,6 +140,7 @@ function OrderPage() {
         user_id: user.id,
         template_id: templateId,
         child_name: childName.trim(),
+        child_name_en: childNameEn.trim() || null,
         child_age: childAge ? Number(childAge) : null,
         whatsapp: whatsapp.trim(),
         child_photo_path: path,
@@ -237,6 +239,26 @@ function OrderPage() {
               />
             </div>
           </div>
+
+          {(language === "en" || language === "bilingual") && (
+            <div>
+              <Label htmlFor="cname-en" className="font-bold">
+                Child's name in English {language === "bilingual" ? "(اختياري)" : ""}
+              </Label>
+              <Input
+                id="cname-en"
+                dir="ltr"
+                value={childNameEn}
+                onChange={(e) => setChildNameEn(e.target.value)}
+                placeholder="e.g. Youssef"
+                maxLength={40}
+                className="mt-2 rounded-xl"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                سيُستخدم هذا الاسم في النص الإنجليزي من القصة.
+              </p>
+            </div>
+          )}
 
           {/* اللغة */}
           <div>
