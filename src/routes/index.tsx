@@ -198,38 +198,114 @@ function Index() {
           </div>
 
           <div className="relative">
-            <div className="absolute -inset-6 rounded-[3rem] bg-gradient-to-tr from-primary/30 via-candy/20 to-accent/20 blur-2xl" />
-            <div className="relative overflow-hidden rounded-[2.5rem] border border-border/60 bg-card shadow-[var(--shadow-card)]">
-              <img
-                src={heroAsset.url}
-                alt="أطفال يقرأون قصة سحرية في عالم Kidzy"
-                width={1536}
-                height={1024}
-                className="aspect-[4/3] w-full object-cover"
-              />
-              {heroStory && (
-                <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/40 bg-white/85 p-4 backdrop-blur-md">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <span className="text-xs font-bold text-primary">قصة اليوم المميزة</span>
-                      <h3 className="font-display text-lg font-extrabold leading-snug text-foreground">
-                        {heroStory.title}
-                      </h3>
-                    </div>
-                    <Button
-                      asChild
-                      size="sm"
-                      className="rounded-full bg-primary px-4 font-bold"
-                    >
-                      <Link to="/stories/$slug" params={{ slug: heroStory.slug }}>
-                        اقرأ الآن
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              )}
+            {/* فقاعات مرحة ملوّنة خلف الصورة */}
+            <div className="pointer-events-none absolute inset-0 -z-10">
+              <span className="absolute right-4 top-6 h-5 w-5 rounded-full bg-pink-400/80 blur-[1px]" />
+              <span className="absolute left-8 top-20 h-6 w-6 rounded-full bg-sky-400/80 blur-[1px]" />
+              <span className="absolute -left-2 bottom-24 h-4 w-4 rounded-full bg-emerald-400/80 blur-[1px]" />
+              <span className="absolute right-10 bottom-10 h-7 w-7 rounded-full bg-amber-300/90 blur-[1px]" />
+              <span className="absolute right-1/3 top-2 text-2xl">⭐</span>
+              <span className="absolute left-1/4 bottom-2 text-xl">✨</span>
             </div>
+            <div className="absolute -inset-10 -z-10 rounded-[3rem] bg-gradient-to-tr from-primary/25 via-candy/15 to-accent/15 blur-3xl" />
+            <img
+              src={heroImg}
+              alt="طفل سعيد يقرأ كتاباً سحرياً مع روبوت كيدزي"
+              width={1280}
+              height={1024}
+              className="relative mx-auto w-full max-w-[640px] drop-shadow-[0_25px_50px_rgba(108,77,255,0.25)]"
+            />
+            {heroStory && (
+              <div className="absolute inset-x-6 -bottom-2 mx-auto max-w-md rounded-2xl border border-white/60 bg-white/90 p-3 shadow-[var(--shadow-card)] backdrop-blur-md">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-primary">قصة اليوم المميزة</span>
+                    <h3 className="truncate font-display text-base font-extrabold text-foreground">
+                      {heroStory.title}
+                    </h3>
+                  </div>
+                  <Button asChild size="sm" className="shrink-0 rounded-full bg-primary px-4 font-bold">
+                    <Link to="/stories/$slug" params={{ slug: heroStory.slug }}>اقرأ الآن</Link>
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
+        </div>
+      </section>
+
+      {/* ============ FEATURE ICONS (4 cards) ============ */}
+      <section className="container mx-auto -mt-6 px-4">
+        <div className="rounded-[2rem] border border-border/60 bg-card/90 p-6 shadow-[var(--shadow-card)] backdrop-blur md:p-8">
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+            {[
+              { img: iconAi, to: "/create", title: "قصص بالذكاء الاصطناعي", desc: "قصص مخصّصة لطفلك بتقنية الذكاء الاصطناعي" },
+              { img: iconBooks, to: "/books", title: "كتب تعليمية", desc: "كتب تفاعلية ومحتوى تعليمي ممتع ومفيد" },
+              { img: iconGames, to: "/games", title: "ألعاب تعليمية", desc: "ألعاب شيّقة تنمّي المهارات وتعزّز التعلم" },
+              { img: iconPuzzles, to: "/puzzles", title: "ألغاز وتحديات", desc: "ألغاز متنوّعة لتنمية التفكير والذكاء" },
+            ].map((f) => (
+              <Link
+                key={f.to}
+                to={f.to}
+                className="group flex flex-col items-center text-center transition-transform hover:-translate-y-1"
+              >
+                <img
+                  src={f.img}
+                  alt={f.title}
+                  width={512}
+                  height={512}
+                  loading="lazy"
+                  className="h-24 w-24 object-contain drop-shadow-lg transition-transform group-hover:scale-110 md:h-28 md:w-28"
+                />
+                <h3 className="mt-3 font-display text-base font-extrabold md:text-lg">{f.title}</h3>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">{f.desc}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============ HOW IT WORKS (3 steps + mascots) ============ */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="mb-10 text-center">
+          <h2 className="inline-flex items-center gap-3 font-display text-2xl font-extrabold md:text-3xl">
+            <span className="h-px w-10 bg-muted-foreground/40" />
+            كيف تعمل المنصة؟
+            <span className="h-px w-10 bg-muted-foreground/40" />
+          </h2>
+        </div>
+        <div className="relative grid items-start gap-8 md:grid-cols-[auto_1fr_auto] md:gap-4">
+          <img
+            src={mascotMonster}
+            alt=""
+            width={512}
+            height={512}
+            loading="lazy"
+            className="hidden h-40 w-40 object-contain drop-shadow-xl md:block"
+          />
+          <div className="grid gap-8 md:grid-cols-3">
+            {[
+              { n: 1, color: "from-violet-500 to-violet-700", title: "اختر العمر", desc: "حدّد عمر طفلك للحصول على محتوى مناسب له" },
+              { n: 2, color: "from-sky-400 to-sky-600", title: "اختر الاهتمامات", desc: "اختر مجالات اهتمام طفلك لنقدّم له الأفضل" },
+              { n: 3, color: "from-emerald-400 to-emerald-600", title: "استمتع بالتعلم", desc: "استمتع بمحتوى تعليمي تفاعلي ممتع وآمن" },
+            ].map((s) => (
+              <div key={s.n} className="text-center">
+                <div className={`mx-auto grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br ${s.color} font-display text-2xl font-black text-white shadow-lg`}>
+                  {s.n}
+                </div>
+                <h3 className="mt-4 font-display text-lg font-extrabold text-primary">{s.title}</h3>
+                <p className="mx-auto mt-2 max-w-[220px] text-sm leading-relaxed text-muted-foreground">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+          <img
+            src={mascotChick}
+            alt=""
+            width={512}
+            height={512}
+            loading="lazy"
+            className="hidden h-40 w-40 object-contain drop-shadow-xl md:block"
+          />
         </div>
       </section>
 
