@@ -14,6 +14,8 @@ export interface CartItem {
   title: string;
   coverUrl: string | null;
   contentType: "story" | "book";
+  /** قصة مخصصة بأفكار العميل (وليست من المكتبة) — تؤثر على التسعير */
+  isCustom?: boolean;
 }
 
 interface CartState {
@@ -26,19 +28,19 @@ interface CartState {
   has: (templateId: string) => boolean;
 }
 
-const STORAGE_KEY = "hakayati_cart_v1";
+const STORAGE_KEY = "hakayati_cart_v2";
 
-/** خيارات عدد صفحات القصة وسعر كل خيار */
-export const PAGES_OPTIONS = [
-  { pages: 10, price: 150 },
-  { pages: 16, price: 200 },
-] as const;
+export {
+  PRINT_COPY_PRICE_EGP,
+  pagesOptionsFor,
+  pricePerPages,
+  LIBRARY_PRICES,
+  CUSTOM_PRICES,
+} from "./pricing";
+import { pricePerPages } from "./pricing";
 
-/** السعر الابتدائي (للعرض في بطاقات القصص والسلة) */
-export const STARTING_PRICE_EGP = PAGES_OPTIONS[0].price;
-
-/** تكلفة إضافة نسخة مطبوعة وشحنها */
-export const PRINT_COPY_PRICE_EGP = 200;
+/** السعر الابتدائي (للعرض في بطاقات القصص بدون تخصيص) — 10 صفحات مكتبة */
+export const STARTING_PRICE_EGP = pricePerPages(10, false);
 
 /** متروك للتوافق مع كود قديم — يساوي السعر الابتدائي */
 export const PRICE_PER_ITEM_EGP = STARTING_PRICE_EGP;
