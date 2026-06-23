@@ -53,6 +53,7 @@ type PhotoMode = "cartoon" | "real";
 
 type ItemDraft = {
   childName: string;
+  childNameEn: string;
   childAge: string;
   gender: Gender | "";
   notes: string;
