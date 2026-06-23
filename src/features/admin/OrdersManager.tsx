@@ -130,9 +130,32 @@ function needsAction(o: AdminOrder): boolean {
 
 export function OrdersManager() {
   const listFn = useServerFn(adminListOrders);
+  const deleteFn = useServerFn(adminDeleteOrder);
+  const queryClient = useQueryClient();
   const [selected, setSelected] = useState<AdminOrder | null>(null);
+  const [editing, setEditing] = useState<AdminOrder | null>(null);
+  const [deleting, setDeleting] = useState<AdminOrder | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [search, setSearch] = useState("");
+
+  const { data: orders, isLoading } = useQuery({
+    queryKey: ["admin-orders"],
+    queryFn: () => listFn(),
+    refetchInterval: 30000,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (orderId: string) => deleteFn({ data: { orderId } }),
+    onSuccess: () => {
+      toast.success("تم حذف الطلب");
+      setDeleting(null);
+      void queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setDeleting(null);
+    },
+  });
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["admin-orders"],
