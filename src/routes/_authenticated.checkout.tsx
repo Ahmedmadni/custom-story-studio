@@ -82,6 +82,7 @@ function CheckoutPage() {
         i.templateId,
         {
           childName: "",
+          childNameEn: "",
           childAge: "",
           gender: "" as const,
           notes: "",
