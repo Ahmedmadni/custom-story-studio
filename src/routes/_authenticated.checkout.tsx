@@ -444,6 +444,53 @@ function CheckoutPage() {
                   </div>
                 </div>
 
+                {/* إهداء القصة — اسم الأب/الأم/مقدم الطلب */}
+                <div className="mt-4 rounded-2xl border-2 border-pink-200 bg-pink-50/40 p-4">
+                  <Label className="flex items-center gap-2 font-bold">
+                    💝 إهداء القصة (اختياري)
+                  </Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    اكتب اسم مهدي القصة (الأم/الأب/الجد…) — سيظهر في غلاف القصة وفي صفحة الإهداء داخل النص.
+                  </p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <div>
+                      <Label htmlFor={`gifter-name-${item.templateId}`} className="text-sm">
+                        اسم المُهدي
+                      </Label>
+                      <Input
+                        id={`gifter-name-${item.templateId}`}
+                        value={d.gifterName}
+                        onChange={(e) =>
+                          updateDraft(item.templateId, { gifterName: e.target.value })
+                        }
+                        placeholder="مثال: أحمد"
+                        maxLength={60}
+                        className="mt-1 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`gifter-rel-${item.templateId}`} className="text-sm">
+                        العلاقة
+                      </Label>
+                      <select
+                        id={`gifter-rel-${item.templateId}`}
+                        value={d.gifterRelation}
+                        onChange={(e) =>
+                          updateDraft(item.templateId, { gifterRelation: e.target.value })
+                        }
+                        className="mt-1 w-full rounded-xl border-2 border-border bg-background p-2 text-sm"
+                      >
+                        <option value="">— اختر —</option>
+                        {RELATION_OPTIONS.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
                 <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border-2 border-dashed border-accent/40 bg-accent/5 p-3 transition-colors hover:bg-accent/10">
                   <Checkbox
                     checked={d.publishConsent}
