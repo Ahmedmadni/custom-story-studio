@@ -140,6 +140,7 @@ function OrderPage() {
         user_id: user.id,
         template_id: templateId,
         child_name: childName.trim(),
+        child_name_en: childNameEn.trim() || null,
         child_age: childAge ? Number(childAge) : null,
         whatsapp: whatsapp.trim(),
         child_photo_path: path,
