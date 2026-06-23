@@ -899,10 +899,13 @@ function CreateWizard() {
                         <p className="mt-1 text-xs text-muted-foreground">
                           هذا يحدد عدد المشاهد المرسومة في القصة وسعرها للعميل
                         </p>
+                        <p className="mt-1 text-[11px] font-bold text-accent">
+                          🪄 قصة مخصصة بأفكارك: 10 صفحات = 200 ج، 16 صفحة = 250 ج
+                        </p>
                         <div className="mt-3 grid grid-cols-2 gap-3">
                           {([
-                            { n: 10 as const, price: 150 },
-                            { n: 16 as const, price: 200 },
+                            { n: 10 as const, price: 200 },
+                            { n: 16 as const, price: 250 },
                           ]).map((opt) => (
                             <button
                               key={opt.n}
