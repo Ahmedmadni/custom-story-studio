@@ -424,7 +424,7 @@ export const updateMyOrder = createServerFn({ method: "POST" })
 
     const { error } = await supabaseAdmin
       .from("orders")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.orderId);
     if (error) throw new Error("تعذر تحديث الطلب");
 
