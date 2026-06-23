@@ -274,6 +274,7 @@ export const generateAiStory = createServerFn({ method: "POST" })
       ? "The hero is a GIRL. Use she/her pronouns everywhere in English. Describe her as a girl child."
       : "The hero is a BOY. Use he/him pronouns everywhere in English. Describe him as a boy child.";
 
+    const dedication = gifterDedicationPrompt(data.gifterName, data.gifterRelation);
     const userPrompt = `${themeLine}
 اسم الطفل سيكون: ${data.childName} (استخدم {child} في النص)
 عمر الطفل: ${data.age ?? "4-8"} سنوات
@@ -281,7 +282,9 @@ export const generateAiStory = createServerFn({ method: "POST" })
 ${arabicGenderRule}
 ${englishGenderRule}
 في حقل character اذكر أن البطل ${isGirl ? "girl" : "boy"} child.
-لغة المحتوى: ${data.language === "ar" ? "العربية فقط" : data.language === "en" ? "English only" : "Bilingual Arabic + English"}`;
+لغة المحتوى: ${data.language === "ar" ? "العربية فقط" : data.language === "en" ? "English only" : "Bilingual Arabic + English"}
+${dedication}`;
+
 
     const story = await callLlm(
       buildSystemPrompt(data.contentType, data.language, pageCount, data.bookMeta),
