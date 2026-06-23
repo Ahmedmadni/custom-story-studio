@@ -44,7 +44,10 @@ const GenerateInput = z.object({
   contentType: z.enum(["story", "book"]).default("story"),
   pagesCount: z.union([z.literal(10), z.literal(16)]).optional(),
   bookMeta: BookMetaInput.optional(),
+  gifterName: z.string().trim().max(60).optional(),
+  gifterRelation: z.string().trim().max(40).optional(),
 });
+
 
 interface AiPage {
   n: number;
