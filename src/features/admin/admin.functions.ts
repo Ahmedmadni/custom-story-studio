@@ -182,6 +182,9 @@ export const adminListOrders = createServerFn({ method: "POST" })
           donePages,
           publishedToLibraryAt: (o.published_to_library_at as string | null) ?? null,
           publishedSlug: ((o.published_template as { slug?: string } | null)?.slug) ?? null,
+          giftedByName: (o.gifted_by_name as string | null) ?? null,
+          giftedByRelation: (o.gifted_by_relation as string | null) ?? null,
+          publishConsent: !!(o.publish_consent as boolean | null),
         };
       }),
     );

@@ -78,6 +78,9 @@ type AdminOrder = {
   donePages: number;
   publishedToLibraryAt: string | null;
   publishedSlug: string | null;
+  giftedByName: string | null;
+  giftedByRelation: string | null;
+  publishConsent: boolean;
 };
 
 type StatusFilter = "all" | "action" | "pending" | "approved" | "generating" | "ready" | "sent" | "rejected";
@@ -213,7 +216,25 @@ export function OrdersManager() {
                         </div>
                       )}
                       <div>
-                        <p className="font-bold">{o.childName}{o.childAge ? ` · ${o.childAge}س` : ""}</p>
+                        <p className="font-bold">
+                          {o.childName}{o.childAge ? ` · ${o.childAge}س` : ""}
+                          {o.giftedByName && (
+                            <span
+                              className="ms-2 rounded-full bg-pink-100 px-2 py-0.5 text-[10px] font-bold text-pink-700"
+                              title={`إهداء من ${o.giftedByRelation ?? ""} ${o.giftedByName}`}
+                            >
+                              💝 إهداء
+                            </span>
+                          )}
+                          {o.publishConsent && (
+                            <span
+                              className="ms-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary"
+                              title="وافق العميل على نشر القصة في «من أعمالنا»"
+                            >
+                              🌟 نشر
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-muted-foreground line-clamp-1">{o.storyTitle}</p>
                       </div>
                     </div>
@@ -450,6 +471,26 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
                 </p>
               </div>
             </div>
+
+            {/* بيانات الإهداء (الأهل / مُهدي القصة) */}
+            {(order.giftedByName || order.publishConsent) && (
+              <div className="rounded-2xl border-2 border-pink-200 bg-pink-50/40 p-4 text-sm">
+                <h4 className="mb-2 font-bold">💝 بيانات الإهداء</h4>
+                {order.giftedByName ? (
+                  <p>
+                    <b>مُهدي القصة:</b>{" "}
+                    {order.giftedByRelation ? `${order.giftedByRelation} ` : ""}
+                    {order.giftedByName}
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground">لا يوجد اسم مُهدي</p>
+                )}
+                <p className="mt-1">
+                  <b>موافقة النشر في «من أعمالنا»:</b>{" "}
+                  {order.publishConsent ? "✅ نعم" : "— لا"}
+                </p>
+              </div>
+            )}
 
             <div className="rounded-2xl border-2 border-border bg-secondary/30 p-4">
               <h4 className="mb-3 font-bold">تفضيلات الطلب</h4>
