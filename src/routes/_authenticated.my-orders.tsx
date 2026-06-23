@@ -196,18 +196,87 @@ function MyOrders() {
                     </div>
                   )}
                 </div>
-                {(o.status === "ready" || o.status === "sent") && (
-                  <Button asChild className="rounded-full font-bold">
-                    <Link to="/story/$orderId" params={{ orderId: o.id }}>
-                      <Eye className="ms-1 h-4 w-4" />
-                      شاهد القصة
-                    </Link>
-                  </Button>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {(o.status === "ready" || o.status === "sent") && (
+                    <Button asChild className="rounded-full font-bold">
+                      <Link to="/story/$orderId" params={{ orderId: o.id }}>
+                        <Eye className="ms-1 h-4 w-4" />
+                        شاهد القصة
+                      </Link>
+                    </Button>
+                  )}
+                  {canEdit({
+                    status: o.status as string,
+                    payment_status: (o.payment_status as string | null) ?? null,
+                  }) && (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="rounded-full font-bold"
+                        onClick={() => {
+                          setEditing({
+                            id: o.id,
+                            child_name: o.child_name,
+                            child_name_en: (o as { child_name_en?: string | null }).child_name_en ?? null,
+                            child_age: (o as { child_age?: number | null }).child_age ?? null,
+                            gender: (o as { gender?: string }).gender ?? "boy",
+                            whatsapp: (o as { whatsapp?: string }).whatsapp ?? "",
+                            notes: (o as { notes?: string | null }).notes ?? null,
+                            language: (o.language as string) ?? "ar",
+                            photo_mode: (o.photo_mode as string) ?? "cartoon",
+                            pages_count: (o as { pages_count?: number }).pages_count ?? 10,
+                            print_copy: Boolean((o as { print_copy?: boolean }).print_copy),
+                            delivery_address: (o as { delivery_address?: string | null }).delivery_address ?? null,
+                            gifted_by_name: (o as { gifted_by_name?: string | null }).gifted_by_name ?? null,
+                            gifted_by_relation: (o as { gifted_by_relation?: string | null }).gifted_by_relation ?? null,
+                            publish_consent: Boolean((o as { publish_consent?: boolean }).publish_consent),
+                            isCustom: Boolean(o.story_templates?.is_custom),
+                            title: o.story_templates?.title ?? "قصة",
+                          });
+                          setEditOpen(true);
+                        }}
+                      >
+                        <Pencil className="ms-1 h-4 w-4" />
+                        تعديل
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="rounded-full font-bold text-destructive hover:bg-destructive/10"
+                        onClick={() => setDeletingId(o.id)}
+                      >
+                        <Trash2 className="ms-1 h-4 w-4" />
+                        حذف
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             ))
           )}
         </div>
+
+        <OrderEditDialog order={editing} open={editOpen} onOpenChange={setEditOpen} />
+
+        <AlertDialog open={!!deletingId} onOpenChange={(v) => !v && setDeletingId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>حذف الطلب؟</AlertDialogTitle>
+              <AlertDialogDescription>
+                سيتم حذف الطلب نهائياً مع صورة الطفل وإيصال التحويل. لا يمكن التراجع عن هذا الإجراء.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={deleteMutation.isPending}
+                onClick={() => deletingId && deleteMutation.mutate(deletingId)}
+              >
+                نعم، احذف
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {(myPdfs ?? []).length > 0 && (
           <div className="mt-12">
