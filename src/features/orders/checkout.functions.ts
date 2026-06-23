@@ -2,12 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-const PAGE_PRICES: Record<number, number> = {
-  10: 150,
-  16: 200,
-};
-const PRINT_COPY_PRICE = 200;
+import { pricePerPages, PRINT_COPY_PRICE_EGP } from "@/features/cart/pricing";
 
 const ItemInput = z.object({
   templateId: z.string().uuid(),
@@ -36,6 +31,7 @@ const CheckoutInput = z.object({
 /**
  * ينشئ صفّ طلب لكل عنصر في السلة بنفس إيصال الدفع.
  * payment_status = receipt_uploaded حتى يؤكدها المدير.
+ * السعر يُحسب حسب نوع القالب (مكتبة أم مخصص).
  */
 export const submitCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -45,10 +41,21 @@ export const submitCheckout = createServerFn({ method: "POST" })
       throw new Error("اكتب عنوان التوصيل لطلب نسخة مطبوعة");
     }
 
+    // نجلب is_custom لكل قالب لتحديد التسعير
+    const templateIds = Array.from(new Set(data.items.map((i) => i.templateId)));
+    const { data: tplRows } = await context.supabase
+      .from("story_templates")
+      .select("id, is_custom")
+      .in("id", templateIds);
+    const isCustomById = new Map<string, boolean>(
+      (tplRows ?? []).map((r) => [r.id as string, Boolean((r as { is_custom?: boolean }).is_custom)]),
+    );
+
     // نضيف رسوم الطباعة + الشحن للعنصر الأول فقط حتى لا تتكرر
     const rows = data.items.map((it, idx) => {
-      const base = PAGE_PRICES[it.pagesCount] ?? PAGE_PRICES[10];
-      const printExtra = data.printCopy && idx === 0 ? PRINT_COPY_PRICE : 0;
+      const isCustom = isCustomById.get(it.templateId) ?? false;
+      const base = pricePerPages(it.pagesCount, isCustom);
+      const printExtra = data.printCopy && idx === 0 ? PRINT_COPY_PRICE_EGP : 0;
       return {
         user_id: context.userId,
         template_id: it.templateId,
@@ -81,3 +88,4 @@ export const submitCheckout = createServerFn({ method: "POST" })
     if (error) throw new Error("تعذر إرسال الطلب، حاول مرة أخرى");
     return { ok: true, orderIds: (inserted ?? []).map((r) => r.id) };
   });
+
