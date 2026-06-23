@@ -284,6 +284,84 @@ export const adminUpdateOrderPreferences = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const AdminUpdateOrderInput = z.object({
+  orderId: z.string().uuid(),
+  childName: z.string().trim().min(1).max(40).optional(),
+  childNameEn: z.string().trim().max(40).nullable().optional(),
+  childAge: z.number().int().min(1).max(14).nullable().optional(),
+  whatsapp: z.string().trim().min(6).max(20).optional(),
+  notes: z.string().trim().max(500).nullable().optional(),
+  adminNotes: z.string().trim().max(500).nullable().optional(),
+  giftedByName: z.string().trim().max(60).nullable().optional(),
+  giftedByRelation: z.string().trim().max(40).nullable().optional(),
+  priceEgp: z.number().int().min(0).max(100000).optional(),
+});
+
+/** الأدمن: تعديل بيانات الطلب الأساسية في أي وقت */
+export const adminUpdateOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => AdminUpdateOrderInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const patch: Record<string, unknown> = {};
+    if (data.childName !== undefined) patch.child_name = data.childName;
+    if (data.childNameEn !== undefined) patch.child_name_en = data.childNameEn?.trim() || null;
+    if (data.childAge !== undefined) patch.child_age = data.childAge;
+    if (data.whatsapp !== undefined) patch.whatsapp = data.whatsapp;
+    if (data.notes !== undefined) patch.notes = data.notes?.trim() || null;
+    if (data.adminNotes !== undefined) patch.admin_notes = data.adminNotes?.trim() || null;
+    if (data.giftedByName !== undefined) patch.gifted_by_name = data.giftedByName?.trim() || null;
+    if (data.giftedByRelation !== undefined) patch.gifted_by_relation = data.giftedByRelation?.trim() || null;
+    if (data.priceEgp !== undefined) patch.price_egp = data.priceEgp;
+    if (Object.keys(patch).length === 0) return { ok: true };
+    const { error } = await supabaseAdmin
+      .from("orders")
+      .update(patch as never)
+      .eq("id", data.orderId);
+    if (error) throw new Error("تعذر تحديث الطلب");
+    return { ok: true };
+  });
+
+const AdminDeleteOrderInput = z.object({ orderId: z.string().uuid() });
+
+/** الأدمن: حذف طلب نهائياً مع كل صفحاته وملفاته */
+export const adminDeleteOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => AdminDeleteOrderInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as unknown as AuthedContext);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: order } = await supabaseAdmin
+      .from("orders")
+      .select("id, child_photo_path, receipt_path")
+      .eq("id", data.orderId)
+      .single();
+
+    // احذف صفحات القصة المولّدة وصورها من التخزين
+    const { data: pages } = await supabaseAdmin
+      .from("generated_pages")
+      .select("image_path")
+      .eq("order_id", data.orderId);
+    const pageFiles = (pages ?? []).map((p) => p.image_path).filter(Boolean) as string[];
+    if (pageFiles.length > 0) {
+      await supabaseAdmin.storage.from("story-pages").remove(pageFiles);
+    }
+    await supabaseAdmin.from("generated_pages").delete().eq("order_id", data.orderId);
+
+    const { error } = await supabaseAdmin.from("orders").delete().eq("id", data.orderId);
+    if (error) throw new Error("تعذر حذف الطلب");
+
+    const removals: Array<{ bucket: string; path: string }> = [];
+    if (order?.child_photo_path) removals.push({ bucket: "child-photos", path: order.child_photo_path });
+    if (order?.receipt_path) removals.push({ bucket: "payment-receipts", path: order.receipt_path });
+    await Promise.all(
+      removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])),
+    );
+    return { ok: true };
+  });
+
 /** العميل: تعديل تفضيلاته قبل بدء توليد الصفحات */
 export const updateMyOrderPreferences = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
