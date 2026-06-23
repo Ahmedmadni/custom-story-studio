@@ -12,6 +12,7 @@ const PRINT_COPY_PRICE = 200;
 const ItemInput = z.object({
   templateId: z.string().uuid(),
   childName: z.string().trim().min(1).max(40),
+  childNameEn: z.string().trim().max(40).nullable().optional(),
   childAge: z.number().int().min(1).max(14).nullable().optional(),
   gender: z.enum(["boy", "girl"]).default("boy"),
   childPhotoPath: z.string().min(1),
