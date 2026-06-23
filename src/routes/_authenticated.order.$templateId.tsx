@@ -237,7 +237,28 @@ function OrderPage() {
                 onChange={(e) => setChildAge(e.target.value)}
                 className="mt-2 rounded-xl"
               />
+          </div>
+
+          {(language === "en" || language === "bilingual") && (
+            <div>
+              <Label htmlFor="cname-en" className="font-bold">
+                Child's name in English {language === "bilingual" ? "(اختياري)" : ""}
+              </Label>
+              <Input
+                id="cname-en"
+                dir="ltr"
+                value={childNameEn}
+                onChange={(e) => setChildNameEn(e.target.value)}
+                placeholder="e.g. Youssef"
+                maxLength={40}
+                className="mt-2 rounded-xl"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                سيُستخدم هذا الاسم في النص الإنجليزي من القصة.
+              </p>
             </div>
+          )}
+
           </div>
 
           {/* اللغة */}
