@@ -50,9 +50,11 @@ const PHOTO_MODE_OPTIONS: {
   },
 ];
 
+const RELATION_OPTIONS = ["الأب", "الأم", "الجد", "الجدة", "العم", "العمة", "الخال", "الخالة", "الأخ", "الأخت", "صديق العائلة"];
+
 function OrderPage() {
   const { templateId } = Route.useParams();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const [childName, setChildName] = useState("");
@@ -67,6 +69,9 @@ function OrderPage() {
   const [heroCharacter, setHeroCharacter] = useState("");
   const [heroQuery, setHeroQuery] = useState("");
   const [heroCat, setHeroCat] = useState<"الكل" | HeroOption["category"]>("الكل");
+  const [gifterName, setGifterName] = useState("");
+  const [gifterRelation, setGifterRelation] = useState("");
+  const [publishConsent, setPublishConsent] = useState(false);
 
   const filteredHeroes = useMemo(() => {
     const q = heroQuery.trim().toLowerCase();
@@ -80,6 +85,7 @@ function OrderPage() {
       );
     });
   }, [heroQuery, heroCat]);
+
 
   const { data: template } = useQuery({
     queryKey: ["template", templateId],
