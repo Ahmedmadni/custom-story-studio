@@ -584,20 +584,36 @@ export const reorderPages = createServerFn({ method: "POST" })
 
 const ApproveInput = z.object({ templateId: z.string().uuid() });
 
-/** اعتماد المحتوى نهائياً — شرط مسبق لتصدير PDF ومشاركته */
+/** اعتماد المحتوى نهائياً — شرط مسبق لتصدير PDF ومشاركته.
+ *  إن كان المُستدعي مسؤولاً (admin) فإن الاعتماد يتم نهائياً مباشرةً
+ *  بدون الحاجة لمرحلة مراجعة الإدارة، ويُفعّل النشر تلقائياً. */
 export const approveTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ApproveInput.parse(input))
   .handler(async ({ data, context }) => {
     await ensureOwnerOrAdmin(context, data.templateId);
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const now = new Date().toISOString();
+    const payload = isAdmin
+      ? {
+          approved_at: now,
+          admin_approved_at: now,
+          admin_approved_by: context.userId,
+          is_published: true,
+        }
+      : { approved_at: now };
     const { error } = await supabaseAdmin
       .from("story_templates")
-      .update({ approved_at: new Date().toISOString() } as never)
+      .update(payload as never)
       .eq("id", data.templateId);
     if (error) throw new Error("تعذر اعتماد المحتوى");
-    return { ok: true, approvedAt: new Date().toISOString() };
+    return { ok: true, approvedAt: now, adminApprovedAt: isAdmin ? now : null };
   });
+
 
 const TemplateIdInput = z.object({ templateId: z.string().uuid() });
 
