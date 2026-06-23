@@ -340,6 +340,27 @@ function CheckoutPage() {
                   </div>
                 </div>
 
+                {(d.language === "en" || d.language === "bilingual") && (
+                  <div className="mt-4">
+                    <Label className="font-bold">
+                      Child's name in English {d.language === "bilingual" ? "(اختياري)" : ""}
+                    </Label>
+                    <Input
+                      dir="ltr"
+                      value={d.childNameEn}
+                      onChange={(e) =>
+                        updateDraft(item.templateId, { childNameEn: e.target.value })
+                      }
+                      placeholder="e.g. Youssef"
+                      maxLength={40}
+                      className="mt-2 rounded-xl"
+                    />
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      سيُستخدم هذا الاسم في النص الإنجليزي داخل القصة بدلاً من الاسم العربي.
+                    </p>
+                  </div>
+                )}
+
                 <div className="mt-4">
                   <Label className="font-bold">جنس البطل</Label>
                   <div className="mt-2 grid grid-cols-2 gap-2">
