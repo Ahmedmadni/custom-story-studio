@@ -25,8 +25,11 @@ export interface StoryPdfInput {
   language: "ar" | "en" | "bilingual";
   contentType?: "story" | "book";
   pages: PdfStoryPage[];
+  gifterName?: string | null;
+  gifterRelation?: string | null;
   onProgress?: (done: number, total: number) => void;
 }
+
 
 // صفحة عريضة 1920×1080 (16:9) — تتطابق مع نسبة الصور المولّدة
 const PAGE_W = 1920;
