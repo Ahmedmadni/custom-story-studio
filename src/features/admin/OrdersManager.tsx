@@ -546,6 +546,24 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
                   </Button>
                 </div>
               )}
+              {(order.paymentStatus === "unpaid" || order.paymentStatus === "rejected") && (
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-4">
+                  <Button
+                    className="rounded-full bg-primary font-bold text-primary-foreground hover:bg-primary/90"
+                    disabled={verifyMutation.isPending}
+                    onClick={() => {
+                      if (confirm("هل تريد اعتماد الدفع يدوياً بدون إيصال؟")) {
+                        verifyMutation.mutate();
+                      }
+                    }}
+                  >
+                    <Check className="ms-1 h-4 w-4" /> اعتماد الدفع يدوياً
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    استخدم هذا الزر إذا تم استلام الدفع خارج النظام (تحويل مباشر، نقدي، ...)
+                  </span>
+                </div>
+              )}
               {order.status === "pending" && order.paymentStatus === "verified" && (
                 <div className="mt-4 flex flex-wrap gap-2 border-t pt-4">
                   <Button
