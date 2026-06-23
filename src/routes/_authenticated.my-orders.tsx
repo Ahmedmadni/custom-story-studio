@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpen, Eye, FileDown, ShoppingCart } from "lucide-react";
+import { BookOpen, Eye, FileDown, Pencil, ShoppingCart, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/EmptyState";
@@ -13,7 +14,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyPdfs } from "@/features/pdf/pdf.functions";
-import { updateMyOrderPreferences } from "@/features/admin/admin.functions";
+import { updateMyOrderPreferences, deleteMyOrder } from "@/features/admin/admin.functions";
+import { OrderEditDialog, type EditableOrder } from "@/features/orders/OrderEditDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/my-orders")({
   head: () => ({
