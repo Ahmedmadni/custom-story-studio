@@ -62,7 +62,11 @@ type ItemDraft = {
   photoMode: PhotoMode;
   publishConsent: boolean;
   pagesCount: 10 | 16;
+  gifterName: string;
+  gifterRelation: string;
 };
+
+const RELATION_OPTIONS = ["الأم", "الأب", "الجدة", "الجد", "العمة", "العم", "الخالة", "الخال", "الأخت", "الأخ", "صديق العائلة"];
 
 function CheckoutPage() {
   const { user } = useAuth();
