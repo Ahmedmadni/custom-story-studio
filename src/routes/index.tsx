@@ -14,7 +14,14 @@ import {
   Wand2,
 } from "lucide-react";
 
-import heroAsset from "@/assets/kidzy-hero.jpg.asset.json";
+import heroImg from "@/assets/kidzy-hero.png";
+import iconAi from "@/assets/icon-ai.png";
+import iconBooks from "@/assets/icon-books.png";
+import iconGames from "@/assets/icon-games.png";
+import iconPuzzles from "@/assets/icon-puzzles.png";
+import mascotMonster from "@/assets/mascot-monster.png";
+import mascotChick from "@/assets/mascot-chick.png";
+import aiLaptop from "@/assets/ai-laptop.png";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
