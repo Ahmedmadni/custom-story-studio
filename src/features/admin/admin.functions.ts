@@ -1357,6 +1357,8 @@ export const adminPublishOrderStory = createServerFn({ method: "POST" })
 
     const originalPages = parsePages(tpl.pages);
     const childName = order.child_name;
+    const childNameEn =
+      (order as { child_name_en?: string | null }).child_name_en?.trim() || childName;
 
     const mergedPages: StoryPage[] = originalPages.map((op) => {
       const gen = pageRows.find((r) => r.page_number === op.n);
@@ -1367,7 +1369,7 @@ export const adminPublishOrderStory = createServerFn({ method: "POST" })
         title_en: op.title_en,
         text: gen?.page_text ?? personalize(op.text ?? "", childName),
         text_ar: op.text_ar ? personalize(op.text_ar, childName) : undefined,
-        text_en: op.text_en ? personalize(op.text_en, childName) : undefined,
+        text_en: op.text_en ? personalize(op.text_en, childNameEn) : undefined,
         scene: op.scene,
         image_title_en: op.image_title_en,
         image_path: gen?.image_path ?? op.image_path ?? null,
