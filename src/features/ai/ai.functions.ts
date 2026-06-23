@@ -17,7 +17,9 @@ import {
   ageStylePrompt,
   bakedTitlePrompt,
   photoModePrompt,
+  gifterDedicationPrompt,
 } from "@/features/ai/storyStyle";
+
 import { parsePages, type StoryPage } from "@/features/ai/storyTypes";
 
 const BookMetaInput = z.object({
