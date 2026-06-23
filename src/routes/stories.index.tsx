@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { BookOpen, Sparkles } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { BookOpen, Sparkles, Wand2 } from "lucide-react";
 import { useState } from "react";
 
 import { CardShimmer } from "@/components/CardShimmer";
@@ -9,6 +9,7 @@ import { ErrorBlock } from "@/components/ErrorBlock";
 import { FilterChips } from "@/components/FilterChips";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { Button } from "@/components/ui/button";
 import { StoryCard } from "@/features/library/StoryCard";
 import { supabase } from "@/integrations/supabase/client";
 import { CATEGORIES } from "@/features/ai/storyTypes";
