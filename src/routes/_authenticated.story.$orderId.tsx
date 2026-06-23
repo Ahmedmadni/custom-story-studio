@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -6,15 +6,17 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Share2,
   Sparkles,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { PdfActions } from "@/features/pdf/PdfActions";
 import { Button } from "@/components/ui/button";
-import { getMyStory } from "@/features/orders/story.functions";
+import { getMyStory, setPublishConsent } from "@/features/orders/story.functions";
 
 export const Route = createFileRoute("/_authenticated/story/$orderId")({
   head: () => ({
@@ -26,12 +28,28 @@ export const Route = createFileRoute("/_authenticated/story/$orderId")({
 function StoryViewer() {
   const { orderId } = Route.useParams();
   const fetchStory = useServerFn(getMyStory);
+  const consentFn = useServerFn(setPublishConsent);
+  const qc = useQueryClient();
   const [current, setCurrent] = useState(0);
 
   const { data: story, isLoading } = useQuery({
     queryKey: ["my-story", orderId],
     queryFn: () => fetchStory({ data: { orderId } }),
   });
+
+  const consentMutation = useMutation({
+    mutationFn: (consent: boolean) => consentFn({ data: { orderId, consent } }),
+    onSuccess: (_d, consent) => {
+      toast.success(
+        consent
+          ? "شكراً لك! وافقت على نشر قصتك ضمن «من أعمالنا» 💝"
+          : "تم إلغاء موافقة النشر",
+      );
+      void qc.invalidateQueries({ queryKey: ["my-story", orderId] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "تعذر الحفظ"),
+  });
+
 
   if (isLoading) {
     return (
