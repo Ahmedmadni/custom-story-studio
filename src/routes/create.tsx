@@ -1026,7 +1026,7 @@ function CreateWizard() {
                     ) : (
                       <>
                         <p>💡 <b>الموضوع:</b> {topic.trim()}</p>
-                        <p>📄 <b>عدد الصفحات:</b> {pagesCount} صفحة ({pagesCount === 10 ? "150" : "200"} ج للعميل)</p>
+                        <p>📄 <b>عدد الصفحات:</b> {pagesCount} صفحة ({pagesCount === 10 ? "200" : "250"} ج للعميل)</p>
                       </>
                     )}
                     <p>
