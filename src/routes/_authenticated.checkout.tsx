@@ -90,6 +90,8 @@ function CheckoutPage() {
           photoMode: "cartoon" as PhotoMode,
           publishConsent: false,
           pagesCount: 10 as 10 | 16,
+          gifterName: "",
+          gifterRelation: "",
         },
       ]),
     ),
