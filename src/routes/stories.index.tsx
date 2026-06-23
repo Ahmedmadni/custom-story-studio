@@ -71,12 +71,26 @@ function StoriesPage() {
     <div className="min-h-screen">
       <Header />
       <main className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 pb-12">
-        <h1 className="font-display text-3xl font-extrabold md:text-4xl">
-          مكتبة الحكايات 📚
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          اختر الحكاية التي سيكون طفلك بطلها
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="font-display text-3xl font-extrabold md:text-4xl">
+              مكتبة الحكايات 📚
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              اختر الحكاية التي سيكون طفلك بطلها
+            </p>
+          </div>
+          <Button
+            asChild
+            size="lg"
+            className="h-12 rounded-2xl bg-accent px-6 font-bold text-accent-foreground shadow-[var(--shadow-soft)] hover:opacity-95"
+          >
+            <Link to="/create">
+              <Wand2 className="ms-2 h-5 w-5" />
+              أنشئ قصة بأفكار جديدة
+            </Link>
+          </Button>
+        </div>
 
         <div className="mt-6">
           <FilterChips
