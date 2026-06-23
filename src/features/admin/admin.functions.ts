@@ -1321,7 +1321,7 @@ export const adminPublishOrderStory = createServerFn({ method: "POST" })
     const { data: order, error: orderErr } = await supabaseAdmin
       .from("orders")
       .select(
-        "id, child_name, language, publish_consent, published_template_id, story_templates!template_id(id, title, summary, moral, category, age_range, content_type, language, pages, cover_url)",
+        "id, child_name, child_name_en, language, publish_consent, published_template_id, story_templates!template_id(id, title, summary, moral, category, age_range, content_type, language, pages, cover_url)",
       )
       .eq("id", data.orderId)
       .single();
