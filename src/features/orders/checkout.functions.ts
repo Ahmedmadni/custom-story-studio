@@ -20,6 +20,8 @@ const ItemInput = z.object({
   photoMode: z.enum(["cartoon", "real"]).default("cartoon"),
   publishConsent: z.boolean().default(false),
   pagesCount: z.union([z.literal(10), z.literal(16)]).default(10),
+  gifterName: z.string().trim().max(60).nullable().optional(),
+  gifterRelation: z.string().trim().max(40).nullable().optional(),
 });
 
 const CheckoutInput = z.object({
