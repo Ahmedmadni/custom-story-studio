@@ -219,6 +219,7 @@ function CheckoutPage() {
             const d = drafts[it.templateId];
             return {
               ...it,
+              childNameEn: d.childNameEn.trim() || null,
               language: d.language,
               photoMode: d.photoMode,
               publishConsent: d.publishConsent,
