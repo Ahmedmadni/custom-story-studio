@@ -244,8 +244,8 @@ function CheckoutPage() {
 
   const itemsSubtotal = items.reduce((sum, it) => {
     const d = drafts[it.templateId];
-    const opt = PAGES_OPTIONS.find((o) => o.pages === d?.pagesCount);
-    return sum + (opt?.price ?? PAGES_OPTIONS[0].price);
+    const isCustom = Boolean(it.isCustom);
+    return sum + pricePerPages((d?.pagesCount ?? 10) as 10 | 16, isCustom);
   }, 0);
   const printExtra = printCopy ? PRINT_COPY_PRICE_EGP : 0;
   const grandTotal = itemsSubtotal + printExtra;
