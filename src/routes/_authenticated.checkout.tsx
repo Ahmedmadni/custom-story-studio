@@ -22,7 +22,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  PAGES_OPTIONS,
+  pagesOptionsFor,
+  pricePerPages,
   PRINT_COPY_PRICE_EGP,
   useCart,
 } from "@/features/cart/CartContext";
