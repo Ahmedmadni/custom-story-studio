@@ -40,6 +40,11 @@ function MyOrders() {
   const updatePrefsFn = useServerFn(updateMyOrderPreferences);
   const queryClient = useQueryClient();
 
+  const deleteFn = useServerFn(deleteMyOrder);
+  const [editing, setEditing] = useState<EditableOrder | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const { data: orders, isLoading } = useQuery({
     queryKey: ["my-orders", user?.id],
     enabled: Boolean(user),
@@ -47,7 +52,7 @@ function MyOrders() {
       const { data } = await supabase
         .from("orders")
         .select(
-          "id, status, payment_status, payment_rejection_reason, child_name, language, photo_mode, created_at, story_templates!template_id(title, cover_url, slug)",
+          "id, status, payment_status, payment_rejection_reason, child_name, child_name_en, child_age, gender, whatsapp, notes, language, photo_mode, pages_count, print_copy, delivery_address, gifted_by_name, gifted_by_relation, publish_consent, created_at, story_templates!template_id(title, cover_url, slug, is_custom)",
         )
         .order("created_at", { ascending: false });
       return data ?? [];
@@ -67,12 +72,27 @@ function MyOrders() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (orderId: string) => deleteFn({ data: { orderId } }),
+    onSuccess: () => {
+      toast.success("تم حذف الطلب");
+      setDeletingId(null);
+      void queryClient.invalidateQueries({ queryKey: ["my-orders", user?.id] });
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setDeletingId(null);
+    },
+  });
 
   const { data: myPdfs } = useQuery({
     queryKey: ["my-pdfs", user?.id],
     enabled: Boolean(user),
     queryFn: () => fetchPdfs(),
   });
+
+  const canEdit = (o: { status: string; payment_status: string | null }) =>
+    o.status === "pending" && (o.payment_status ?? "unpaid") !== "verified";
 
   return (
     <div className="min-h-screen">
