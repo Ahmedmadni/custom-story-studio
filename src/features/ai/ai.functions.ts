@@ -10,6 +10,10 @@ import {
 import {
   STORY_STYLE_PROMPT,
   STYLE_NEGATIVE,
+  LANDSCAPE_COMPOSITION_RULE,
+  WIDE_FRAMING_RULE,
+  CONSISTENCY_RULE,
+  QUALITY_RULE,
   ageStylePrompt,
   bakedTitlePrompt,
   photoModePrompt,
