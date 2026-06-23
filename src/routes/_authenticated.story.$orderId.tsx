@@ -210,6 +210,8 @@ function StoryViewer() {
             language={story.language}
             contentType={story.contentType}
             templateId={story.templateId ?? undefined}
+            gifterName={story.gifterName}
+            gifterRelation={story.gifterRelation}
             disabled={!isAdminApproved}
             disabledReason={!isAdminApproved ? (isUserApproved ? "بانتظار اعتماد الإدارة" : "اعتمد المحتوى أولاً من معالج الإنشاء") : undefined}
             pages={pages.map((p) => ({
@@ -227,6 +229,44 @@ function StoryViewer() {
             ملف PDF عالي الجودة بغلاف وجميع الصفحات — وتحفظ نسخة في حسابك
           </p>
         </div>
+
+        {/* موافقة نشر القصة في «من أعمالنا» */}
+        {isAdminApproved && (
+          <div className="no-print mt-8 rounded-2xl border-2 border-pink-200 bg-pink-50/40 p-5">
+            <div className="flex items-start gap-3">
+              <Share2 className="mt-1 h-6 w-6 text-pink-600" />
+              <div className="flex-1">
+                <h3 className="font-display text-lg font-extrabold text-pink-900">
+                  هل تسمح بنشر قصة {story.childName} ضمن «من أعمالنا»؟
+                </h3>
+                <p className="mt-1 text-sm text-pink-900/80">
+                  بموافقتك، ستظهر هذه القصة كنموذج تنفيذ ضمن معرض أعمالنا في المكتبة (بعد مراجعة الإدارة).
+                  هذا اختياري تماماً ويمكنك إلغاؤه في أي وقت.
+                </p>
+                {story.publishedToLibraryAt && (
+                  <p className="mt-2 text-xs font-bold text-green-700">
+                    ✅ منشورة في المعرض منذ {new Date(story.publishedToLibraryAt).toLocaleDateString("ar-EG")}
+                  </p>
+                )}
+                <label className="mt-3 flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={story.publishConsent}
+                    disabled={consentMutation.isPending || !!story.publishedToLibraryAt}
+                    onChange={(e) => consentMutation.mutate(e.target.checked)}
+                    className="h-5 w-5 accent-pink-600"
+                  />
+                  <span className="text-sm font-bold">
+                    {story.publishConsent
+                      ? "أوافق على النشر في معرض أعمالنا"
+                      : "اضغط للموافقة على النشر"}
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
       <Footer />
     </div>
