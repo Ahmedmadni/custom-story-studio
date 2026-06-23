@@ -93,6 +93,7 @@ export type Database = {
           admin_notes: string | null
           child_age: number | null
           child_name: string
+          child_name_en: string | null
           child_photo_path: string
           created_at: string
           delivery_address: string | null
@@ -127,6 +128,7 @@ export type Database = {
           admin_notes?: string | null
           child_age?: number | null
           child_name: string
+          child_name_en?: string | null
           child_photo_path: string
           created_at?: string
           delivery_address?: string | null
@@ -161,6 +163,7 @@ export type Database = {
           admin_notes?: string | null
           child_age?: number | null
           child_name?: string
+          child_name_en?: string | null
           child_photo_path?: string
           created_at?: string
           delivery_address?: string | null
