@@ -331,6 +331,11 @@ function CreateWizard() {
             gender: gender as Gender,
             whatsapp: whatsapp.trim(),
             child_photo_path: path,
+            language: (language || "ar") as LanguageMode,
+            photo_mode: photoMode,
+            pages_count: contentType === "story" ? pagesCount : 10,
+            price_egp:
+              contentType === "story" ? (pagesCount === 10 ? 200 : 250) : 200,
             notes:
               photoMode === "cartoon"
                 ? "طلب من معالج الإنشاء — تحويل صورة الطفل إلى شخصية كرتونية"
