@@ -157,11 +157,6 @@ export function OrdersManager() {
     },
   });
 
-  const { data: orders, isLoading } = useQuery({
-    queryKey: ["admin-orders"],
-    queryFn: () => listFn(),
-    refetchInterval: 30000,
-  });
 
   const filtered = useMemo(() => {
     const list = (orders ?? []) as AdminOrder[];
