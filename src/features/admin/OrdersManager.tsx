@@ -454,6 +454,26 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
               </div>
             </div>
 
+            {/* بيانات الإهداء (الأهل / مُهدي القصة) */}
+            {(order.giftedByName || order.publishConsent) && (
+              <div className="rounded-2xl border-2 border-pink-200 bg-pink-50/40 p-4 text-sm">
+                <h4 className="mb-2 font-bold">💝 بيانات الإهداء</h4>
+                {order.giftedByName ? (
+                  <p>
+                    <b>مُهدي القصة:</b>{" "}
+                    {order.giftedByRelation ? `${order.giftedByRelation} ` : ""}
+                    {order.giftedByName}
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground">لا يوجد اسم مُهدي</p>
+                )}
+                <p className="mt-1">
+                  <b>موافقة النشر في «من أعمالنا»:</b>{" "}
+                  {order.publishConsent ? "✅ نعم" : "— لا"}
+                </p>
+              </div>
+            )}
+
             <div className="rounded-2xl border-2 border-border bg-secondary/30 p-4">
               <h4 className="mb-3 font-bold">تفضيلات الطلب</h4>
               <div className="flex flex-wrap gap-3 text-sm">
