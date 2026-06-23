@@ -67,6 +67,8 @@ export const submitCheckout = createServerFn({ method: "POST" })
         pages_count: it.pagesCount,
         print_copy: data.printCopy,
         delivery_address: data.printCopy ? data.deliveryAddress?.trim() ?? null : null,
+        gifted_by_name: it.gifterName?.trim() || null,
+        gifted_by_relation: it.gifterRelation?.trim() || null,
       };
     });
 
