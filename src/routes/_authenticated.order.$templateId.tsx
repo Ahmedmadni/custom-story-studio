@@ -58,6 +58,7 @@ function OrderPage() {
   const navigate = useNavigate();
 
   const [childName, setChildName] = useState("");
+  const [childNameEn, setChildNameEn] = useState("");
   const [childAge, setChildAge] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [notes, setNotes] = useState("");
