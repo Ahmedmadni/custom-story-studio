@@ -14,7 +14,7 @@ export const getMyStory = createServerFn({ method: "POST" })
     const { data: order, error } = await context.supabase
       .from("orders")
       .select(
-        "id, child_name, status, template_id, gifted_by_name, gifted_by_relation, publish_consent, published_to_library_at, story_templates!template_id(id, title, moral, pages, language, content_type, approved_at, admin_approved_at)",
+        "id, child_name, child_name_en, status, template_id, gifted_by_name, gifted_by_relation, publish_consent, published_to_library_at, story_templates!template_id(id, title, moral, pages, language, content_type, approved_at, admin_approved_at)",
       )
       .eq("id", data.orderId)
       .single();
@@ -40,6 +40,10 @@ export const getMyStory = createServerFn({ method: "POST" })
         }
       | null;
 
+    const childNameEn =
+      (order as { child_name_en?: string | null }).child_name_en?.trim() ||
+      order.child_name;
+
     const pages = await Promise.all(
       templatePages.map(async (tp) => {
         const generated = (pageRows ?? []).find((r) => r.page_number === tp.n);
@@ -57,9 +61,13 @@ export const getMyStory = createServerFn({ method: "POST" })
           title_ar: tp.title_ar ?? null,
           title_en: tp.title_en ?? null,
           text:
-            generated?.page_text ?? personalize(tp.text ?? "", order.child_name),
+            generated?.page_text ??
+            personalize(
+              tp.text ?? "",
+              (tpl?.language ?? "ar") === "en" ? childNameEn : order.child_name,
+            ),
           text_ar: tp.text_ar ? personalize(tp.text_ar, order.child_name) : null,
-          text_en: tp.text_en ? personalize(tp.text_en, order.child_name) : null,
+          text_en: tp.text_en ? personalize(tp.text_en, childNameEn) : null,
           imageUrl,
         };
       }),
@@ -69,8 +77,12 @@ export const getMyStory = createServerFn({ method: "POST" })
       orderId: order.id,
       templateId: tpl?.id ?? order.template_id ?? null,
       childName: order.child_name,
+      childNameEn,
       status: order.status as string,
-      title: personalize(tpl?.title ?? "", order.child_name),
+      title: personalize(
+        tpl?.title ?? "",
+        (tpl?.language ?? "ar") === "en" ? childNameEn : order.child_name,
+      ),
       moral: tpl?.moral ?? null,
       language: (tpl?.language ?? "ar") as "ar" | "en" | "bilingual",
       contentType: (tpl?.content_type ?? "story") as "story" | "book",
