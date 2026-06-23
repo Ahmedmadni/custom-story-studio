@@ -394,6 +394,61 @@ function OrderPage() {
             )}
           </div>
 
+          {/* إهداء القصة */}
+          <div className="rounded-2xl border-2 border-pink-200 bg-pink-50/40 p-4">
+            <Label className="flex items-center gap-2 font-bold">
+              💝 إهداء القصة (اختياري)
+            </Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              اكتب اسم مهدي القصة (الأب/الأم/الجد…) — سيظهر في غلاف القصة وفي صفحة الإهداء داخل النص.
+            </p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div>
+                <Label htmlFor="gifter-name" className="text-sm">اسم المُهدي</Label>
+                <Input
+                  id="gifter-name"
+                  value={gifterName}
+                  onChange={(e) => setGifterName(e.target.value)}
+                  placeholder="مثال: أحمد"
+                  maxLength={60}
+                  className="mt-1 rounded-xl"
+                />
+              </div>
+              <div>
+                <Label htmlFor="gifter-rel" className="text-sm">العلاقة</Label>
+                <select
+                  id="gifter-rel"
+                  value={gifterRelation}
+                  onChange={(e) => setGifterRelation(e.target.value)}
+                  className="mt-1 w-full rounded-xl border-2 border-border bg-background p-2 text-sm"
+                >
+                  <option value="">— اختر —</option>
+                  {RELATION_OPTIONS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* موافقة النشر */}
+          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border-2 border-border bg-secondary/20 p-4">
+            <input
+              type="checkbox"
+              checked={publishConsent}
+              onChange={(e) => setPublishConsent(e.target.checked)}
+              className="mt-1 h-5 w-5 accent-primary"
+            />
+            <div className="text-sm">
+              <div className="font-bold">أوافق على نشر قصتي ضمن «من أعمالنا» في المكتبة 🌟</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                هذا اختياري تماماً — يمكنك تغيير الموافقة لاحقاً من صفحة القصة بعد التسليم.
+              </div>
+            </div>
+          </label>
+
+
+
           {/* واتساب */}
           <div>
             <Label htmlFor="wa" className="font-bold">رقم الواتساب لاستلام القصة</Label>
