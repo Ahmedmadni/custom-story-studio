@@ -125,6 +125,31 @@ function StoriesPage() {
           />
         )}
 
+        {/* CTA: لم تجد ما يناسبك؟ أنشئ قصة جديدة */}
+        <section className="mt-12 overflow-hidden rounded-3xl border-2 border-accent/40 bg-gradient-to-br from-accent/10 via-primary/5 to-candy/10 p-6 md:p-8">
+          <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="font-display text-2xl font-extrabold md:text-3xl">
+                لم تجد القصة المناسبة؟ ✨
+              </h3>
+              <p className="mt-2 text-muted-foreground">
+                ابدأ بقصة مخصصة بأفكار جديدة من اختيارك — اسم الطفل، الموضوع،
+                والشخصيات — ودع الذكاء الاصطناعي يبدع لك حكاية فريدة.
+              </p>
+            </div>
+            <Button
+              asChild
+              size="lg"
+              className="h-14 shrink-0 rounded-2xl bg-primary px-8 text-base font-bold text-primary-foreground shadow-[var(--shadow-soft)] hover:opacity-95"
+            >
+              <Link to="/create">
+                <Wand2 className="ms-2 h-5 w-5" />
+                أنشئ قصة بأفكار جديدة
+              </Link>
+            </Button>
+          </div>
+        </section>
+
         {/* قسم: من أعمالنا — قصص حقيقية لأبطال حقيقيين */}
         {galleryStories && galleryStories.length > 0 && (
           <section className="mt-16">
