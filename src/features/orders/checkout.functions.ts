@@ -53,6 +53,7 @@ export const submitCheckout = createServerFn({ method: "POST" })
         user_id: context.userId,
         template_id: it.templateId,
         child_name: it.childName,
+        child_name_en: it.childNameEn?.trim() || null,
         child_age: it.childAge ?? null,
         gender: it.gender,
         whatsapp: data.whatsapp,
