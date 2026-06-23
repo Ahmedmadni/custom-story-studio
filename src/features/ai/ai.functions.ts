@@ -10,6 +10,10 @@ import {
 import {
   STORY_STYLE_PROMPT,
   STYLE_NEGATIVE,
+  LANDSCAPE_COMPOSITION_RULE,
+  WIDE_FRAMING_RULE,
+  CONSISTENCY_RULE,
+  QUALITY_RULE,
   ageStylePrompt,
   bakedTitlePrompt,
   photoModePrompt,
@@ -415,9 +419,13 @@ export const generatePageImage = createServerFn({ method: "POST" })
       ? `\n${photoModePrompt(data.photoMode ?? "real")}.`
       : "";
     const titlePart = page.image_title_en ? `\n${bakedTitlePrompt(page.image_title_en)}` : "";
-    const prompt = `${STORY_STYLE_PROMPT}.${agePart}${photoPart}${titlePart}
+    const prompt = `${STORY_STYLE_PROMPT}
+${LANDSCAPE_COMPOSITION_RULE}
+${WIDE_FRAMING_RULE}
+${CONSISTENCY_RULE}${agePart}${photoPart}${titlePart}
 Children's storybook page illustration that literally depicts this exact written scene so the image feels like part of the text: ${page.scene}.
-Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
+${QUALITY_RULE}
+${STYLE_NEGATIVE}.`;
 
     const res = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
