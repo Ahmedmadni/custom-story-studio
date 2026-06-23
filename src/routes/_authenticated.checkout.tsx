@@ -537,8 +537,13 @@ function CheckoutPage() {
 
                 <div className="mt-4">
                   <Label className="font-bold">عدد صفحات القصة</Label>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {item.isCustom
+                      ? "🪄 قصة مخصصة بأفكارك — التسعير: 10 صفحات 200 ج، 16 صفحة 250 ج"
+                      : "📚 قصة من المكتبة — التسعير: 10 صفحات 150 ج، 16 صفحة 200 ج"}
+                  </p>
                   <div className="mt-2 grid grid-cols-2 gap-2">
-                    {PAGES_OPTIONS.map((opt) => (
+                    {pagesOptionsFor(Boolean(item.isCustom)).map((opt) => (
                       <button
                         key={opt.pages}
                         type="button"
