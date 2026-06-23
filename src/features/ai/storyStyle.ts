@@ -3,7 +3,23 @@
  * أسلوب بوستر سينمائي ثلاثي الأبعاد فاخر (مرجع: ملصقات أفلام الأطفال الكبيرة).
  */
 export const STORY_STYLE_PROMPT =
-  "TOP-TIER cinematic 3D animated movie style — the EXACT visual quality and feel of major theatrical animated features like Disney/Pixar 'Monsters University' and 'Monsters Inc', DreamWorks 'The Good Dinosaur', Pixar 'Up' and 'Toy Story 4', Warner Bros 'Tom & Jerry' 2021 3D movie, Illumination 'Despicable Me': big-budget feature-film 3D animation rendering, NOT toy/figurine/stock-3D look. Mandatory: hero-centered cinematic movie-poster composition, dramatic theatrical lighting with strong key light + warm rim light + soft bounce light, deep rich painterly background with real depth of field and atmospheric haze, vibrant saturated film-grade color grading, ultra-glossy expressive huge cartoon eyes with catchlights, soft rounded exaggerated cartoon features, polished subsurface-scattering skin, fluffy strand-level hair, detailed fabric micro-texture on clothes, subtle film grain, story-book theatrical poster energy. Reject: stiff plastic doll look, flat lighting, generic stock 3D, AI-generic kid avatar look, low-detail toy renders.";
+  "TOP-TIER cinematic 3D animated movie style — the EXACT visual quality and feel of major theatrical animated features like Disney/Pixar 'Monsters University' and 'Monsters Inc', DreamWorks 'The Good Dinosaur', Pixar 'Up' and 'Toy Story 4', Warner Bros 'Tom & Jerry' 2021 3D movie, Illumination 'Despicable Me': big-budget feature-film 3D animation rendering, NOT toy/figurine/stock-3D look. Mandatory: dramatic theatrical lighting with strong key light + warm rim light + soft bounce light, deep rich painterly background with real depth of field and atmospheric haze, vibrant saturated film-grade color grading, ultra-glossy expressive huge cartoon eyes with catchlights, soft rounded exaggerated cartoon features, polished subsurface-scattering skin, fluffy strand-level hair, detailed fabric micro-texture on clothes, subtle film grain, story-book theatrical poster energy. Reject: stiff plastic doll look, flat lighting, generic stock 3D, AI-generic kid avatar look, low-detail toy renders.";
+
+/** نسبة أبعاد إلزامية أفقية لكل الصور — مطابقة لتصميم PDF المستطيل */
+export const LANDSCAPE_COMPOSITION_RULE =
+  "MANDATORY OUTPUT FORMAT: a single wide cinematic LANDSCAPE image, 16:9 aspect ratio (1920×1080), like a Disney/Pixar movie still or a wide storybook spread. Do NOT output a square or portrait image. Compose horizontally with rich left-to-right scene depth.";
+
+/** إطار واسع — الطفل لا يستحوذ على المشهد، يظهر بحجم متوسط مع خلفية وشخصيات وأجواء واضحة */
+export const WIDE_FRAMING_RULE =
+  "CAMERA & FRAMING (very important): use a WIDE / MEDIUM-WIDE shot, NOT a close-up. The hero child must occupy at most 25-30% of the frame height and never fill the page. Show the child from full body or knees-up, with plenty of empty space, background environment, props, and supporting characters clearly visible around them. The scene, setting, and other characters must read as the main subject just as much as the child. Absolutely no close-up portraits, no head-and-shoulders crops, no face filling the frame.";
+
+/** ثبات هوية الطفل وملابسه عبر كل الصفحات */
+export const CONSISTENCY_RULE =
+  "CHARACTER CONSISTENCY (strict): the hero child MUST look 100% identical across every page of the book — exact same face shape, same eye color and shape, same skin tone, same hairstyle and hair color, same age, same height, and EXACTLY the same outfit (same clothes, same colors, same shoes, same accessories) in every single illustration. Treat the character description as a locked model sheet. Do not redesign, age up, change hairstyle, or change clothing between pages.";
+
+/** تحسين عام للجودة */
+export const QUALITY_RULE =
+  "Masterpiece quality, sharp focus, crisp details, perfect anatomy, no compression artifacts, no blur, no extra limbs, no warped faces.";
 
 export const STYLE_NEGATIVE =
   "no watermark, no logos, no signatures, no random gibberish text";
