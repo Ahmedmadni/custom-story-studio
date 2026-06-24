@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ALTER COLUMN child_photo_path DROP NOT NULL;

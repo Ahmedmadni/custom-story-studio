@@ -228,7 +228,7 @@ function Index() {
         <div className="rounded-[2rem] border border-border/60 bg-card/90 p-6 shadow-[var(--shadow-card)] backdrop-blur md:p-8">
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
             {[
-              { img: iconAi, to: "/create", title: "قصص بالذكاء الاصطناعي", desc: "قصص مخصّصة لطفلك بتقنية الذكاء الاصطناعي" },
+              { img: iconAi, to: "/request-story", title: "قصص بالذكاء الاصطناعي", desc: "قصص مخصّصة لطفلك بتقنية الذكاء الاصطناعي" },
               { img: iconBooks, to: "/books", title: "كتب تعليمية", desc: "كتب تفاعلية ومحتوى تعليمي ممتع ومفيد" },
               { img: iconGames, to: "/games", title: "ألعاب تعليمية", desc: "ألعاب شيّقة تنمّي المهارات وتعزّز التعلم" },
               { img: iconPuzzles, to: "/puzzles", title: "ألغاز وتحديات", desc: "ألغاز متنوّعة لتنمية التفكير والذكاء" },

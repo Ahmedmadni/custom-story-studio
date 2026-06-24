@@ -623,11 +623,11 @@ function CreateWizard() {
           <div className="mt-10 rounded-3xl border-2 border-border bg-card p-8 text-center">
             <p className="font-display text-2xl font-extrabold">🔒 هذه الصفحة للإدارة فقط</p>
             <p className="mt-2 text-muted-foreground">
-              إنشاء قوالب القصص الجديدة من صلاحيات الإدارة. لطلب قصة مخصصة لطفلك،
-              اختر إحدى القصص من مكتبتنا وسنُجهّزها لك.
+              إنشاء قوالب القصص من صلاحيات الإدارة. لطلب قصة بأفكارك الخاصة لطفلك،
+              أرسل طلبك من هنا وسنُجهّزها لك.
             </p>
             <Button asChild className="mt-5 rounded-full px-8 font-bold">
-              <Link to="/stories">تصفّح القصص</Link>
+              <Link to="/request-story">اطلب قصة بأفكارك الخاصة</Link>
             </Button>
           </div>
         ) : (

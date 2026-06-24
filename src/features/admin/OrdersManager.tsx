@@ -97,6 +97,8 @@ type AdminOrder = {
   giftedByName: string | null;
   giftedByRelation: string | null;
   publishConsent: boolean;
+  isCustomRequest: boolean;
+  customBrief: string | null;
 };
 
 type StatusFilter = "all" | "action" | "pending" | "approved" | "generating" | "ready" | "sent" | "rejected";
@@ -268,8 +270,18 @@ export function OrdersManager() {
                               🌟 نشر
                             </span>
                           )}
+                          {o.isCustomRequest && (
+                            <span
+                              className="ms-1 rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-bold text-accent-foreground"
+                              title="طلب قصة بأفكار العميل — يحتاج توليد من /create"
+                            >
+                              🪄 طلب مخصص
+                            </span>
+                          )}
                         </p>
-                        <p className="text-xs text-muted-foreground line-clamp-1">{o.storyTitle}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {o.isCustomRequest && !o.templateId ? "طلب مخصص — لم يُولَّد بعد" : o.storyTitle}
+                        </p>
                       </div>
                     </div>
                   </TableCell>
@@ -641,6 +653,20 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
                 </p>
               </div>
             </div>
+
+            {/* فكرة العميل للطلب المخصص */}
+            {order.isCustomRequest && order.customBrief && (
+              <div className="rounded-2xl border-2 border-accent/40 bg-accent/5 p-4 text-sm">
+                <h4 className="mb-2 font-bold">🪄 فكرة العميل للقصة المخصصة</h4>
+                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">{order.customBrief}</pre>
+                {!order.templateId && (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    لم يُولَّد قالب القصة بعد — افتح <code>/create</code> وأنشئ القصة وفق الفكرة، ثم اربط الطلب يدوياً.
+                  </p>
+                )}
+              </div>
+            )}
+
 
             {/* بيانات الإهداء (الأهل / مُهدي القصة) */}
             {(order.giftedByName || order.publishConsent) && (
