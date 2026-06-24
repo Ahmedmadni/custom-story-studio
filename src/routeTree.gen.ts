@@ -20,6 +20,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoriesIndexRouteImport } from './routes/stories.index'
 import { Route as StoriesSlugRouteImport } from './routes/stories.$slug'
 import { Route as PuzzlesIdRouteImport } from './routes/puzzles_.$id'
+import { Route as AuthenticatedRequestStoryRouteImport } from './routes/_authenticated.request-story'
 import { Route as AuthenticatedMyOrdersRouteImport } from './routes/_authenticated.my-orders'
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated.checkout'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
@@ -86,6 +87,12 @@ const PuzzlesIdRoute = PuzzlesIdRouteImport.update({
   path: '/puzzles/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRequestStoryRoute =
+  AuthenticatedRequestStoryRouteImport.update({
+    id: '/request-story',
+    path: '/request-story',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMyOrdersRoute = AuthenticatedMyOrdersRouteImport.update({
   id: '/my-orders',
   path: '/my-orders',
@@ -158,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/request-story': typeof AuthenticatedRequestStoryRoute
   '/puzzles/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories/': typeof StoriesIndexRoute
@@ -180,6 +188,7 @@ export interface FileRoutesByTo {
   '/puzzles': typeof PuzzlesRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/request-story': typeof AuthenticatedRequestStoryRoute
   '/puzzles/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories': typeof StoriesIndexRoute
@@ -205,6 +214,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/_authenticated/request-story': typeof AuthenticatedRequestStoryRoute
   '/puzzles_/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories/': typeof StoriesIndexRoute
@@ -230,6 +240,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/checkout'
     | '/my-orders'
+    | '/request-story'
     | '/puzzles/$id'
     | '/stories/$slug'
     | '/stories/'
@@ -252,6 +263,7 @@ export interface FileRouteTypes {
     | '/puzzles'
     | '/checkout'
     | '/my-orders'
+    | '/request-story'
     | '/puzzles/$id'
     | '/stories/$slug'
     | '/stories'
@@ -276,6 +288,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/checkout'
     | '/_authenticated/my-orders'
+    | '/_authenticated/request-story'
     | '/puzzles_/$id'
     | '/stories/$slug'
     | '/stories/'
@@ -382,6 +395,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PuzzlesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/request-story': {
+      id: '/_authenticated/request-story'
+      path: '/request-story'
+      fullPath: '/request-story'
+      preLoaderRoute: typeof AuthenticatedRequestStoryRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/my-orders': {
       id: '/_authenticated/my-orders'
       path: '/my-orders'
@@ -487,6 +507,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedCheckoutRoute: typeof AuthenticatedCheckoutRoute
   AuthenticatedMyOrdersRoute: typeof AuthenticatedMyOrdersRoute
+  AuthenticatedRequestStoryRoute: typeof AuthenticatedRequestStoryRoute
   AuthenticatedOrderTemplateIdRoute: typeof AuthenticatedOrderTemplateIdRoute
   AuthenticatedStoryOrderIdRoute: typeof AuthenticatedStoryOrderIdRoute
 }
@@ -495,6 +516,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedCheckoutRoute: AuthenticatedCheckoutRoute,
   AuthenticatedMyOrdersRoute: AuthenticatedMyOrdersRoute,
+  AuthenticatedRequestStoryRoute: AuthenticatedRequestStoryRoute,
   AuthenticatedOrderTemplateIdRoute: AuthenticatedOrderTemplateIdRoute,
   AuthenticatedStoryOrderIdRoute: AuthenticatedStoryOrderIdRoute,
 }
