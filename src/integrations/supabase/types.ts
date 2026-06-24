@@ -96,12 +96,14 @@ export type Database = {
           child_name_en: string | null
           child_photo_path: string
           created_at: string
+          custom_brief: string | null
           delivery_address: string | null
           gender: Database["public"]["Enums"]["child_gender"]
           gifted_by_name: string | null
           gifted_by_relation: string | null
           hero_character: string | null
           id: string
+          is_custom_request: boolean
           language: string
           notes: string | null
           pages_count: number
@@ -131,12 +133,14 @@ export type Database = {
           child_name_en?: string | null
           child_photo_path: string
           created_at?: string
+          custom_brief?: string | null
           delivery_address?: string | null
           gender?: Database["public"]["Enums"]["child_gender"]
           gifted_by_name?: string | null
           gifted_by_relation?: string | null
           hero_character?: string | null
           id?: string
+          is_custom_request?: boolean
           language?: string
           notes?: string | null
           pages_count?: number
@@ -166,12 +170,14 @@ export type Database = {
           child_name_en?: string | null
           child_photo_path?: string
           created_at?: string
+          custom_brief?: string | null
           delivery_address?: string | null
           gender?: Database["public"]["Enums"]["child_gender"]
           gifted_by_name?: string | null
           gifted_by_relation?: string | null
           hero_character?: string | null
           id?: string
+          is_custom_request?: boolean
           language?: string
           notes?: string | null
           pages_count?: number
