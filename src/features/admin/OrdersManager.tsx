@@ -654,6 +654,20 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
               </div>
             </div>
 
+            {/* فكرة العميل للطلب المخصص */}
+            {order.isCustomRequest && order.customBrief && (
+              <div className="rounded-2xl border-2 border-accent/40 bg-accent/5 p-4 text-sm">
+                <h4 className="mb-2 font-bold">🪄 فكرة العميل للقصة المخصصة</h4>
+                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">{order.customBrief}</pre>
+                {!order.templateId && (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    لم يُولَّد قالب القصة بعد — افتح <code>/create</code> وأنشئ القصة وفق الفكرة، ثم اربط الطلب يدوياً.
+                  </p>
+                )}
+              </div>
+            )}
+
+
             {/* بيانات الإهداء (الأهل / مُهدي القصة) */}
             {(order.giftedByName || order.publishConsent) && (
               <div className="rounded-2xl border-2 border-pink-200 bg-pink-50/40 p-4 text-sm">
