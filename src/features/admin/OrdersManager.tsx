@@ -97,6 +97,8 @@ type AdminOrder = {
   giftedByName: string | null;
   giftedByRelation: string | null;
   publishConsent: boolean;
+  isCustomRequest: boolean;
+  customBrief: string | null;
 };
 
 type StatusFilter = "all" | "action" | "pending" | "approved" | "generating" | "ready" | "sent" | "rejected";
