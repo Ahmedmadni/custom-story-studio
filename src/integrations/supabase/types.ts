@@ -94,7 +94,7 @@ export type Database = {
           child_age: number | null
           child_name: string
           child_name_en: string | null
-          child_photo_path: string
+          child_photo_path: string | null
           created_at: string
           custom_brief: string | null
           delivery_address: string | null
@@ -131,7 +131,7 @@ export type Database = {
           child_age?: number | null
           child_name: string
           child_name_en?: string | null
-          child_photo_path: string
+          child_photo_path?: string | null
           created_at?: string
           custom_brief?: string | null
           delivery_address?: string | null
@@ -168,7 +168,7 @@ export type Database = {
           child_age?: number | null
           child_name?: string
           child_name_en?: string | null
-          child_photo_path?: string
+          child_photo_path?: string | null
           created_at?: string
           custom_brief?: string | null
           delivery_address?: string | null
