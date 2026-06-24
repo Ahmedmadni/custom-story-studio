@@ -185,6 +185,8 @@ export const adminListOrders = createServerFn({ method: "POST" })
           giftedByName: (o.gifted_by_name as string | null) ?? null,
           giftedByRelation: (o.gifted_by_relation as string | null) ?? null,
           publishConsent: !!(o.publish_consent as boolean | null),
+          isCustomRequest: !!(o as { is_custom_request?: boolean }).is_custom_request,
+          customBrief: ((o as { custom_brief?: string | null }).custom_brief ?? null) as string | null,
         };
       }),
     );
