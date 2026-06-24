@@ -270,8 +270,18 @@ export function OrdersManager() {
                               🌟 نشر
                             </span>
                           )}
+                          {o.isCustomRequest && (
+                            <span
+                              className="ms-1 rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-bold text-accent-foreground"
+                              title="طلب قصة بأفكار العميل — يحتاج توليد من /create"
+                            >
+                              🪄 طلب مخصص
+                            </span>
+                          )}
                         </p>
-                        <p className="text-xs text-muted-foreground line-clamp-1">{o.storyTitle}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                          {o.isCustomRequest && !o.templateId ? "طلب مخصص — لم يُولَّد بعد" : o.storyTitle}
+                        </p>
                       </div>
                     </div>
                   </TableCell>
