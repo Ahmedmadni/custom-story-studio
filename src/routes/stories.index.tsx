@@ -142,9 +142,9 @@ function StoriesPage() {
               size="lg"
               className="h-14 shrink-0 rounded-2xl bg-primary px-8 text-base font-bold text-primary-foreground shadow-[var(--shadow-soft)] hover:opacity-95"
             >
-              <Link to="/create">
+              <Link to="/request-story">
                 <Wand2 className="ms-2 h-5 w-5" />
-                أنشئ قصة بأفكار جديدة
+                اطلب قصة بأفكارك الخاصة
               </Link>
             </Button>
           </div>
