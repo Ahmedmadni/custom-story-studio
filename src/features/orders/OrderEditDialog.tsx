@@ -23,6 +23,7 @@ import { GENDER_OPTIONS, LANGUAGE_OPTIONS } from "@/features/ai/storyTypes";
 import { updateMyOrder } from "@/features/admin/admin.functions";
 import { pagesOptionsFor, PRINT_COPY_PRICE_EGP } from "@/features/cart/pricing";
 import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
+import { optimizeImage } from "@/lib/imageOptimize";
 
 const MAX_PHOTO_MB = 8;
 const RELATION_OPTIONS = [
