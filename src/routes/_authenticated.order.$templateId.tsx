@@ -123,11 +123,12 @@ function OrderPage() {
 
     setSubmitting(true);
     try {
-      const ext = photo.name.split(".").pop()?.toLowerCase() || "jpg";
+      const { file: optimized } = await optimizeImage(photo, { maxWidth: 1400, quality: 0.85 });
+      const ext = optimized.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
       const { error: uploadErr } = await supabase.storage
         .from("child-photos")
-        .upload(path, photo, { contentType: photo.type });
+        .upload(path, optimized, { contentType: optimized.type });
       if (uploadErr) throw new Error("تعذر رفع الصورة، حاول مرة أخرى");
 
       const heroNote = heroCharacter.trim()
