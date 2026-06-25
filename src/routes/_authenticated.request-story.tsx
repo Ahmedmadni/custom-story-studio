@@ -33,6 +33,7 @@ import { BOOK_CATEGORIES, type BookCategoryValue } from "@/features/library/book
 import { CUSTOM_PRICES } from "@/features/cart/pricing";
 import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
 import { submitCustomStoryRequest } from "@/features/orders/customRequest.functions";
+import { optimizeImage } from "@/lib/imageOptimize";
 
 export const Route = createFileRoute("/_authenticated/request-story")({
   head: () => ({
