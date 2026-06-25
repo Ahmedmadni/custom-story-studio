@@ -65,6 +65,7 @@ import {
   type LanguageMode,
 } from "@/features/ai/storyTypes";
 import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
+import { optimizeImage } from "@/lib/imageOptimize";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -316,11 +317,12 @@ function CreateWizard() {
       let photoPath: string | null = null;
       if (photo && user) {
         try {
-          const ext = photo.name.split(".").pop()?.toLowerCase() || "jpg";
+          const { file: optimized } = await optimizeImage(photo, { maxWidth: 1400, quality: 0.85 });
+          const ext = optimized.name.split(".").pop()?.toLowerCase() || "jpg";
           const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
           const { error: upErr } = await supabase.storage
             .from("child-photos")
-            .upload(path, photo, { contentType: photo.type });
+            .upload(path, optimized, { contentType: optimized.type });
           if (upErr) throw upErr;
           photoPath = path;
           const { error: insErr } = await supabase.from("orders").insert({

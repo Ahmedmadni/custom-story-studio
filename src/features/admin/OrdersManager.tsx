@@ -245,7 +245,7 @@ export function OrdersManager() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       {o.photoUrl ? (
-                        <img src={o.photoUrl} alt="" className="h-10 w-10 rounded-xl object-cover" />
+                        <img src={o.photoUrl} alt="" loading="lazy" decoding="async" className="h-10 w-10 rounded-xl object-cover" />
                       ) : (
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary">
                           <ImageIcon className="h-4 w-4 text-muted-foreground" />

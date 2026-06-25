@@ -496,7 +496,7 @@ function TemplateCard({
       >
         <div className="relative aspect-square overflow-hidden bg-secondary">
           {t.coverUrl ? (
-            <img src={t.coverUrl} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+            <img src={t.coverUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
           ) : (
             <div className="flex h-full items-center justify-center">
               <ImageIcon className="h-10 w-10 text-muted-foreground/50" />
