@@ -122,11 +122,12 @@ export function OrderEditDialog({
       if (photo) {
         if (photo.size > MAX_PHOTO_MB * 1024 * 1024)
           throw new Error(`الصورة أكبر من ${MAX_PHOTO_MB} ميجابايت`);
-        const ext = photo.name.split(".").pop()?.toLowerCase() || "jpg";
+        const { file: optPhoto } = await optimizeImage(photo, { maxWidth: 1400, quality: 0.85 });
+        const ext = optPhoto.name.split(".").pop()?.toLowerCase() || "jpg";
         const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
         const { error } = await supabase.storage
           .from("child-photos")
-          .upload(path, photo, { contentType: photo.type });
+          .upload(path, optPhoto, { contentType: optPhoto.type });
         if (error) throw new Error("تعذر رفع صورة الطفل");
         newChildPhotoPath = path;
       }
@@ -134,11 +135,12 @@ export function OrderEditDialog({
       if (receipt) {
         if (receipt.size > MAX_PHOTO_MB * 1024 * 1024)
           throw new Error(`الإيصال أكبر من ${MAX_PHOTO_MB} ميجابايت`);
-        const ext = receipt.name.split(".").pop()?.toLowerCase() || "jpg";
+        const { file: optReceipt } = await optimizeImage(receipt, { maxWidth: 1800, quality: 0.85 });
+        const ext = optReceipt.name.split(".").pop()?.toLowerCase() || "jpg";
         const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
         const { error } = await supabase.storage
           .from("payment-receipts")
-          .upload(path, receipt, { contentType: receipt.type });
+          .upload(path, optReceipt, { contentType: optReceipt.type });
         if (error) throw new Error("تعذر رفع الإيصال الجديد");
         newReceiptPath = path;
       }
