@@ -135,11 +135,12 @@ function RequestStoryPage() {
 
   const uploadToBucket = async (file: File, bucket: string): Promise<string> => {
     if (!user) throw new Error("سجّل الدخول أولاً");
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const { file: optimized } = await optimizeImage(file, { maxWidth: 1600, quality: 0.85 });
+    const ext = optimized.name.split(".").pop()?.toLowerCase() || "jpg";
     const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage
       .from(bucket)
-      .upload(path, file, { contentType: file.type });
+      .upload(path, optimized, { contentType: optimized.type });
     if (error) throw new Error(`تعذر رفع الملف: ${error.message}`);
     return path;
   };
