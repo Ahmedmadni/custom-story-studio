@@ -180,23 +180,25 @@ function CheckoutPage() {
 
     setSubmitting(true);
     try {
-      // 1) upload receipt
-      const rExt = receipt.name.split(".").pop()?.toLowerCase() || "jpg";
+      // 1) upload receipt (optimize image receipts to WebP)
+      const receiptOpt = await optimizeImage(receipt, { maxWidth: 1800, quality: 0.85 });
+      const rExt = receiptOpt.file.name.split(".").pop()?.toLowerCase() || "jpg";
       const receiptPath = `${user.id}/${crypto.randomUUID()}.${rExt}`;
       const { error: rErr } = await supabase.storage
         .from("payment-receipts")
-        .upload(receiptPath, receipt, { contentType: receipt.type });
+        .upload(receiptPath, receiptOpt.file, { contentType: receiptOpt.file.type });
       if (rErr) throw new Error("تعذر رفع الإيصال");
 
-      // 2) upload each child photo
+      // 2) upload each child photo (optimized)
       const uploadedItems = await Promise.all(
         items.map(async (item) => {
           const d = drafts[item.templateId];
-          const ext = d.photo!.name.split(".").pop()?.toLowerCase() || "jpg";
+          const opt = await optimizeImage(d.photo!, { maxWidth: 1400, quality: 0.85 });
+          const ext = opt.file.name.split(".").pop()?.toLowerCase() || "jpg";
           const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
           const { error } = await supabase.storage
             .from("child-photos")
-            .upload(path, d.photo!, { contentType: d.photo!.type });
+            .upload(path, opt.file, { contentType: opt.file.type });
           if (error) throw new Error(`تعذر رفع صورة «${item.title}»`);
           return {
             templateId: item.templateId,
