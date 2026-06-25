@@ -28,6 +28,7 @@ import {
   useCart,
 } from "@/features/cart/CartContext";
 import { submitCheckout } from "@/features/orders/checkout.functions";
+import { optimizeImage } from "@/lib/imageOptimize";
 import {
   GENDER_OPTIONS,
   LANGUAGE_OPTIONS,
