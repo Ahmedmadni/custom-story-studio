@@ -18,6 +18,7 @@ import { HERO_OPTIONS, HERO_CATEGORIES, type HeroOption } from "@/features/order
 import { cn } from "@/lib/utils";
 import photoModeRealImg from "@/assets/photo-mode-real.jpg";
 import photoModeCartoonImg from "@/assets/photo-mode-cartoon.jpg";
+import { optimizeImage } from "@/lib/imageOptimize";
 
 export const Route = createFileRoute("/_authenticated/order/$templateId")({
   head: () => ({
