@@ -20,6 +20,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoriesIndexRouteImport } from './routes/stories.index'
 import { Route as StoriesSlugRouteImport } from './routes/stories.$slug'
 import { Route as PuzzlesIdRouteImport } from './routes/puzzles_.$id'
+import { Route as PaymentReturnRouteImport } from './routes/payment.return'
 import { Route as AuthenticatedRequestStoryRouteImport } from './routes/_authenticated.request-story'
 import { Route as AuthenticatedMyOrdersRouteImport } from './routes/_authenticated.my-orders'
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated.checkout'
@@ -32,6 +33,7 @@ import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminRolesRouteImport } from './routes/_authenticated.admin.roles'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated.admin.orders'
 import { Route as AuthenticatedAdminApprovalsRouteImport } from './routes/_authenticated.admin.approvals'
+import { Route as ApiPublicKashierWebhookRouteImport } from './routes/api/public/kashier.webhook'
 
 const PuzzlesRoute = PuzzlesRouteImport.update({
   id: '/puzzles',
@@ -85,6 +87,11 @@ const StoriesSlugRoute = StoriesSlugRouteImport.update({
 const PuzzlesIdRoute = PuzzlesIdRouteImport.update({
   id: '/puzzles_/$id',
   path: '/puzzles/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentReturnRoute = PaymentReturnRouteImport.update({
+  id: '/payment/return',
+  path: '/payment/return',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRequestStoryRoute =
@@ -153,6 +160,11 @@ const AuthenticatedAdminApprovalsRoute =
     path: '/approvals',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const ApiPublicKashierWebhookRoute = ApiPublicKashierWebhookRouteImport.update({
+  id: '/api/public/kashier/webhook',
+  path: '/api/public/kashier/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -166,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
   '/request-story': typeof AuthenticatedRequestStoryRoute
+  '/payment/return': typeof PaymentReturnRoute
   '/puzzles/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories/': typeof StoriesIndexRoute
@@ -177,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
   '/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/api/public/kashier/webhook': typeof ApiPublicKashierWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -189,6 +203,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
   '/request-story': typeof AuthenticatedRequestStoryRoute
+  '/payment/return': typeof PaymentReturnRoute
   '/puzzles/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories': typeof StoriesIndexRoute
@@ -200,6 +215,7 @@ export interface FileRoutesByTo {
   '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
   '/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/api/public/kashier/webhook': typeof ApiPublicKashierWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -215,6 +231,7 @@ export interface FileRoutesById {
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/my-orders': typeof AuthenticatedMyOrdersRoute
   '/_authenticated/request-story': typeof AuthenticatedRequestStoryRoute
+  '/payment/return': typeof PaymentReturnRoute
   '/puzzles_/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories/': typeof StoriesIndexRoute
@@ -226,6 +243,7 @@ export interface FileRoutesById {
   '/_authenticated/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
   '/_authenticated/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/api/public/kashier/webhook': typeof ApiPublicKashierWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -241,6 +259,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/my-orders'
     | '/request-story'
+    | '/payment/return'
     | '/puzzles/$id'
     | '/stories/$slug'
     | '/stories/'
@@ -252,6 +271,7 @@ export interface FileRouteTypes {
     | '/order/$templateId'
     | '/story/$orderId'
     | '/admin/'
+    | '/api/public/kashier/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -264,6 +284,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/my-orders'
     | '/request-story'
+    | '/payment/return'
     | '/puzzles/$id'
     | '/stories/$slug'
     | '/stories'
@@ -275,6 +296,7 @@ export interface FileRouteTypes {
     | '/order/$templateId'
     | '/story/$orderId'
     | '/admin'
+    | '/api/public/kashier/webhook'
   id:
     | '__root__'
     | '/'
@@ -289,6 +311,7 @@ export interface FileRouteTypes {
     | '/_authenticated/checkout'
     | '/_authenticated/my-orders'
     | '/_authenticated/request-story'
+    | '/payment/return'
     | '/puzzles_/$id'
     | '/stories/$slug'
     | '/stories/'
@@ -300,6 +323,7 @@ export interface FileRouteTypes {
     | '/_authenticated/order/$templateId'
     | '/_authenticated/story/$orderId'
     | '/_authenticated/admin/'
+    | '/api/public/kashier/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -311,9 +335,11 @@ export interface RootRouteChildren {
   CreateRoute: typeof CreateRoute
   GamesRoute: typeof GamesRoute
   PuzzlesRoute: typeof PuzzlesRoute
+  PaymentReturnRoute: typeof PaymentReturnRoute
   PuzzlesIdRoute: typeof PuzzlesIdRoute
   StoriesSlugRoute: typeof StoriesSlugRoute
   StoriesIndexRoute: typeof StoriesIndexRoute
+  ApiPublicKashierWebhookRoute: typeof ApiPublicKashierWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -393,6 +419,13 @@ declare module '@tanstack/react-router' {
       path: '/puzzles/$id'
       fullPath: '/puzzles/$id'
       preLoaderRoute: typeof PuzzlesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment/return': {
+      id: '/payment/return'
+      path: '/payment/return'
+      fullPath: '/payment/return'
+      preLoaderRoute: typeof PaymentReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/request-story': {
@@ -479,6 +512,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminApprovalsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/api/public/kashier/webhook': {
+      id: '/api/public/kashier/webhook'
+      path: '/api/public/kashier/webhook'
+      fullPath: '/api/public/kashier/webhook'
+      preLoaderRoute: typeof ApiPublicKashierWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -534,9 +574,11 @@ const rootRouteChildren: RootRouteChildren = {
   CreateRoute: CreateRoute,
   GamesRoute: GamesRoute,
   PuzzlesRoute: PuzzlesRoute,
+  PaymentReturnRoute: PaymentReturnRoute,
   PuzzlesIdRoute: PuzzlesIdRoute,
   StoriesSlugRoute: StoriesSlugRoute,
   StoriesIndexRoute: StoriesIndexRoute,
+  ApiPublicKashierWebhookRoute: ApiPublicKashierWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
