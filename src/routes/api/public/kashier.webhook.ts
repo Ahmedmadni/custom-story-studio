@@ -78,8 +78,9 @@ export const Route = createFileRoute("/api/public/kashier/webhook")({
           amount,
           currency,
           signature_ok: sigOk,
-          raw_payload: body,
+          raw_payload: body as never,
         });
+
 
         if (!sigOk) {
           return new Response("Invalid signature", { status: 401, headers: corsHeaders });
@@ -110,7 +111,7 @@ export const Route = createFileRoute("/api/public/kashier/webhook")({
               payment_status: "verified",
               paid_at: new Date().toISOString(),
               kashier_transaction_id: kashierTxId || null,
-              kashier_payload: body as unknown as Record<string, unknown>,
+              kashier_payload: body as never,
             })
             .eq("kashier_order_id", kashierOrderId);
           if (error) {
@@ -123,11 +124,12 @@ export const Route = createFileRoute("/api/public/kashier/webhook")({
             .update({
               payment_status: "rejected",
               payment_rejection_reason: `Kashier: ${status}`,
-              kashier_payload: body as unknown as Record<string, unknown>,
+              kashier_payload: body as never,
             })
             .eq("kashier_order_id", kashierOrderId)
             .neq("payment_status", "verified");
         }
+
 
         return new Response("ok", { status: 200, headers: corsHeaders });
       },
