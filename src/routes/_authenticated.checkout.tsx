@@ -169,7 +169,8 @@ function CheckoutPage() {
     if (!user) return;
     if (!isValidEgyptianMobile(whatsapp))
       return toast.error("اكتب رقم واتساب مصري صحيح مثل 01012345678");
-    if (!receipt) return toast.error("ارفع صورة إيصال التحويل");
+    if (paymentMethod === "vodafone_cash" && !receipt)
+      return toast.error("ارفع صورة إيصال التحويل");
     if (printCopy && deliveryAddress.trim().length < 10)
       return toast.error("اكتب عنوان التوصيل بالتفصيل");
 
@@ -186,14 +187,17 @@ function CheckoutPage() {
 
     setSubmitting(true);
     try {
-      // 1) upload receipt (optimize image receipts to WebP)
-      const receiptOpt = await optimizeImage(receipt, { maxWidth: 1800, quality: 0.85 });
-      const rExt = receiptOpt.file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const receiptPath = `${user.id}/${crypto.randomUUID()}.${rExt}`;
-      const { error: rErr } = await supabase.storage
-        .from("payment-receipts")
-        .upload(receiptPath, receiptOpt.file, { contentType: receiptOpt.file.type });
-      if (rErr) throw new Error("تعذر رفع الإيصال");
+      // 1) receipt upload (vodafone only)
+      let receiptPath = "";
+      if (paymentMethod === "vodafone_cash" && receipt) {
+        const receiptOpt = await optimizeImage(receipt, { maxWidth: 1800, quality: 0.85 });
+        const rExt = receiptOpt.file.name.split(".").pop()?.toLowerCase() || "jpg";
+        receiptPath = `${user.id}/${crypto.randomUUID()}.${rExt}`;
+        const { error: rErr } = await supabase.storage
+          .from("payment-receipts")
+          .upload(receiptPath, receiptOpt.file, { contentType: receiptOpt.file.type });
+        if (rErr) throw new Error("تعذر رفع الإيصال");
+      }
 
       // 2) upload each child photo (optimized)
       const uploadedItems = await Promise.all(
@@ -217,26 +221,42 @@ function CheckoutPage() {
         }),
       );
 
-      // 3) create orders
+      const itemsPayload = uploadedItems.map((it) => {
+        const d = drafts[it.templateId];
+        return {
+          ...it,
+          childNameEn: d.childNameEn.trim() || null,
+          language: d.language,
+          photoMode: d.photoMode,
+          publishConsent: d.publishConsent,
+          pagesCount: d.pagesCount,
+          gifterName: d.gifterName.trim() || null,
+          gifterRelation: d.gifterRelation.trim() || null,
+        };
+      });
+
+      // 3) create orders or kashier checkout
+      if (paymentMethod === "kashier") {
+        const res = await kashierFn({
+          data: {
+            whatsapp: whatsapp.trim(),
+            printCopy,
+            deliveryAddress: printCopy ? deliveryAddress.trim() : null,
+            items: itemsPayload,
+          },
+        });
+        clear();
+        window.location.href = res.checkoutUrl;
+        return;
+      }
+
       await submitFn({
         data: {
           whatsapp: whatsapp.trim(),
           receiptPath,
           printCopy,
           deliveryAddress: printCopy ? deliveryAddress.trim() : null,
-          items: uploadedItems.map((it) => {
-            const d = drafts[it.templateId];
-            return {
-              ...it,
-              childNameEn: d.childNameEn.trim() || null,
-              language: d.language,
-              photoMode: d.photoMode,
-              publishConsent: d.publishConsent,
-              pagesCount: d.pagesCount,
-              gifterName: d.gifterName.trim() || null,
-              gifterRelation: d.gifterRelation.trim() || null,
-            };
-          }),
+          items: itemsPayload,
         },
       });
 
@@ -249,6 +269,7 @@ function CheckoutPage() {
       setSubmitting(false);
     }
   };
+
 
   const itemsSubtotal = items.reduce((sum, it) => {
     const d = drafts[it.templateId];
