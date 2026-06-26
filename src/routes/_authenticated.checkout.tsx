@@ -28,6 +28,8 @@ import {
   useCart,
 } from "@/features/cart/CartContext";
 import { submitCheckout } from "@/features/orders/checkout.functions";
+import { createKashierCheckout } from "@/features/orders/kashier.functions";
+
 import { optimizeImage } from "@/lib/imageOptimize";
 import {
   GENDER_OPTIONS,
@@ -76,6 +78,9 @@ function CheckoutPage() {
   const { items, clear } = useCart();
   const navigate = useNavigate();
   const submitFn = useServerFn(submitCheckout);
+  const kashierFn = useServerFn(createKashierCheckout);
+  const [paymentMethod, setPaymentMethod] = useState<"vodafone_cash" | "kashier">("kashier");
+
 
   const [drafts, setDrafts] = useState<Record<string, ItemDraft>>(() =>
 
