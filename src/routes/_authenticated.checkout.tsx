@@ -28,6 +28,8 @@ import {
   useCart,
 } from "@/features/cart/CartContext";
 import { submitCheckout } from "@/features/orders/checkout.functions";
+import { createKashierCheckout } from "@/features/orders/kashier.functions";
+
 import { optimizeImage } from "@/lib/imageOptimize";
 import {
   GENDER_OPTIONS,
@@ -76,6 +78,9 @@ function CheckoutPage() {
   const { items, clear } = useCart();
   const navigate = useNavigate();
   const submitFn = useServerFn(submitCheckout);
+  const kashierFn = useServerFn(createKashierCheckout);
+  const [paymentMethod, setPaymentMethod] = useState<"vodafone_cash" | "kashier">("kashier");
+
 
   const [drafts, setDrafts] = useState<Record<string, ItemDraft>>(() =>
 
@@ -164,7 +169,8 @@ function CheckoutPage() {
     if (!user) return;
     if (!isValidEgyptianMobile(whatsapp))
       return toast.error("اكتب رقم واتساب مصري صحيح مثل 01012345678");
-    if (!receipt) return toast.error("ارفع صورة إيصال التحويل");
+    if (paymentMethod === "vodafone_cash" && !receipt)
+      return toast.error("ارفع صورة إيصال التحويل");
     if (printCopy && deliveryAddress.trim().length < 10)
       return toast.error("اكتب عنوان التوصيل بالتفصيل");
 
@@ -181,14 +187,17 @@ function CheckoutPage() {
 
     setSubmitting(true);
     try {
-      // 1) upload receipt (optimize image receipts to WebP)
-      const receiptOpt = await optimizeImage(receipt, { maxWidth: 1800, quality: 0.85 });
-      const rExt = receiptOpt.file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const receiptPath = `${user.id}/${crypto.randomUUID()}.${rExt}`;
-      const { error: rErr } = await supabase.storage
-        .from("payment-receipts")
-        .upload(receiptPath, receiptOpt.file, { contentType: receiptOpt.file.type });
-      if (rErr) throw new Error("تعذر رفع الإيصال");
+      // 1) receipt upload (vodafone only)
+      let receiptPath = "";
+      if (paymentMethod === "vodafone_cash" && receipt) {
+        const receiptOpt = await optimizeImage(receipt, { maxWidth: 1800, quality: 0.85 });
+        const rExt = receiptOpt.file.name.split(".").pop()?.toLowerCase() || "jpg";
+        receiptPath = `${user.id}/${crypto.randomUUID()}.${rExt}`;
+        const { error: rErr } = await supabase.storage
+          .from("payment-receipts")
+          .upload(receiptPath, receiptOpt.file, { contentType: receiptOpt.file.type });
+        if (rErr) throw new Error("تعذر رفع الإيصال");
+      }
 
       // 2) upload each child photo (optimized)
       const uploadedItems = await Promise.all(
@@ -212,26 +221,42 @@ function CheckoutPage() {
         }),
       );
 
-      // 3) create orders
+      const itemsPayload = uploadedItems.map((it) => {
+        const d = drafts[it.templateId];
+        return {
+          ...it,
+          childNameEn: d.childNameEn.trim() || null,
+          language: d.language,
+          photoMode: d.photoMode,
+          publishConsent: d.publishConsent,
+          pagesCount: d.pagesCount,
+          gifterName: d.gifterName.trim() || null,
+          gifterRelation: d.gifterRelation.trim() || null,
+        };
+      });
+
+      // 3) create orders or kashier checkout
+      if (paymentMethod === "kashier") {
+        const res = await kashierFn({
+          data: {
+            whatsapp: whatsapp.trim(),
+            printCopy,
+            deliveryAddress: printCopy ? deliveryAddress.trim() : null,
+            items: itemsPayload,
+          },
+        });
+        clear();
+        window.location.href = res.checkoutUrl;
+        return;
+      }
+
       await submitFn({
         data: {
           whatsapp: whatsapp.trim(),
           receiptPath,
           printCopy,
           deliveryAddress: printCopy ? deliveryAddress.trim() : null,
-          items: uploadedItems.map((it) => {
-            const d = drafts[it.templateId];
-            return {
-              ...it,
-              childNameEn: d.childNameEn.trim() || null,
-              language: d.language,
-              photoMode: d.photoMode,
-              publishConsent: d.publishConsent,
-              pagesCount: d.pagesCount,
-              gifterName: d.gifterName.trim() || null,
-              gifterRelation: d.gifterRelation.trim() || null,
-            };
-          }),
+          items: itemsPayload,
         },
       });
 
@@ -244,6 +269,7 @@ function CheckoutPage() {
       setSubmitting(false);
     }
   };
+
 
   const itemsSubtotal = items.reduce((sum, it) => {
     const d = drafts[it.templateId];
@@ -644,24 +670,51 @@ function CheckoutPage() {
           )}
         </section>
 
-        {/* payment */}
-        <section className="mt-6 rounded-3xl border-2 border-grass/40 bg-grass/5 p-5 shadow-sm">
-          <h2 className="flex items-center gap-2 font-display text-xl font-extrabold text-grass-foreground">
-            <Smartphone className="h-5 w-5 text-grass" />
-            الدفع عبر فودافون كاش
-          </h2>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-card p-4">
-            <div>
-              <p className="text-xs text-muted-foreground">حوّل المبلغ على الرقم</p>
-              <p dir="ltr" className="font-display text-2xl font-extrabold">
-                {VODAFONE_NUMBER}
+        {/* payment method selector */}
+        <section className="mt-6 rounded-3xl border-2 border-border bg-card p-5 shadow-sm">
+          <h2 className="font-display text-xl font-extrabold">طريقة الدفع</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            ادفع بالبطاقة مباشرةً (آمن — بوابة Kashier) أو حوّل عبر فودافون كاش.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("kashier")}
+              className={`rounded-2xl border-2 p-4 text-start transition-colors ${
+                paymentMethod === "kashier"
+                  ? "border-primary bg-primary/10"
+                  : "border-border hover:border-primary/50"
+              }`}
+            >
+              <span className="block font-bold">💳 بطاقة بنكية (Visa / Mastercard)</span>
+              <p className="mt-1 text-xs text-muted-foreground">
+                دفع فوري وآمن عبر Kashier — يُفعّل الطلب تلقائيًا.
               </p>
-            </div>
-            <Button onClick={copyNumber} variant="outline" className="rounded-full font-bold">
-              <Copy className="ms-1 h-4 w-4" /> نسخ الرقم
-            </Button>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="rounded-md bg-blue-600 px-2 py-0.5 text-[10px] font-extrabold text-white">VISA</span>
+                <span className="rounded-md bg-red-600 px-2 py-0.5 text-[10px] font-extrabold text-white">Mastercard</span>
+                <span className="rounded-md bg-emerald-600 px-2 py-0.5 text-[10px] font-extrabold text-white">Meeza</span>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("vodafone_cash")}
+              className={`rounded-2xl border-2 p-4 text-start transition-colors ${
+                paymentMethod === "vodafone_cash"
+                  ? "border-primary bg-primary/10"
+                  : "border-border hover:border-primary/50"
+              }`}
+            >
+              <span className="block font-bold">📲 فودافون كاش (تحويل يدوي)</span>
+              <p className="mt-1 text-xs text-muted-foreground">
+                حوّل المبلغ ثم ارفع صورة الإيصال — تأكيد خلال ساعات.
+              </p>
+            </button>
           </div>
-          <div className="mt-3 space-y-2 rounded-2xl bg-card p-4">
+        </section>
+
+        <section className="mt-4 rounded-3xl border-2 border-border bg-card p-5 shadow-sm">
+          <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">قصص ({items.length})</span>
               <span className="font-bold">{itemsSubtotal} ج</span>
@@ -674,50 +727,69 @@ function CheckoutPage() {
             )}
             <div className="my-2 h-px bg-border" />
             <div className="flex items-center justify-between">
-              <span className="font-bold">المبلغ المطلوب تحويله</span>
+              <span className="font-bold">الإجمالي</span>
               <span className="font-display text-3xl font-extrabold text-primary">
                 {grandTotal} ج
               </span>
             </div>
           </div>
-
-
-          <div className="mt-5">
-            <Label className="flex items-center gap-2 font-bold">
-              <Receipt className="h-4 w-4" /> صورة الإيصال
-            </Label>
-            <label className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-grass/50 bg-card p-5 transition-colors hover:bg-grass/10">
-              {receiptPreview ? (
-                <>
-                  <img
-                    src={receiptPreview}
-                    alt="إيصال"
-                    className="h-44 rounded-xl object-contain shadow"
-                  />
-                  <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-grass">
-                    <Check className="h-3.5 w-3.5" /> تم اختيار الإيصال
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Receipt className="h-8 w-8 text-grass" />
-                  <span className="mt-2 text-sm font-semibold text-muted-foreground">
-                    ارفع لقطة شاشة من رسالة فودافون كاش
-                  </span>
-                </>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => onReceiptChange(e.target.files?.[0] ?? null)}
-              />
-            </label>
-            <p className="mt-2 text-xs text-muted-foreground">
-              🔒 لن يطلع على الإيصال أحد سوى إدارة الموقع للتحقق من السداد
-            </p>
-          </div>
         </section>
+
+        {paymentMethod === "vodafone_cash" && (
+          <section className="mt-4 rounded-3xl border-2 border-grass/40 bg-grass/5 p-5 shadow-sm">
+            <h2 className="flex items-center gap-2 font-display text-xl font-extrabold text-grass-foreground">
+              <Smartphone className="h-5 w-5 text-grass" />
+              الدفع عبر فودافون كاش
+            </h2>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-card p-4">
+              <div>
+                <p className="text-xs text-muted-foreground">حوّل المبلغ على الرقم</p>
+                <p dir="ltr" className="font-display text-2xl font-extrabold">
+                  {VODAFONE_NUMBER}
+                </p>
+              </div>
+              <Button onClick={copyNumber} variant="outline" className="rounded-full font-bold">
+                <Copy className="ms-1 h-4 w-4" /> نسخ الرقم
+              </Button>
+            </div>
+
+            <div className="mt-5">
+              <Label className="flex items-center gap-2 font-bold">
+                <Receipt className="h-4 w-4" /> صورة الإيصال
+              </Label>
+              <label className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-grass/50 bg-card p-5 transition-colors hover:bg-grass/10">
+                {receiptPreview ? (
+                  <>
+                    <img
+                      src={receiptPreview}
+                      alt="إيصال"
+                      className="h-44 rounded-xl object-contain shadow"
+                    />
+                    <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-grass">
+                      <Check className="h-3.5 w-3.5" /> تم اختيار الإيصال
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Receipt className="h-8 w-8 text-grass" />
+                    <span className="mt-2 text-sm font-semibold text-muted-foreground">
+                      ارفع لقطة شاشة من رسالة فودافون كاش
+                    </span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => onReceiptChange(e.target.files?.[0] ?? null)}
+                />
+              </label>
+              <p className="mt-2 text-xs text-muted-foreground">
+                🔒 لن يطلع على الإيصال أحد سوى إدارة الموقع للتحقق من السداد
+              </p>
+            </div>
+          </section>
+        )}
 
         <Button
           size="lg"
@@ -728,19 +800,23 @@ function CheckoutPage() {
           {submitting ? (
             <>
               <Loader2 className="ms-2 h-5 w-5 animate-spin" />
-              جارٍ إرسال الطلب…
+              {paymentMethod === "kashier" ? "جارٍ تحويلك لبوابة الدفع…" : "جارٍ إرسال الطلب…"}
             </>
           ) : (
             <>
               <Send className="ms-2 h-5 w-5" />
-              تأكيد الطلب وإرسال للمراجعة
+              {paymentMethod === "kashier"
+                ? `ادفع ${grandTotal} ج بالبطاقة الآن`
+                : "تأكيد الطلب وإرسال للمراجعة"}
             </>
           )}
         </Button>
         <p className="mt-3 text-center text-xs text-muted-foreground">
-          سنراجع الإيصال خلال ساعات قليلة ونرسل القصة كملف PDF على واتساب
-          الرقم {ADMIN_WHATSAPP.replace(/^20/, "0")}
+          {paymentMethod === "kashier"
+            ? "ستُحوَّل إلى صفحة دفع آمنة من Kashier ثم تعود تلقائيًا لمتابعة الطلب."
+            : `سنراجع الإيصال خلال ساعات قليلة ونرسل القصة كملف PDF على واتساب الرقم ${ADMIN_WHATSAPP.replace(/^20/, "0")}`}
         </p>
+
       </main>
       <Footer />
     </div>

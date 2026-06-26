@@ -2,12 +2,14 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BookOpen,
   ChevronLeft,
+  CreditCard,
   LayoutDashboard,
   Library,
   Package,
   ShieldCheck,
   Users,
 } from "lucide-react";
+
 import type { ComponentType } from "react";
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -43,10 +45,12 @@ type NavGroup = {
 const singleItems: NavItem[] = [
   { to: "/admin", label: "نظرة عامة", icon: LayoutDashboard },
   { to: "/admin/orders", label: "الطلبات", icon: Package },
+  { to: "/admin/payments", label: "المدفوعات", icon: CreditCard },
   { to: "/admin/approvals", label: "اعتماد المحتوى", icon: ShieldCheck },
   { to: "/admin/users", label: "المستخدمون", icon: Users },
   { to: "/admin/roles", label: "الصلاحيات", icon: ShieldCheck },
 ];
+
 
 const groupItems: NavGroup[] = [
   {

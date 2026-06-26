@@ -104,10 +104,14 @@ export type Database = {
           hero_character: string | null
           id: string
           is_custom_request: boolean
+          kashier_order_id: string | null
+          kashier_payload: Json | null
+          kashier_transaction_id: string | null
           language: string
           notes: string | null
           pages_count: number
           paid_at: string | null
+          payment_provider: string
           payment_rejection_reason: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
           payment_verified_at: string | null
@@ -141,10 +145,14 @@ export type Database = {
           hero_character?: string | null
           id?: string
           is_custom_request?: boolean
+          kashier_order_id?: string | null
+          kashier_payload?: Json | null
+          kashier_transaction_id?: string | null
           language?: string
           notes?: string | null
           pages_count?: number
           paid_at?: string | null
+          payment_provider?: string
           payment_rejection_reason?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           payment_verified_at?: string | null
@@ -178,10 +186,14 @@ export type Database = {
           hero_character?: string | null
           id?: string
           is_custom_request?: boolean
+          kashier_order_id?: string | null
+          kashier_payload?: Json | null
+          kashier_transaction_id?: string | null
           language?: string
           notes?: string | null
           pages_count?: number
           paid_at?: string | null
+          payment_provider?: string
           payment_rejection_reason?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           payment_verified_at?: string | null
@@ -216,6 +228,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_logs: {
+        Row: {
+          amount: number | null
+          created_at: string
+          currency: string | null
+          event_type: string | null
+          id: string
+          kashier_order_id: string | null
+          kashier_transaction_id: string | null
+          provider: string
+          raw_payload: Json
+          signature_ok: boolean
+          status: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          event_type?: string | null
+          id?: string
+          kashier_order_id?: string | null
+          kashier_transaction_id?: string | null
+          provider: string
+          raw_payload: Json
+          signature_ok?: boolean
+          status?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          event_type?: string | null
+          id?: string
+          kashier_order_id?: string | null
+          kashier_transaction_id?: string | null
+          provider?: string
+          raw_payload?: Json
+          signature_ok?: boolean
+          status?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
