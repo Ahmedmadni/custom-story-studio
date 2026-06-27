@@ -553,8 +553,103 @@ export const deleteMyOrder = createServerFn({ method: "POST" })
 
 const GeneratePageInput = z.object({
   orderId: z.string().uuid(),
-  pageNumber: z.number().int().min(1).max(12),
+  pageNumber: z.number().int().min(1).max(20),
 });
+
+/**
+ * يضمن أن قالب القصة يحتوي على نفس عدد الصفحات الذي اشتراه العميل
+ * (10 أو 16) قبل بدء توليد الصور. إن كان عدد صفحات القالب أقل من المطلوب
+ * فإنه يُعيد توليد نصوص/مشاهد الصفحات عبر الذكاء الاصطناعي ويحدّث
+ * `story_templates.pages` مع الحفاظ على `image_path` للصفحات السابقة.
+ */
+async function ensureTemplateMatchesOrderPages(
+  supabaseAdmin: {
+    from: (t: string) => {
+      select: (q: string) => {
+        eq: (k: string, v: string) => { single: () => Promise<{ data: unknown; error: unknown }> };
+      };
+      update: (v: unknown) => { eq: (k: string, v: string) => Promise<{ error: unknown }> };
+    };
+  },
+  templateId: string,
+  required: number,
+  order: {
+    child_name: string;
+    child_age?: number | null;
+    gender: "boy" | "girl";
+    language?: string | null;
+    notes?: string | null;
+    custom_brief?: string | null;
+    gifted_by_name?: string | null;
+    gifted_by_relation?: string | null;
+  },
+): Promise<StoryPage[]> {
+  const { data: tplRow, error: tplErr } = await supabaseAdmin
+    .from("story_templates")
+    .select("id, pages, title, summary, content_type, language, age_range, book_meta, category")
+    .eq("id", templateId)
+    .single();
+  if (tplErr || !tplRow) throw new Error("القالب غير موجود");
+
+  const tpl = tplRow as {
+    id: string;
+    pages: unknown;
+    title: string;
+    summary?: string | null;
+    content_type?: string | null;
+    language?: string | null;
+    age_range?: string | null;
+    book_meta?: unknown;
+    category?: string | null;
+  };
+  const existing = parsePages(tpl.pages);
+  if (existing.length >= required) return existing;
+
+  const allowedCount: 10 | 16 = required >= 16 ? 16 : 10;
+  const contentType: "story" | "book" = tpl.content_type === "book" ? "book" : "story";
+  const language: "ar" | "en" | "bilingual" =
+    order.language === "en" || order.language === "bilingual"
+      ? (order.language as "en" | "bilingual")
+      : tpl.language === "en" || tpl.language === "bilingual"
+        ? (tpl.language as "en" | "bilingual")
+        : "ar";
+
+  const { regenerateStoryPages } = await import("@/features/ai/ai.functions");
+  const theme = [tpl.title, tpl.summary, order.custom_brief, order.notes]
+    .filter(Boolean)
+    .join(" — ");
+
+  const result = await regenerateStoryPages({
+    childName: order.child_name,
+    age: order.child_age ?? tpl.age_range ?? null,
+    gender: (order.gender ?? "boy") as "boy" | "girl",
+    language,
+    contentType,
+    pagesCount: allowedCount,
+    bookMeta: (tpl.book_meta ?? null) as never,
+    theme,
+    gifterName: order.gifted_by_name ?? null,
+    gifterRelation: order.gifted_by_relation ?? null,
+  });
+
+  // الحفاظ على image_path للصفحات التي وُلّدت سابقاً (نفس رقم n)
+  const existingByN = new Map(existing.map((p) => [p.n, p]));
+  const merged: StoryPage[] = result.pages.map((p) => {
+    const prev = existingByN.get(p.n);
+    return prev?.image_path ? { ...p, image_path: prev.image_path } : p;
+  });
+
+  const { error: upErr } = await supabaseAdmin
+    .from("story_templates")
+    .update({ pages: merged as unknown as never })
+    .eq("id", templateId);
+  if (upErr) {
+    console.error("ensureTemplateMatchesOrderPages update failed", upErr);
+    throw new Error("تعذر تحديث صفحات القالب لمطابقة الطلب");
+  }
+  return merged;
+}
+
 
 /**
  * توليد صفحة قصة مخصصة: يحول صورة الطفل الحقيقية إلى بطل كرتوني ثلاثي الأبعاد
