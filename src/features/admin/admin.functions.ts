@@ -1119,7 +1119,7 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
       .select("id", { count: "exact", head: true })
       .eq("order_id", data.orderId);
 
-    const allDone = (count ?? 0) >= pages.length;
+    const allDone = (count ?? 0) >= expectedTotal;
     await supabaseAdmin
       .from("orders")
       .update({ status: allDone ? "ready" : "generating" })
@@ -1133,7 +1133,7 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
       pageNumber: data.pageNumber,
       imageUrl: signedPage?.signedUrl ?? null,
       done: count ?? 0,
-      total: pages.length,
+      total: expectedTotal,
       allDone,
     };
   });
