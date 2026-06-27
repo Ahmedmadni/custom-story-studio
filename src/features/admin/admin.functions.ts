@@ -672,7 +672,21 @@ export const adminGeneratePage = createServerFn({ method: "POST" })
       .single();
     if (orderErr || !order) throw new Error("الطلب غير موجود");
 
-    const pages = parsePages(order.story_templates?.pages);
+    const templateId = (order.story_templates as { id?: string } | null)?.id ?? order.template_id;
+    if (!templateId) throw new Error("لا يوجد قالب مرتبط بالطلب");
+
+    const expectedTotal: number =
+      ((order as { pages_count?: number | null }).pages_count ?? 0) ||
+      parsePages(order.story_templates?.pages).length;
+    if (data.pageNumber > expectedTotal)
+      throw new Error(`هذا الطلب يحتوي على ${expectedTotal} صفحات فقط`);
+
+    const pages = await ensureTemplateMatchesOrderPages(
+      supabaseAdmin as never,
+      templateId,
+      expectedTotal,
+      order as never,
+    );
     const page = pages.find((p) => p.n === data.pageNumber);
     if (!page) throw new Error("الصفحة غير موجودة");
     if (!order.child_photo_path) throw new Error("لا توجد صورة للطفل في هذا الطلب");
