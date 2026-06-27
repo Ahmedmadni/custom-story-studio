@@ -702,3 +702,90 @@ export const adminRejectTemplate = createServerFn({ method: "POST" })
     if (error) throw new Error("تعذر إعادة المحتوى");
     return { ok: true };
   });
+
+/**
+ * Helper (NOT a server function) — يُولِّد قائمة صفحات قصة بالعدد المطلوب
+ * باستخدام نفس بنية الـ prompt المعتمدة في `generateAiStory`. يُستخدم في
+ * توسيع/مطابقة عدد صفحات قالب مرتبط بطلب عميل عند الحاجة، دون لمس قاعدة البيانات.
+ */
+export async function regenerateStoryPages(args: {
+  childName: string;
+  age?: string | number | null;
+  gender: "boy" | "girl";
+  language: "ar" | "en" | "bilingual";
+  contentType: "story" | "book";
+  pagesCount: 10 | 16;
+  bookMeta?: BookMeta | null;
+  theme?: string | null;
+  gifterName?: string | null;
+  gifterRelation?: string | null;
+}): Promise<{
+  title: string;
+  summary: string;
+  moral: string;
+  category: string;
+  character: string;
+  learning_goals: string[];
+  pages: StoryPage[];
+}> {
+  const key = process.env.LOVABLE_API_KEY;
+  if (!key) throw new Error("خدمة الذكاء الاصطناعي غير مهيأة");
+
+  const pageCount =
+    args.contentType === "book" && args.bookMeta
+      ? pagesForLength(args.bookMeta.length)
+      : args.pagesCount;
+
+  const typeLabel = args.contentType === "book" ? "كتاب تعليمي" : "قصة";
+  const themeLine =
+    args.contentType === "book" && args.bookMeta
+      ? `موضوع الكتاب: ${BOOK_CATEGORIES.find((c) => c.value === args.bookMeta!.category)?.label}${args.theme ? ` — تخصيص: ${args.theme}` : ""}`
+      : `اكتب ${typeLabel} عن: ${args.theme ?? ""}`;
+
+  const isGirl = args.gender === "girl";
+  const arabicGenderRule = isGirl
+    ? "البطل أنثى (بنت): استخدم صيغة المؤنث في كل النصوص العربية."
+    : "البطل ذكر (ولد): استخدم صيغة المذكر في كل النصوص العربية.";
+  const englishGenderRule = isGirl
+    ? "The hero is a GIRL. Use she/her pronouns everywhere."
+    : "The hero is a BOY. Use he/him pronouns everywhere.";
+
+  const dedication = gifterDedicationPrompt(args.gifterName ?? undefined, args.gifterRelation ?? undefined);
+  const userPrompt = `${themeLine}
+اسم الطفل سيكون: ${args.childName} (استخدم {child} في النص)
+عمر الطفل: ${args.age ?? "4-8"} سنوات
+جنس البطل: ${isGirl ? "بنت / Girl" : "ولد / Boy"}
+${arabicGenderRule}
+${englishGenderRule}
+في حقل character اذكر أن البطل ${isGirl ? "girl" : "boy"} child.
+لغة المحتوى: ${args.language === "ar" ? "العربية فقط" : args.language === "en" ? "English only" : "Bilingual Arabic + English"}
+عدد الصفحات المطلوب: ${pageCount} صفحة بالضبط — لا تنقص ولا تزد.
+${dedication}`;
+
+  const story = await callLlm(
+    buildSystemPrompt(args.contentType, args.language, pageCount, args.bookMeta ?? undefined),
+    userPrompt,
+    key,
+  );
+
+  const rawPages = parsePages(story.pages);
+  if (rawPages.length < 4)
+    throw new Error("المحتوى المولد غير مكتمل، حاول مرة أخرى");
+
+  const character = (story.character ?? "").trim();
+  const ageStyle = ageStylePrompt(args.age ?? undefined);
+  const pages: StoryPage[] = rawPages.map((p) => ({
+    ...p,
+    scene: `${ageStyle}. ${character ? `The hero child: ${character}. ` : ""}Scene: ${p.scene}`,
+  }));
+
+  return {
+    title: story.title,
+    summary: story.summary,
+    moral: story.moral,
+    category: story.category,
+    character,
+    learning_goals: story.learning_goals ?? [],
+    pages,
+  };
+}
