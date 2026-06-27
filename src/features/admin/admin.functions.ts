@@ -156,7 +156,9 @@ export const adminListOrders = createServerFn({ method: "POST" })
             .createSignedUrl(o.receipt_path, 3600);
           receiptUrl = signed?.signedUrl ?? null;
         }
-        const totalPages = parsePages(o.story_templates?.pages).length;
+        const templatePagesCount = parsePages(o.story_templates?.pages).length;
+        const purchasedPagesCount = (o as { pages_count?: number | null }).pages_count ?? null;
+        const totalPages = purchasedPagesCount ?? templatePagesCount;
         const donePages = (pageRows ?? []).filter((p) => p.order_id === o.id).length;
         return {
           id: o.id,
