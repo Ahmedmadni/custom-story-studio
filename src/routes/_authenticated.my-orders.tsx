@@ -8,7 +8,8 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/EmptyState";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { PaymentBadge, StatusBadge } from "@/features/orders/StatusBadge";
+import { PaymentBadge } from "@/features/orders/StatusBadge";
+import { OrderStepper } from "@/features/orders/OrderStepper";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
@@ -146,7 +147,15 @@ function MyOrders() {
                   </p>
                   <div className="mt-1 flex flex-wrap gap-2">
                     <PaymentBadge status={(o.payment_status ?? "unpaid") as string} />
-                    <StatusBadge status={o.status as string} />
+                  </div>
+                  <div className="mt-3">
+                    <OrderStepper
+                      order={{
+                        status: o.status as string,
+                        payment_status: (o.payment_status as string | null) ?? null,
+                        created_at: o.created_at,
+                      }}
+                    />
                   </div>
                   {o.payment_status === "rejected" && o.payment_rejection_reason && (
                     <p className="mt-2 rounded-xl bg-destructive/10 p-2 text-xs text-destructive">
