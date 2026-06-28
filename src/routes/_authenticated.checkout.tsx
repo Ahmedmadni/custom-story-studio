@@ -78,8 +78,8 @@ function CheckoutPage() {
   const { items, clear } = useCart();
   const navigate = useNavigate();
   const submitFn = useServerFn(submitCheckout);
-  const kashierFn = useServerFn(createKashierCheckout);
-  const [paymentMethod, setPaymentMethod] = useState<"vodafone_cash" | "kashier">("kashier");
+  const [paymentMethod, setPaymentMethod] = useState<"vodafone_cash">("vodafone_cash");
+  const [comingSoonOpen, setComingSoonOpen] = useState(false);
 
 
   const [drafts, setDrafts] = useState<Record<string, ItemDraft>>(() =>
