@@ -106,8 +106,6 @@ function CheckoutPage() {
     ),
   );
   const [whatsapp, setWhatsapp] = useState("");
-  const [printCopy, setPrintCopy] = useState(false);
-  const [deliveryAddress, setDeliveryAddress] = useState("");
   const [receipt, setReceipt] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -169,10 +167,8 @@ function CheckoutPage() {
     if (!user) return;
     if (!isValidEgyptianMobile(whatsapp))
       return toast.error("اكتب رقم واتساب مصري صحيح مثل 01012345678");
-    if (paymentMethod === "vodafone_cash" && !receipt)
+    if (!receipt)
       return toast.error("ارفع صورة إيصال التحويل");
-    if (printCopy && deliveryAddress.trim().length < 10)
-      return toast.error("اكتب عنوان التوصيل بالتفصيل");
 
 
     for (const item of items) {
