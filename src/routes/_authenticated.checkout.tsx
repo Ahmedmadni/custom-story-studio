@@ -601,94 +601,39 @@ function CheckoutPage() {
           />
         </section>
 
-        {/* print + delivery */}
-        <section className="mt-6 rounded-3xl border-2 border-border bg-card p-5 shadow-sm">
-          <h2 className="font-display text-xl font-extrabold">طريقة الاستلام</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            📄 تُسلَّم القصة افتراضياً كملف PDF عبر واتساب. يمكنك أيضاً طلب نسخة ورقية مطبوعة.
-          </p>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => setPrintCopy(false)}
-              className={`rounded-2xl border-2 p-4 text-start transition-colors ${
-                !printCopy ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
-              }`}
-            >
-              <span className="block font-bold">📱 ملف PDF فقط</span>
-              <p className="mt-1 text-xs text-muted-foreground">يُرسل عبر واتساب — مجاناً</p>
-              <p className="mt-1 text-xs font-extrabold text-primary">بدون رسوم إضافية</p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPrintCopy(true)}
-              className={`rounded-2xl border-2 p-4 text-start transition-colors ${
-                printCopy ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
-              }`}
-            >
-              <span className="block font-bold">🖨️ PDF + نسخة مطبوعة</span>
-              <p className="mt-1 text-xs text-muted-foreground">
-                نطبع القصة بجودة عالية ونوصلها لعنوانك
-              </p>
-              <p className="mt-1 text-xs font-extrabold text-primary">
-                + {PRINT_COPY_PRICE_EGP} جنيه (طباعة وشحن)
-              </p>
-            </button>
-          </div>
-
-          {printCopy && (
-            <div className="mt-4">
-              <Label className="font-bold">عنوان التوصيل بالتفصيل</Label>
-              <Textarea
-                value={deliveryAddress}
-                onChange={(e) => setDeliveryAddress(e.target.value)}
-                rows={3}
-                maxLength={500}
-                placeholder="المحافظة — المدينة — الحي — الشارع — رقم العمارة والشقة — أي معلم قريب"
-                className="mt-2 rounded-xl"
-              />
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                سيتواصل معك مندوب الشحن على رقم الواتساب لتأكيد الموعد.
-              </p>
-            </div>
-          )}
+        {/* print — coming soon */}
+        <section className="mt-6">
+          <ComingSoonPrintCard />
         </section>
 
         {/* payment method selector */}
         <section className="mt-6 rounded-3xl border-2 border-border bg-card p-5 shadow-sm">
           <h2 className="font-display text-xl font-extrabold">طريقة الدفع</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            ادفع بالبطاقة مباشرةً (آمن — بوابة Kashier) أو حوّل عبر فودافون كاش.
+            ادفع عبر فودافون كاش — الدفع بالبطاقة قريباً.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <button
               type="button"
-              onClick={() => setPaymentMethod("kashier")}
-              className={`rounded-2xl border-2 p-4 text-start transition-colors ${
-                paymentMethod === "kashier"
-                  ? "border-primary bg-primary/10"
-                  : "border-border hover:border-primary/50"
-              }`}
+              onClick={() => setComingSoonOpen(true)}
+              className="relative rounded-2xl border-2 border-border p-4 text-start opacity-80 transition-colors hover:border-primary/50"
             >
+              <span className="absolute end-3 top-3 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-extrabold text-primary">
+                🚀 قريباً
+              </span>
               <span className="block font-bold">💳 بطاقة بنكية (Visa / Mastercard)</span>
               <p className="mt-1 text-xs text-muted-foreground">
-                دفع فوري وآمن عبر Kashier — يُفعّل الطلب تلقائيًا.
+                دفع فوري وآمن بالبطاقة — قيد التفعيل.
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <span className="rounded-md bg-blue-600 px-2 py-0.5 text-[10px] font-extrabold text-white">VISA</span>
                 <span className="rounded-md bg-red-600 px-2 py-0.5 text-[10px] font-extrabold text-white">Mastercard</span>
-                <span className="rounded-md bg-emerald-600 px-2 py-0.5 text-[10px] font-extrabold text-white">Meeza</span>
               </div>
             </button>
             <button
               type="button"
               onClick={() => setPaymentMethod("vodafone_cash")}
-              className={`rounded-2xl border-2 p-4 text-start transition-colors ${
-                paymentMethod === "vodafone_cash"
-                  ? "border-primary bg-primary/10"
-                  : "border-border hover:border-primary/50"
-              }`}
+              className="rounded-2xl border-2 border-primary bg-primary/10 p-4 text-start"
             >
               <span className="block font-bold">📲 فودافون كاش (تحويل يدوي)</span>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -704,12 +649,6 @@ function CheckoutPage() {
               <span className="text-muted-foreground">قصص ({items.length})</span>
               <span className="font-bold">{itemsSubtotal} ج</span>
             </div>
-            {printCopy && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">طباعة وشحن</span>
-                <span className="font-bold">{PRINT_COPY_PRICE_EGP} ج</span>
-              </div>
-            )}
             <div className="my-2 h-px bg-border" />
             <div className="flex items-center justify-between">
               <span className="font-bold">الإجمالي</span>
@@ -719,6 +658,13 @@ function CheckoutPage() {
             </div>
           </div>
         </section>
+
+        <ComingSoonPaymentDialog
+          open={comingSoonOpen}
+          onOpenChange={setComingSoonOpen}
+          onChooseVodafone={() => setPaymentMethod("vodafone_cash")}
+        />
+
 
         {paymentMethod === "vodafone_cash" && (
           <section className="mt-4 rounded-3xl border-2 border-grass/40 bg-grass/5 p-5 shadow-sm">
@@ -782,25 +728,24 @@ function CheckoutPage() {
           onClick={() => void submit()}
           className="mt-8 w-full rounded-full text-base font-bold shadow-lg"
         >
-          {submitting ? (
-            <>
-              <Loader2 className="ms-2 h-5 w-5 animate-spin" />
-              {paymentMethod === "kashier" ? "جارٍ تحويلك لبوابة الدفع…" : "جارٍ إرسال الطلب…"}
-            </>
-          ) : (
-            <>
-              <Send className="ms-2 h-5 w-5" />
-              {paymentMethod === "kashier"
-                ? `ادفع ${grandTotal} ج بالبطاقة الآن`
-                : "تأكيد الطلب وإرسال للمراجعة"}
-            </>
-          )}
+          <>
+            {submitting ? (
+              <>
+                <Loader2 className="ms-2 h-5 w-5 animate-spin" />
+                جارٍ إرسال الطلب…
+              </>
+            ) : (
+              <>
+                <Send className="ms-2 h-5 w-5" />
+                تأكيد الطلب وإرسال للمراجعة
+              </>
+            )}
+          </>
         </Button>
         <p className="mt-3 text-center text-xs text-muted-foreground">
-          {paymentMethod === "kashier"
-            ? "ستُحوَّل إلى صفحة دفع آمنة من Kashier ثم تعود تلقائيًا لمتابعة الطلب."
-            : `سنراجع الإيصال خلال ساعات قليلة ونرسل القصة كملف PDF على واتساب الرقم ${ADMIN_WHATSAPP.replace(/^20/, "0")}`}
+          سنراجع الإيصال خلال ساعات قليلة ونرسل القصة كملف PDF على واتساب الرقم {ADMIN_WHATSAPP.replace(/^20/, "0")}
         </p>
+
 
       </main>
       <Footer />
