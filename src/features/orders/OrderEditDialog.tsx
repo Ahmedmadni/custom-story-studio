@@ -101,8 +101,8 @@ export function OrderEditDialog({
     setLanguage((order.language as "ar" | "en" | "bilingual") ?? "ar");
     setPhotoMode((order.photo_mode as "cartoon" | "real") ?? "cartoon");
     setPagesCount((order.pages_count === 16 ? 16 : 10) as 10 | 16);
-    setPrintCopy(Boolean(order.print_copy));
-    setDeliveryAddress(order.delivery_address ?? "");
+    // printCopy/deliveryAddress are postponed — always sent as false/null
+
     setGifterName(order.gifted_by_name ?? "");
     setGifterRelation(order.gifted_by_relation ?? "");
     setPublishConsent(Boolean(order.publish_consent));
