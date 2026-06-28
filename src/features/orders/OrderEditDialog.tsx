@@ -21,7 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { GENDER_OPTIONS, LANGUAGE_OPTIONS } from "@/features/ai/storyTypes";
 import { updateMyOrder } from "@/features/admin/admin.functions";
-import { pagesOptionsFor, PRINT_COPY_PRICE_EGP } from "@/features/cart/pricing";
+import { pagesOptionsFor } from "@/features/cart/pricing";
 import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
 import { optimizeImage } from "@/lib/imageOptimize";
 
@@ -82,8 +82,8 @@ export function OrderEditDialog({
   const [language, setLanguage] = useState<"ar" | "en" | "bilingual">("ar");
   const [photoMode, setPhotoMode] = useState<"cartoon" | "real">("cartoon");
   const [pagesCount, setPagesCount] = useState<10 | 16>(10);
-  const [printCopy, setPrintCopy] = useState(false);
-  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const printCopy = false;
+  const deliveryAddress = "";
   const [gifterName, setGifterName] = useState("");
   const [gifterRelation, setGifterRelation] = useState("");
   const [publishConsent, setPublishConsent] = useState(false);
@@ -101,8 +101,8 @@ export function OrderEditDialog({
     setLanguage((order.language as "ar" | "en" | "bilingual") ?? "ar");
     setPhotoMode((order.photo_mode as "cartoon" | "real") ?? "cartoon");
     setPagesCount((order.pages_count === 16 ? 16 : 10) as 10 | 16);
-    setPrintCopy(Boolean(order.print_copy));
-    setDeliveryAddress(order.delivery_address ?? "");
+    // printCopy/deliveryAddress are postponed — always sent as false/null
+
     setGifterName(order.gifted_by_name ?? "");
     setGifterRelation(order.gifted_by_relation ?? "");
     setPublishConsent(Boolean(order.publish_consent));
@@ -314,37 +314,13 @@ export function OrderEditDialog({
             <span className="text-sm">🌟 أوافق على نشر القصة ضمن «أعمالنا السابقة»</span>
           </label>
 
-          <div className="rounded-2xl border-2 border-border p-3">
-            <Label className="font-bold">طريقة الاستلام</Label>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setPrintCopy(false)}
-                className={`rounded-xl border-2 p-3 text-start ${!printCopy ? "border-primary bg-primary/10" : "border-border"}`}
-              >
-                <span className="block font-bold">📱 PDF فقط</span>
-                <span className="text-xs">مجاناً</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPrintCopy(true)}
-                className={`rounded-xl border-2 p-3 text-start ${printCopy ? "border-primary bg-primary/10" : "border-border"}`}
-              >
-                <span className="block font-bold">🖨️ PDF + مطبوعة</span>
-                <span className="text-xs">+ {PRINT_COPY_PRICE_EGP} ج</span>
-              </button>
-            </div>
-            {printCopy && (
-              <Textarea
-                value={deliveryAddress}
-                onChange={(e) => setDeliveryAddress(e.target.value)}
-                rows={2}
-                maxLength={500}
-                placeholder="عنوان التوصيل بالتفصيل"
-                className="mt-2"
-              />
-            )}
+          <div className="rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-3 text-sm">
+            <p className="font-bold">📚 النسخة المطبوعة قريباً</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              ستصلك القصة كملف PDF عبر واتساب. خدمة الطباعة والشحن قيد التفعيل.
+            </p>
           </div>
+
 
           <div className="grid gap-3 md:grid-cols-2">
             <div>

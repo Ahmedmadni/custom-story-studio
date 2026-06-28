@@ -171,17 +171,17 @@ function StoryPreview() {
                 <span className="text-primary/40">•</span>
                 <span>📄 16 صفحة = 200 ج</span>
                 <span className="text-primary/40">•</span>
-                <span>🖨️ نسخة مطبوعة +200 ج (مع التوصيل)</span>
+                <span className="opacity-70">🖨️ النسخة المطبوعة قريباً</span>
               </div>
 
 
               {pages.length > 0 && (
                 <div className="mt-10">
                   <h2 className="font-display text-xl font-bold">
-                    لمحة من الحكاية
+                    معاينة مجانية — أول 3 صفحات 🎁
                   </h2>
                   <div className="mt-4 space-y-3">
-                    {pages.slice(0, 2).map((p) => (
+                    {pages.slice(0, 3).map((p) => (
                       <div
                         key={p.n}
                         className="rounded-2xl border-2 border-border bg-card p-4"
@@ -194,9 +194,36 @@ function StoryPreview() {
                         </p>
                       </div>
                     ))}
-                    <p className="text-center text-sm text-muted-foreground">
-                      … وتتوالى المفاجآت في باقي الصفحات 🎈
+                  </div>
+
+                  {/* Locked preview gate */}
+                  <div className="relative mt-4 overflow-hidden rounded-3xl border-2 border-dashed border-primary/40 bg-gradient-to-br from-primary/10 via-card to-candy/10 p-6 text-center">
+                    <div className="pointer-events-none absolute inset-0 -z-10 opacity-40 blur-sm">
+                      {pages.slice(3, 5).map((p) => (
+                        <p key={p.n} className="line-clamp-2 px-6 py-2 text-sm">
+                          {p.text.replaceAll("{child}", "بطلنا الصغير")}
+                        </p>
+                      ))}
+                    </div>
+                    <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/15 text-3xl">
+                      🔒
+                    </div>
+                    <h3 className="mt-3 font-display text-xl font-extrabold">
+                      أكمل قصة طفلك الآن
+                    </h3>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      اطلب القصة كاملة باسم طفلك ورسوماته الشخصية — توصلك خلال ساعات على واتساب.
                     </p>
+                    {!inCart && (
+                      <Button
+                        size="lg"
+                        onClick={addToCart}
+                        className="mt-4 rounded-full px-8 text-base font-bold shadow-lg"
+                      >
+                        <ShoppingCart className="ms-2 h-5 w-5" />
+                        اطلب القصة
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
