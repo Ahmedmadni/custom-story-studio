@@ -24,11 +24,9 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   pagesOptionsFor,
   pricePerPages,
-  PRINT_COPY_PRICE_EGP,
   useCart,
 } from "@/features/cart/CartContext";
 import { submitCheckout } from "@/features/orders/checkout.functions";
-import { createKashierCheckout } from "@/features/orders/kashier.functions";
 
 import { optimizeImage } from "@/lib/imageOptimize";
 import {
@@ -42,6 +40,8 @@ import {
   ADMIN_WHATSAPP,
   isValidEgyptianMobile,
 } from "@/features/orders/whatsapp";
+import { ComingSoonPaymentDialog } from "@/features/payments/ComingSoonPaymentDialog";
+import { ComingSoonPrintCard } from "@/components/ComingSoonPrintCard";
 
 export const Route = createFileRoute("/_authenticated/checkout")({
   head: () => ({
