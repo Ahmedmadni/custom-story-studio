@@ -1,62 +1,98 @@
-## الهدف
-السماح للعملاء (والزائرين بعد تسجيل الدخول) بتقديم **طلب قصة مخصصة** بفكرتهم الخاصة، بإدخال البيانات + دفع المبلغ + رفع إيصال الدفع فقط — **بدون أي توليد صور أو نصوص من الذكاء الاصطناعي**. الطلب يصل للأدمن، وهو من ينشئ القالب ويولّد القصة ويعتمدها وينشرها — عبر `/create` الحالي بصلاحياته الكاملة.
+# Kidzy Launch Readiness Plan
 
-## النطاق
-- مسار جديد للعميل فقط لتقديم الطلب المخصص.
-- صفحة `/create` الحالية تبقى كما هي للأدمن (إنشاء كامل + توليد + اعتماد + نشر).
-- لوحة الأدمن للطلبات تعرض الطلبات المخصصة الجديدة وتسمح ببدء التوليد لها.
+This is a large multi-phase scope. I'll break it into 3 shippable milestones so you can review and approve before each big leap, instead of one giant unreviewable change.
 
-## التغييرات
+## Guiding rules (apply to every phase)
+- **Keep all DB/backend** for Kashier, printing, shipping intact. Only hide the customer-facing UI behind "coming soon" screens.
+- **Vodafone Cash** stays the only active payment.
+- Design: Disney+/Netflix Kids vibe, purple primary `#6C4DFF`, large cinematic cards, soft shadows, mobile-first, Arabic RTL.
+- Reuse the existing design tokens in `src/styles.css`; do not introduce new color systems.
 
-### 1) قاعدة البيانات (هجرة واحدة)
-- إضافة عمود `custom_brief` (text, nullable) على جدول `orders` — يحفظ فكرة القصة التي كتبها العميل.
-- إضافة عمود `is_custom_request` (bool, default false) على `orders` للتمييز السريع.
-- لا تعديل على RLS الموجودة (العميل ينشئ صفّ طلب بنفسه كما هو الآن).
+---
 
-### 2) دالة سيرفر جديدة
-`src/features/orders/customRequest.functions.ts`:
-- `submitCustomStoryRequest` (POST + `requireSupabaseAuth`):
-  - مدخلات: `childName`, `childNameEn?`, `childAge`, `gender`, `language`, `contentType`, `pagesCount` (10|16), `topic` (≥10 حرف), `bookCategory?`, `whatsapp`, `photoMode?`, `childPhotoPath?`, `gifterName?`, `gifterRelation?`, `receiptPath`, `publishConsent`.
-  - السعر: 200 لـ10 صفحات / 250 لـ16 صفحة (من `pricePerPages(..., true)`).
-  - يُدرج صفّ في `orders` بـ `template_id = null`، `is_custom_request = true`، `custom_brief = topic`، `payment_status = receipt_uploaded`، `status = pending`.
-  - يُعيد `orderId`.
+## Milestone A — Disable + Story-First Launch (Phases 1, 2, 3, 4, 6)
+Goal: site is launch-ready today, payments/printing safely hidden, homepage is story-first.
 
-ملاحظة: `orders.template_id` حالياً غير nullable — الهجرة ستجعله nullable.
+### Phase 1 — Disable Kashier (UI only)
+- In `_authenticated.checkout.tsx`, when user picks "بطاقة ائتمان": open a `ComingSoonPaymentDialog` with Visa/Mastercard icons, two CTAs:
+  - "الدفع بفودافون كاش" → switches selection to Vodafone Cash.
+  - "إشعاري عند توفر الخدمة" → writes a row to a new `notify_signups` table (kind='kashier').
+- Default payment method = Vodafone Cash. Kashier server functions, webhook, env vars, `payment_logs`, `payment_provider` all untouched.
 
-### 3) صفحة طلب جديدة `/request-story`
-`src/routes/_authenticated.request-story.tsx` (تتطلب تسجيل دخول — كأي طلب آخر):
-معالج بـ7 خطوات بسيطة:
-1. اسم الطفل (+ بالإنجليزية إن اختار en/bilingual) + الجنس
-2. العمر
-3. اللغة
-4. نوع المحتوى + فكرة القصة (textarea، ≥10 حرف) + عدد الصفحات (10/250 — 16/200 ج.م)
-5. صورة الطفل (اختيارية) + photoMode
-6. بيانات الإهداء (اختياري) + رقم واتساب
-7. ملخص السعر + رفع إيصال الدفع + تأكيد الموافقة على النشر (اختياري) → إرسال
+### Phase 2 — Postpone printing
+- Remove print/delivery selectors from checkout UI and order edit dialog.
+- Add a "📚 النسخة المطبوعة قريباً" banner card with the feature list and a disabled "🚀 قريباً" button.
+- DB columns `print_copy`, `delivery_address`, etc. remain; checkout always sends `print_copy=false`.
 
-عند النجاح → تحويل إلى `/my-orders` مع توست تأكيد.
+### Phase 3 — Story-first homepage
+Rebuild `src/routes/index.tsx` sections in this order:
+1. Hero (existing, tightened) + "تصفح القصص" CTA.
+2. **Featured Stories Carousel** (admin flag `is_featured` on `story_templates`).
+3. **Trending** (orders count last 30 days).
+4. **Most Popular** (all-time orders count).
+5. **Continue Reading** (auth users only — orders with status in generating/ready).
+6. **Recommended** (same category as last viewed/ordered, fallback random).
+7. AI creation strip (20%).
+8. Books / games / puzzles (10%).
 
-### 4) الصفحة الرئيسية + صفحة المكتبة
-- زر CTA كبير في `/stories` و`/` يشير إلى `/request-story` ("اطلب قصة بفكرتك الخاصة") بدل `/create` للعملاء.
-- `/create` يبقى مخفياً عن العملاء (الزر داخلها يحوّلهم لـ `/request-story` بدل `/stories`).
+### Phase 4 — Free preview (cover + 3 pages)
+- `stories.$slug.tsx`: render cover + pages 1-3 with full image + text. Pages 4+ shown blurred with a single overlay card "أكمل قصة طفلك الآن" + "اطلب القصة" CTA → `/order/$templateId`.
+- Already-paying owners (matching order with `payment_status` verified) bypass the gate.
 
-### 5) لوحة الأدمن
-في `OrdersManager`:
-- شارة "طلب مخصص" على الصفوف التي `is_custom_request = true`.
-- زر "إنشاء القصة" يفتح `/create?orderId=<id>` — يُملأ المعالج تلقائياً ببيانات الطلب (childName, age, language, gender, topic, photoMode, pagesCount, childPhotoPath) ويمر الأدمن خلال خطوات التوليد والاعتماد بصلاحياته الكاملة. عند الاعتماد يربط `orders.template_id` بالقالب الناتج.
+### Phase 6 — Visual order tracking
+- Replace text status in `my-orders` and `story.$orderId` with a 7-step horizontal stepper:
+  استلام → انتظار الدفع → تأكيد الدفع → كتابة القصة → تصميم الرسومات → مراجعة الجودة → تسليم.
+- Map existing `status` + `payment_status` + `admin_approved_at` to step index; show ETA based on `created_at + 48h`.
 
-تعديل بسيط في `create.tsx`:
-- قراءة `?orderId=` من الـ search params.
-- إن وجد + المستخدم أدمن: تحميل الطلب وتعبئة الحقول الأولية.
-- بعد `approveAndContinue` للأدمن: تحديث `orders` بـ `template_id` و`status = approved`.
+---
 
-## الملفات
-- جديد: `supabase/migrations/<ts>_custom_request.sql`
-- جديد: `src/features/orders/customRequest.functions.ts`
-- جديد: `src/routes/_authenticated.request-story.tsx`
-- تعديل: `src/routes/create.tsx` (دعم `?orderId=`، CTA البديل للعميل)
-- تعديل: `src/routes/stories.index.tsx` و`src/routes/index.tsx` (الزر يشير لـ `/request-story`)
-- تعديل: `src/features/admin/OrdersManager.tsx` (شارة + زر "إنشاء القصة")
+## Milestone B — Revenue + Conversion (Phases 5, 7, 8, 10, 11)
 
-## نقطة قرار قبل التنفيذ
-هل تريد أن يستطيع الزائر **غير المسجّل** ملء النموذج ثم يُطلب منه تسجيل الدخول في خطوة الدفع، أم يلزم تسجيل الدخول من البداية كباقي الطلبات (الأبسط)؟
+### Phase 5 — Story packages (bundles)
+- New table `story_packages` (slug, name, story_count, price_egp, savings_pct, sort).
+- Seed: Starter (1 / 150), Family (3 / 400, ~11% off), Premium (5 / 625, ~17% off), Ultimate (10 / 1150, ~24% off).
+- New `/packages` route + section on homepage. Add `package_id` + `remaining_stories` to `orders` (or new `package_credits` table). Checkout supports package purchase; order creation decrements credits.
+
+### Phase 7 — Portfolio "قصص قمنا بإنشائها"
+- New `/portfolio` route reading from orders where `publish_consent=true` AND `admin_approved_at` set.
+- Card shows cover, child age, category, parent rating (new optional `rating` int column on orders, set by customer after delivery).
+
+### Phase 8 — Testimonials
+- New table `testimonials` (parent_name, child_name, rating, body, approved). Admin CRUD under `/admin/testimonials`. Display 5-star carousel on homepage + portfolio page.
+
+### Phase 10 — Coupons
+- New table `coupons` (code, discount_pct OR discount_egp, max_uses, used_count, valid_until, active).
+- Seed WELCOME20, KIDZY10, BIRTHDAY. Checkout input applies coupon, validates server-side, stores `coupon_code` + `discount_egp` on order.
+
+### Phase 11 — Free story idea generator
+- New `/ideas` public route: form (child name, age, favorite character, interests).
+- Server function calls Lovable AI Gateway (gemini-2.5-flash) → returns 3 idea cards (title + 2-line synopsis). Each card has CTA "اطلب القصة الكاملة" → `/request-story` prefilled.
+
+---
+
+## Milestone C — Growth + Admin (Phases 9, 12)
+
+### Phase 9 — Referral system
+- Add `referral_code` (auto-generated) + `referred_by` + `credit_egp` to profiles.
+- Friend signup with `?ref=CODE` → friend gets 20% off first order, referrer gets 50 EGP credit applied automatically once friend's first order is verified.
+- "ادعُ صديقاً" page with shareable link + WhatsApp share.
+
+### Phase 12 — Admin analytics dashboard
+- Upgrade `/admin` index with cards: revenue (today/30d/total), orders count, conversion rate (orders/visits — visits tracked via simple `page_views` table), top categories, most requested themes (from `custom_brief` keywords), avg delivery time (admin_approved_at - created_at), retention (% customers with ≥2 orders).
+- Recharts for line/bar visualizations.
+
+---
+
+## Technical notes
+- New DB migrations grouped per milestone (one migration each), with GRANTs + RLS following project rules.
+- All new public-facing routes get `head()` meta for SEO.
+- Reuse existing `StoryCard`, `Footer`, `Header` components; create new `SectionCarousel`, `OrderStepper`, `ComingSoonPaymentDialog`, `ComingSoonPrintCard`, `PackageCard`, `TestimonialCard`, `CouponInput`, `ReferralBanner`.
+- No changes to Kashier server functions, webhook, or auto-generated Supabase files.
+
+---
+
+## What I need from you before starting
+1. **Approve this 3-milestone split**, or tell me to merge/split differently.
+2. **Start with Milestone A?** (recommended — it's the launch-blocker work). I will not begin coding until you confirm.
+3. **Package prices** above are my proposal — confirm or override the 4 tiers.
+4. **Referral economics** (50 EGP credit, 20% friend discount) — confirm or change numbers.
