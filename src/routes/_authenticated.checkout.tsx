@@ -235,27 +235,13 @@ function CheckoutPage() {
         };
       });
 
-      // 3) create orders or kashier checkout
-      if (paymentMethod === "kashier") {
-        const res = await kashierFn({
-          data: {
-            whatsapp: whatsapp.trim(),
-            printCopy,
-            deliveryAddress: printCopy ? deliveryAddress.trim() : null,
-            items: itemsPayload,
-          },
-        });
-        clear();
-        window.location.href = res.checkoutUrl;
-        return;
-      }
-
+      // 3) create orders (Vodafone Cash only — Kashier postponed)
       await submitFn({
         data: {
           whatsapp: whatsapp.trim(),
           receiptPath,
-          printCopy,
-          deliveryAddress: printCopy ? deliveryAddress.trim() : null,
+          printCopy: false,
+          deliveryAddress: null,
           items: itemsPayload,
         },
       });
@@ -276,8 +262,7 @@ function CheckoutPage() {
     const isCustom = Boolean(it.isCustom);
     return sum + pricePerPages((d?.pagesCount ?? 10) as 10 | 16, isCustom);
   }, 0);
-  const printExtra = printCopy ? PRINT_COPY_PRICE_EGP : 0;
-  const grandTotal = itemsSubtotal + printExtra;
+  const grandTotal = itemsSubtotal;
 
 
 
