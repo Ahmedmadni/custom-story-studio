@@ -24,6 +24,8 @@ import mascotChick from "@/assets/mascot-chick.png";
 import aiLaptop from "@/assets/ai-laptop.png";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { OccasionStrip } from "@/components/OccasionStrip";
+import { TrustCounters } from "@/components/TrustCounters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
