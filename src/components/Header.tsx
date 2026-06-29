@@ -144,6 +144,15 @@ export function Header() {
             ))}
             {user && (
               <Link
+                to="/favorites"
+                onClick={() => setOpen(false)}
+                className="rounded-xl px-4 py-3 font-semibold hover:bg-secondary"
+              >
+                المفضلة
+              </Link>
+            )}
+            {user && (
+              <Link
                 to="/my-orders"
                 onClick={() => setOpen(false)}
                 className="rounded-xl px-4 py-3 font-semibold hover:bg-secondary"
