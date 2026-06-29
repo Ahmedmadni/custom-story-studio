@@ -24,6 +24,8 @@ import mascotChick from "@/assets/mascot-chick.png";
 import aiLaptop from "@/assets/ai-laptop.png";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { OccasionStrip } from "@/components/OccasionStrip";
+import { TrustCounters } from "@/components/TrustCounters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -223,6 +225,9 @@ function Index() {
         </div>
       </section>
 
+      {/* ============ TRUST COUNTERS ============ */}
+      <TrustCounters />
+
       {/* ============ FEATURE ICONS (4 cards) ============ */}
       <section className="container mx-auto -mt-6 px-4">
         <div className="rounded-[2rem] border border-border/60 bg-card/90 p-6 shadow-[var(--shadow-card)] backdrop-blur md:p-8">
@@ -330,6 +335,9 @@ function Index() {
           ))}
         </div>
       </section>
+
+      {/* ============ OCCASIONS ============ */}
+      <OccasionStrip />
 
       {/* ============ FEATURED CAROUSEL ============ */}
       <section className="container mx-auto px-4 py-10">

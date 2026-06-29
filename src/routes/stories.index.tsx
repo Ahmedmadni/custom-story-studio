@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BookOpen, Sparkles, Wand2 } from "lucide-react";
+import { BookOpen, Sparkles, Wand2, X } from "lucide-react";
 import { useState } from "react";
+import { z } from "zod";
 
 import { CardShimmer } from "@/components/CardShimmer";
 import { EmptyState } from "@/components/EmptyState";
@@ -10,11 +11,30 @@ import { FilterChips } from "@/components/FilterChips";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { StoryCard } from "@/features/library/StoryCard";
+import { OCCASIONS, type OccasionKey } from "@/features/library/occasions";
 import { supabase } from "@/integrations/supabase/client";
 import { CATEGORIES } from "@/features/ai/storyTypes";
 
+const searchSchema = z.object({
+  occasion: z
+    .enum([
+      "birthday",
+      "graduation",
+      "ramadan",
+      "eid",
+      "back_to_school",
+      "bedtime",
+      "family",
+      "adventure",
+    ])
+    .optional()
+    .catch(undefined),
+});
+
 export const Route = createFileRoute("/stories/")({
+  validateSearch: searchSchema,
   head: () => ({
     meta: [
       { title: "مكتبة القصص — كيدزي" },
@@ -29,18 +49,25 @@ export const Route = createFileRoute("/stories/")({
 });
 
 function StoriesPage() {
+  const navigate = Route.useNavigate();
+  const { occasion } = Route.useSearch();
+  const occasionKey = (occasion ?? null) as OccasionKey | null;
+  const occasionMeta = OCCASIONS.find((o) => o.key === occasionKey) ?? null;
+
   const [category, setCategory] = useState<string | null>(null);
 
   const { data: stories, isLoading, isError, refetch } = useQuery({
-    queryKey: ["stories", "story"],
+    queryKey: ["stories", "story", occasionKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("story_templates")
-        .select("id, slug, title, summary, category, age_range, cover_url")
+        .select("id, slug, title, summary, category, age_range, cover_url, occasion")
         .eq("is_published", true)
         .eq("is_custom", false)
         .eq("content_type", "story")
         .order("created_at");
+      if (occasionKey) q = q.eq("occasion", occasionKey);
+      const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
@@ -92,6 +119,27 @@ function StoriesPage() {
           </Button>
         </div>
 
+        {occasionMeta && (
+          <div className="mt-6 flex items-center justify-between gap-3 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-4">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">{occasionMeta.emoji}</span>
+              <div>
+                <Badge className="rounded-full bg-primary/15 text-primary">مناسبة</Badge>
+                <h2 className="mt-1 font-display text-lg font-extrabold">{occasionMeta.label}</h2>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full"
+              onClick={() => navigate({ search: { occasion: undefined } })}
+            >
+              <X className="ms-1 h-4 w-4" />
+              إزالة
+            </Button>
+          </div>
+        )}
+
         <div className="mt-6">
           <FilterChips
             options={[...CATEGORIES]}
@@ -99,6 +147,7 @@ function StoriesPage() {
             onChange={setCategory}
           />
         </div>
+
 
         {isError ? (
           <ErrorBlock

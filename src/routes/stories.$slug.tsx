@@ -8,6 +8,8 @@ import { Header } from "@/components/Header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FavoriteButton } from "@/features/library/FavoriteButton";
+import { RecommendedStories } from "@/features/library/RecommendedStories";
 import { supabase } from "@/integrations/supabase/client";
 import { STARTING_PRICE_EGP, useCart } from "@/features/cart/CartContext";
 import { parsePages } from "@/features/ai/storyTypes";
@@ -101,6 +103,11 @@ function StoryPreview() {
                   <BookOpen className="h-16 w-16 text-primary/50" />
                 </div>
               )}
+              <FavoriteButton
+                templateId={story.id}
+                size="lg"
+                className="absolute end-4 top-4"
+              />
             </div>
 
             <div>
@@ -270,6 +277,13 @@ function StoryPreview() {
               ))}
             </div>
           </section>
+        )}
+
+        {story && (
+          <RecommendedStories
+            excludeTemplateId={story.id}
+            category={story.category}
+          />
         )}
       </main>
       <Footer />

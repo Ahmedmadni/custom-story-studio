@@ -23,6 +23,7 @@ import { Route as PuzzlesIdRouteImport } from './routes/puzzles_.$id'
 import { Route as PaymentReturnRouteImport } from './routes/payment.return'
 import { Route as AuthenticatedRequestStoryRouteImport } from './routes/_authenticated.request-story'
 import { Route as AuthenticatedMyOrdersRouteImport } from './routes/_authenticated.my-orders'
+import { Route as AuthenticatedFavoritesRouteImport } from './routes/_authenticated.favorites'
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated.checkout'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
@@ -106,6 +107,11 @@ const AuthenticatedMyOrdersRoute = AuthenticatedMyOrdersRouteImport.update({
   path: '/my-orders',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedFavoritesRoute = AuthenticatedFavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedCheckoutRoute = AuthenticatedCheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
@@ -183,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/puzzles': typeof PuzzlesRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/checkout': typeof AuthenticatedCheckoutRoute
+  '/favorites': typeof AuthenticatedFavoritesRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
   '/request-story': typeof AuthenticatedRequestStoryRoute
   '/payment/return': typeof PaymentReturnRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/games': typeof GamesRoute
   '/puzzles': typeof PuzzlesRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
+  '/favorites': typeof AuthenticatedFavoritesRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
   '/request-story': typeof AuthenticatedRequestStoryRoute
   '/payment/return': typeof PaymentReturnRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/puzzles': typeof PuzzlesRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
+  '/_authenticated/favorites': typeof AuthenticatedFavoritesRoute
   '/_authenticated/my-orders': typeof AuthenticatedMyOrdersRoute
   '/_authenticated/request-story': typeof AuthenticatedRequestStoryRoute
   '/payment/return': typeof PaymentReturnRoute
@@ -267,6 +276,7 @@ export interface FileRouteTypes {
     | '/puzzles'
     | '/admin'
     | '/checkout'
+    | '/favorites'
     | '/my-orders'
     | '/request-story'
     | '/payment/return'
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/games'
     | '/puzzles'
     | '/checkout'
+    | '/favorites'
     | '/my-orders'
     | '/request-story'
     | '/payment/return'
@@ -321,6 +332,7 @@ export interface FileRouteTypes {
     | '/puzzles'
     | '/_authenticated/admin'
     | '/_authenticated/checkout'
+    | '/_authenticated/favorites'
     | '/_authenticated/my-orders'
     | '/_authenticated/request-story'
     | '/payment/return'
@@ -455,6 +467,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMyOrdersRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/favorites': {
+      id: '/_authenticated/favorites'
+      path: '/favorites'
+      fullPath: '/favorites'
+      preLoaderRoute: typeof AuthenticatedFavoritesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/checkout': {
       id: '/_authenticated/checkout'
       path: '/checkout'
@@ -568,6 +587,7 @@ const AuthenticatedAdminRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedCheckoutRoute: typeof AuthenticatedCheckoutRoute
+  AuthenticatedFavoritesRoute: typeof AuthenticatedFavoritesRoute
   AuthenticatedMyOrdersRoute: typeof AuthenticatedMyOrdersRoute
   AuthenticatedRequestStoryRoute: typeof AuthenticatedRequestStoryRoute
   AuthenticatedOrderTemplateIdRoute: typeof AuthenticatedOrderTemplateIdRoute
@@ -577,6 +597,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedCheckoutRoute: AuthenticatedCheckoutRoute,
+  AuthenticatedFavoritesRoute: AuthenticatedFavoritesRoute,
   AuthenticatedMyOrdersRoute: AuthenticatedMyOrdersRoute,
   AuthenticatedRequestStoryRoute: AuthenticatedRequestStoryRoute,
   AuthenticatedOrderTemplateIdRoute: AuthenticatedOrderTemplateIdRoute,

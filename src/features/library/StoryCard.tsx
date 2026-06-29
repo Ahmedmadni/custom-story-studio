@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 import { Badge } from "@/components/ui/badge";
+import { FavoriteButton } from "@/features/library/FavoriteButton";
 import { coverUrlOrDefault } from "@/lib/defaultCover";
 
 export interface StoryCardData {
@@ -33,6 +34,11 @@ export function StoryCard({ story }: { story: StoryCardData }) {
             {story.category}
           </Badge>
         )}
+        <FavoriteButton
+          templateId={story.id}
+          size="sm"
+          className="absolute end-3 top-3"
+        />
       </div>
       <div className="p-4">
         <h3 className="font-display text-lg font-bold leading-snug">

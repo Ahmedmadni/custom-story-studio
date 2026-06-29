@@ -47,13 +47,22 @@ export function Header() {
             </Link>
           ))}
           {user && (
-            <Link
-              to="/my-orders"
-              className="rounded-full px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
-              activeProps={{ className: "bg-secondary" }}
-            >
-              طلباتي
-            </Link>
+            <>
+              <Link
+                to="/favorites"
+                className="rounded-full px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
+                activeProps={{ className: "bg-secondary" }}
+              >
+                المفضلة
+              </Link>
+              <Link
+                to="/my-orders"
+                className="rounded-full px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
+                activeProps={{ className: "bg-secondary" }}
+              >
+                طلباتي
+              </Link>
+            </>
           )}
           {isAdmin && (
             <Link
@@ -133,6 +142,15 @@ export function Header() {
                 {l.label}
               </Link>
             ))}
+            {user && (
+              <Link
+                to="/favorites"
+                onClick={() => setOpen(false)}
+                className="rounded-xl px-4 py-3 font-semibold hover:bg-secondary"
+              >
+                المفضلة
+              </Link>
+            )}
             {user && (
               <Link
                 to="/my-orders"
