@@ -103,6 +103,11 @@ function StoryPreview() {
                   <BookOpen className="h-16 w-16 text-primary/50" />
                 </div>
               )}
+              <FavoriteButton
+                templateId={story.id}
+                size="lg"
+                className="absolute end-4 top-4"
+              />
             </div>
 
             <div>
