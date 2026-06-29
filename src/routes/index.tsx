@@ -336,6 +336,9 @@ function Index() {
         </div>
       </section>
 
+      {/* ============ OCCASIONS ============ */}
+      <OccasionStrip />
+
       {/* ============ FEATURED CAROUSEL ============ */}
       <section className="container mx-auto px-4 py-10">
         <div className="mb-6 flex items-end justify-between">
