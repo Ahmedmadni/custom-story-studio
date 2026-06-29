@@ -225,6 +225,9 @@ function Index() {
         </div>
       </section>
 
+      {/* ============ TRUST COUNTERS ============ */}
+      <TrustCounters />
+
       {/* ============ FEATURE ICONS (4 cards) ============ */}
       <section className="container mx-auto -mt-6 px-4">
         <div className="rounded-[2rem] border border-border/60 bg-card/90 p-6 shadow-[var(--shadow-card)] backdrop-blur md:p-8">
