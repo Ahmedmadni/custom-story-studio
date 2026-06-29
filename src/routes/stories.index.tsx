@@ -119,6 +119,27 @@ function StoriesPage() {
           </Button>
         </div>
 
+        {occasionMeta && (
+          <div className="mt-6 flex items-center justify-between gap-3 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-4">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">{occasionMeta.emoji}</span>
+              <div>
+                <Badge className="rounded-full bg-primary/15 text-primary">مناسبة</Badge>
+                <h2 className="mt-1 font-display text-lg font-extrabold">{occasionMeta.label}</h2>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full"
+              onClick={() => navigate({ search: { occasion: undefined } })}
+            >
+              <X className="ms-1 h-4 w-4" />
+              إزالة
+            </Button>
+          </div>
+        )}
+
         <div className="mt-6">
           <FilterChips
             options={[...CATEGORIES]}
@@ -126,6 +147,7 @@ function StoriesPage() {
             onChange={setCategory}
           />
         </div>
+
 
         {isError ? (
           <ErrorBlock
