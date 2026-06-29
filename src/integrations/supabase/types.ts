@@ -14,6 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "story_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_progress: {
         Row: {
           age_group: string | null
@@ -313,6 +342,7 @@ export type Database = {
           is_published: boolean
           language: string
           moral: string
+          occasion: Database["public"]["Enums"]["story_occasion"] | null
           pages: Json
           slug: string
           source_order_id: string | null
@@ -338,6 +368,7 @@ export type Database = {
           is_published?: boolean
           language?: string
           moral: string
+          occasion?: Database["public"]["Enums"]["story_occasion"] | null
           pages?: Json
           slug: string
           source_order_id?: string | null
@@ -363,6 +394,7 @@ export type Database = {
           is_published?: boolean
           language?: string
           moral?: string
+          occasion?: Database["public"]["Enums"]["story_occasion"] | null
           pages?: Json
           slug?: string
           source_order_id?: string | null
@@ -448,6 +480,15 @@ export type Database = {
         | "sent"
         | "rejected"
       payment_status: "unpaid" | "receipt_uploaded" | "verified" | "rejected"
+      story_occasion:
+        | "birthday"
+        | "graduation"
+        | "ramadan"
+        | "eid"
+        | "back_to_school"
+        | "bedtime"
+        | "family"
+        | "adventure"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -586,6 +627,16 @@ export const Constants = {
         "rejected",
       ],
       payment_status: ["unpaid", "receipt_uploaded", "verified", "rejected"],
+      story_occasion: [
+        "birthday",
+        "graduation",
+        "ramadan",
+        "eid",
+        "back_to_school",
+        "bedtime",
+        "family",
+        "adventure",
+      ],
     },
   },
 } as const
