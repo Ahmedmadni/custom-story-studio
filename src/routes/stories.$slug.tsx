@@ -278,6 +278,13 @@ function StoryPreview() {
             </div>
           </section>
         )}
+
+        {story && (
+          <RecommendedStories
+            excludeTemplateId={story.id}
+            category={story.category}
+          />
+        )}
       </main>
       <Footer />
     </div>
