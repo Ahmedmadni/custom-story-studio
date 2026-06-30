@@ -14,6 +14,113 @@ export type Database = {
   }
   public: {
     Tables: {
+      child_profiles: {
+        Row: {
+          age: number | null
+          avatar_url: string | null
+          birth_date: string | null
+          created_at: string
+          dream_job: string | null
+          favorite_character: string | null
+          favorite_color: string | null
+          gender: string | null
+          hobbies: string[] | null
+          id: string
+          name: string
+          nickname: string | null
+          personality_traits: string[] | null
+          photo_url: string | null
+          super_power: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age?: number | null
+          avatar_url?: string | null
+          birth_date?: string | null
+          created_at?: string
+          dream_job?: string | null
+          favorite_character?: string | null
+          favorite_color?: string | null
+          gender?: string | null
+          hobbies?: string[] | null
+          id?: string
+          name: string
+          nickname?: string | null
+          personality_traits?: string[] | null
+          photo_url?: string | null
+          super_power?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age?: number | null
+          avatar_url?: string | null
+          birth_date?: string | null
+          created_at?: string
+          dream_job?: string | null
+          favorite_character?: string | null
+          favorite_color?: string | null
+          gender?: string | null
+          hobbies?: string[] | null
+          id?: string
+          name?: string
+          nickname?: string | null
+          personality_traits?: string[] | null
+          photo_url?: string | null
+          super_power?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      child_story_universe: {
+        Row: {
+          achievements: Json
+          child_id: string
+          created_at: string
+          experience_points: number
+          favorite_companions: string[] | null
+          favorite_world: string | null
+          id: string
+          level: number
+          story_count: number
+          updated_at: string
+        }
+        Insert: {
+          achievements?: Json
+          child_id: string
+          created_at?: string
+          experience_points?: number
+          favorite_companions?: string[] | null
+          favorite_world?: string | null
+          id?: string
+          level?: number
+          story_count?: number
+          updated_at?: string
+        }
+        Update: {
+          achievements?: Json
+          child_id?: string
+          created_at?: string
+          experience_points?: number
+          favorite_companions?: string[] | null
+          favorite_world?: string | null
+          id?: string
+          level?: number
+          story_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_story_universe_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: true
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           created_at: string
@@ -324,6 +431,60 @@ export type Database = {
         }
         Relationships: []
       }
+      reward_accounts: {
+        Row: {
+          balance: number
+          created_at: string
+          lifetime_points: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          lifetime_points?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          lifetime_points?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reward_transactions: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          points: number
+          reference_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          points: number
+          reference_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          points?: number
+          reference_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       story_templates: {
         Row: {
           admin_approved_at: string | null
@@ -461,6 +622,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_points: {
+        Args: {
+          _note?: string
+          _points: number
+          _reference_id?: string
+          _type: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
