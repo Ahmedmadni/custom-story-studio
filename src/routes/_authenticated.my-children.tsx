@@ -77,7 +77,8 @@ function MyChildrenPage() {
         ) : (
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {data.map((c) => {
-              const u = (c as { child_story_universe?: { level: number; experience_points: number; story_count: number }[] }).child_story_universe?.[0];
+              const uRaw = (c as { child_story_universe?: { level: number; experience_points: number; story_count: number } | { level: number; experience_points: number; story_count: number }[] | null }).child_story_universe;
+              const u = Array.isArray(uRaw) ? uRaw[0] : uRaw;
               const xp = u?.experience_points ?? 0;
               const lvl = levelFor(xp);
               return (

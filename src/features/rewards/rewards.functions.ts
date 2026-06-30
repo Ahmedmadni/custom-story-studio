@@ -13,8 +13,8 @@ export const awardSelfPoints = createServerFn({ method: "POST" })
       _user_id: context.userId,
       _points: data.points,
       _type: data.type,
-      _reference_id: data.referenceId ?? null,
-      _note: data.note ?? null,
+      _reference_id: data.referenceId ?? undefined,
+      _note: data.note ?? undefined,
     });
     if (error) throw error;
     return { ok: true as const };

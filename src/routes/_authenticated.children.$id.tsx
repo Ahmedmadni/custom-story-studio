@@ -67,11 +67,12 @@ function ChildDetailPage() {
     );
   }
 
-  const universe = (child as { child_story_universe?: { level: number; experience_points: number; story_count: number; achievements?: unknown }[] }).child_story_universe?.[0] ?? {
+  const uRaw = (child as { child_story_universe?: { level: number; experience_points: number; story_count: number; achievements?: unknown } | { level: number; experience_points: number; story_count: number; achievements?: unknown }[] | null }).child_story_universe;
+  const universe = (Array.isArray(uRaw) ? uRaw[0] : uRaw) ?? {
     level: 1,
     experience_points: 0,
     story_count: 0,
-    achievements: [],
+    achievements: [] as unknown,
   };
   const xp = universe.experience_points ?? 0;
   const lvl = levelFor(xp);
