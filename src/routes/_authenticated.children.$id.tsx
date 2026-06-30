@@ -1,0 +1,233 @@
+import { Link, createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Edit3, Loader2, Trash2, BookOpen, Trophy, Sparkles } from "lucide-react";
+import { toast } from "sonner";
+
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
+import { ChildAvatar } from "@/features/children/ChildAvatar";
+import { levelFor, nextLevel, progressToNext } from "@/features/rewards/levels";
+
+const ACHIEVEMENTS = [
+  { key: "first_story", emoji: "🏆", label: "أول قصة", desc: "أكمل أول قصة" },
+  { key: "space", emoji: "🚀", label: "مستكشف الفضاء", desc: "قصة فضائية" },
+  { key: "animals", emoji: "🦁", label: "بطل الحيوانات", desc: "قصة حيوانات" },
+  { key: "adventure", emoji: "🗺️", label: "ملك المغامرة", desc: "قصة مغامرة" },
+  { key: "reader", emoji: "📚", label: "بطل القراءة", desc: "5 قصص مكتملة" },
+];
+
+export const Route = createFileRoute("/_authenticated/children/$id")({
+  head: () => ({ meta: [{ title: "ملف الطفل — كيدزي" }] }),
+  component: ChildDetailPage,
+});
+
+function ChildDetailPage() {
+  const { id } = useParams({ from: "/_authenticated/children/$id" });
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  const { data: child, isLoading } = useQuery({
+    queryKey: ["child", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("child_profiles")
+        .select("*, child_story_universe(*)")
+        .eq("id", id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const del = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("child_profiles").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["children"] });
+      toast.success("تم حذف الملف");
+      navigate({ to: "/my-children" });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "تعذّر الحذف"),
+  });
+
+  if (isLoading || !child) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <div className="flex justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  const universe = (child as { child_story_universe?: { level: number; experience_points: number; story_count: number; achievements?: unknown }[] }).child_story_universe?.[0] ?? {
+    level: 1,
+    experience_points: 0,
+    story_count: 0,
+    achievements: [],
+  };
+  const xp = universe.experience_points ?? 0;
+  const lvl = levelFor(xp);
+  const next = nextLevel(xp);
+  const prog = progressToNext(xp);
+  const unlocked = new Set(
+    Array.isArray(universe.achievements) ? (universe.achievements as string[]) : [],
+  );
+
+  return (
+    <div className="min-h-screen">
+      <Header />
+      <main className="container mx-auto max-w-5xl px-4 pb-12 pt-8 sm:px-6">
+        {/* Hero */}
+        <div
+          className="overflow-hidden rounded-3xl p-6 text-white shadow-xl sm:p-10"
+          style={{
+            background: `linear-gradient(135deg, ${child.favorite_color ?? "#7C3AED"}, #4F46E5)`,
+          }}
+        >
+          <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+            <ChildAvatar
+              emoji={child.avatar_url}
+              photoUrl={child.photo_url}
+              color="rgba(255,255,255,0.15)"
+              name={child.name}
+              size="xl"
+              className="ring-white/30"
+            />
+            <div className="flex-1">
+              <Badge className="mb-2 bg-white/20 text-white">
+                {lvl.emoji} {lvl.label} · مستوى {universe.level}
+              </Badge>
+              <h1 className="font-display text-3xl font-extrabold sm:text-4xl">{child.name}</h1>
+              {child.nickname && <p className="mt-1 text-white/90">"{child.nickname}"</p>}
+              <div className="mt-3 flex flex-wrap gap-3 text-sm">
+                {child.age != null && <span>🎂 {child.age} سنوات</span>}
+                {child.super_power && <span>⚡ {child.super_power}</span>}
+                {child.dream_job && <span>💼 {child.dream_job}</span>}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                asChild
+                variant="secondary"
+                className="rounded-full"
+              >
+                <Link to="/children/$id/edit" params={{ id }}>
+                  <Edit3 className="ms-2 h-4 w-4" /> تعديل
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-full border-white/40 bg-white/10 text-white hover:bg-white/20"
+                onClick={() => {
+                  if (confirm("هل تريد حذف ملف هذا الطفل نهائياً؟")) del.mutate();
+                }}
+              >
+                <Trash2 className="ms-2 h-4 w-4" /> حذف
+              </Button>
+            </div>
+          </div>
+
+          {/* Progress */}
+          <div className="mt-6 rounded-2xl bg-white/10 p-4">
+            <div className="mb-2 flex justify-between text-sm">
+              <span>التقدّم نحو {next ? `${next.emoji} ${next.label}` : "الأسطورة 👑"}</span>
+              <span className="font-bold">{xp.toLocaleString("ar-EG")} XP</span>
+            </div>
+            <Progress value={prog.pct} className="h-3 bg-white/20" />
+            {next && (
+              <p className="mt-2 text-xs text-white/80">
+                تبقّى {prog.remaining.toLocaleString("ar-EG")} نقطة للوصول للمستوى التالي
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <StatCard icon={<BookOpen />} label="قصص" value={String(universe.story_count ?? 0)} />
+          <StatCard icon={<Sparkles />} label="مستوى" value={String(universe.level ?? 1)} />
+          <StatCard icon={<Trophy />} label="إنجازات" value={String(unlocked.size)} />
+        </div>
+
+        {/* Personality */}
+        <section className="mt-8 rounded-3xl border bg-card p-6">
+          <h2 className="mb-4 font-display text-xl font-bold">شخصية البطل</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Info label="الشخصية المفضّلة" value={child.favorite_character} />
+            <Info label="وظيفة الأحلام" value={child.dream_job} />
+            <Info label="القوة الخارقة" value={child.super_power} />
+            <Info label="الهوايات" value={(child.hobbies ?? []).join("، ") || null} />
+            <Info
+              label="الصفات"
+              value={(child.personality_traits ?? []).join("، ") || null}
+            />
+          </div>
+        </section>
+
+        {/* Achievements */}
+        <section className="mt-8 rounded-3xl border bg-card p-6">
+          <h2 className="mb-4 flex items-center gap-2 font-display text-xl font-bold">
+            <Trophy className="h-5 w-5 text-amber-500" />
+            الإنجازات
+          </h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {ACHIEVEMENTS.map((a) => {
+              const got = unlocked.has(a.key);
+              return (
+                <div
+                  key={a.key}
+                  className={`rounded-2xl border-2 p-4 text-center ${
+                    got ? "border-amber-400 bg-amber-50" : "border-dashed border-border opacity-50"
+                  }`}
+                >
+                  <div className="text-3xl">{a.emoji}</div>
+                  <div className="mt-1 text-sm font-bold">{a.label}</div>
+                  <div className="text-[11px] text-muted-foreground">{a.desc}</div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="mt-8 flex justify-center">
+          <Button asChild size="lg" className="rounded-full">
+            <Link to="/stories">
+              <Sparkles className="ms-2 h-5 w-5" />
+              اطلب قصة جديدة لـ {child.name}
+            </Link>
+          </Button>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border bg-card p-5 text-center">
+      <div className="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+        {icon}
+      </div>
+      <div className="mt-2 font-display text-2xl font-extrabold">{value}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div>
+      <div className="text-xs font-semibold text-muted-foreground">{label}</div>
+      <div className="font-bold">{value || "—"}</div>
+    </div>
+  );
+}
