@@ -21,14 +21,18 @@ import { Route as StoriesIndexRouteImport } from './routes/stories.index'
 import { Route as StoriesSlugRouteImport } from './routes/stories.$slug'
 import { Route as PuzzlesIdRouteImport } from './routes/puzzles_.$id'
 import { Route as PaymentReturnRouteImport } from './routes/payment.return'
+import { Route as AuthenticatedRewardsRouteImport } from './routes/_authenticated.rewards'
 import { Route as AuthenticatedRequestStoryRouteImport } from './routes/_authenticated.request-story'
 import { Route as AuthenticatedMyOrdersRouteImport } from './routes/_authenticated.my-orders'
+import { Route as AuthenticatedMyChildrenRouteImport } from './routes/_authenticated.my-children'
 import { Route as AuthenticatedFavoritesRouteImport } from './routes/_authenticated.favorites'
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated.checkout'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as AuthenticatedStoryOrderIdRouteImport } from './routes/_authenticated.story.$orderId'
 import { Route as AuthenticatedOrderTemplateIdRouteImport } from './routes/_authenticated.order.$templateId'
+import { Route as AuthenticatedChildrenCreateRouteImport } from './routes/_authenticated.children.create'
+import { Route as AuthenticatedChildrenIdRouteImport } from './routes/_authenticated.children.$id'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated.admin.users'
 import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authenticated.admin.templates'
 import { Route as AuthenticatedAdminRolesRouteImport } from './routes/_authenticated.admin.roles'
@@ -36,6 +40,7 @@ import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated.admin.orders'
 import { Route as AuthenticatedAdminApprovalsRouteImport } from './routes/_authenticated.admin.approvals'
 import { Route as ApiPublicKashierWebhookRouteImport } from './routes/api/public/kashier.webhook'
+import { Route as AuthenticatedChildrenIdEditRouteImport } from './routes/_authenticated.children.$id.edit'
 
 const PuzzlesRoute = PuzzlesRouteImport.update({
   id: '/puzzles',
@@ -96,6 +101,11 @@ const PaymentReturnRoute = PaymentReturnRouteImport.update({
   path: '/payment/return',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRewardsRoute = AuthenticatedRewardsRouteImport.update({
+  id: '/rewards',
+  path: '/rewards',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedRequestStoryRoute =
   AuthenticatedRequestStoryRouteImport.update({
     id: '/request-story',
@@ -105,6 +115,11 @@ const AuthenticatedRequestStoryRoute =
 const AuthenticatedMyOrdersRoute = AuthenticatedMyOrdersRouteImport.update({
   id: '/my-orders',
   path: '/my-orders',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedMyChildrenRoute = AuthenticatedMyChildrenRouteImport.update({
+  id: '/my-children',
+  path: '/my-children',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedFavoritesRoute = AuthenticatedFavoritesRouteImport.update({
@@ -139,6 +154,17 @@ const AuthenticatedOrderTemplateIdRoute =
     path: '/order/$templateId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedChildrenCreateRoute =
+  AuthenticatedChildrenCreateRouteImport.update({
+    id: '/children/create',
+    path: '/children/create',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedChildrenIdRoute = AuthenticatedChildrenIdRouteImport.update({
+  id: '/children/$id',
+  path: '/children/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -178,6 +204,12 @@ const ApiPublicKashierWebhookRoute = ApiPublicKashierWebhookRouteImport.update({
   path: '/api/public/kashier/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedChildrenIdEditRoute =
+  AuthenticatedChildrenIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedChildrenIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -190,8 +222,10 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/favorites': typeof AuthenticatedFavoritesRoute
+  '/my-children': typeof AuthenticatedMyChildrenRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
   '/request-story': typeof AuthenticatedRequestStoryRoute
+  '/rewards': typeof AuthenticatedRewardsRoute
   '/payment/return': typeof PaymentReturnRoute
   '/puzzles/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
@@ -202,9 +236,12 @@ export interface FileRoutesByFullPath {
   '/admin/roles': typeof AuthenticatedAdminRolesRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/children/$id': typeof AuthenticatedChildrenIdRouteWithChildren
+  '/children/create': typeof AuthenticatedChildrenCreateRoute
   '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
   '/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/children/$id/edit': typeof AuthenticatedChildrenIdEditRoute
   '/api/public/kashier/webhook': typeof ApiPublicKashierWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -217,8 +254,10 @@ export interface FileRoutesByTo {
   '/puzzles': typeof PuzzlesRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/favorites': typeof AuthenticatedFavoritesRoute
+  '/my-children': typeof AuthenticatedMyChildrenRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
   '/request-story': typeof AuthenticatedRequestStoryRoute
+  '/rewards': typeof AuthenticatedRewardsRoute
   '/payment/return': typeof PaymentReturnRoute
   '/puzzles/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
@@ -229,9 +268,12 @@ export interface FileRoutesByTo {
   '/admin/roles': typeof AuthenticatedAdminRolesRoute
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/children/$id': typeof AuthenticatedChildrenIdRouteWithChildren
+  '/children/create': typeof AuthenticatedChildrenCreateRoute
   '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
   '/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/children/$id/edit': typeof AuthenticatedChildrenIdEditRoute
   '/api/public/kashier/webhook': typeof ApiPublicKashierWebhookRoute
 }
 export interface FileRoutesById {
@@ -247,8 +289,10 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/favorites': typeof AuthenticatedFavoritesRoute
+  '/_authenticated/my-children': typeof AuthenticatedMyChildrenRoute
   '/_authenticated/my-orders': typeof AuthenticatedMyOrdersRoute
   '/_authenticated/request-story': typeof AuthenticatedRequestStoryRoute
+  '/_authenticated/rewards': typeof AuthenticatedRewardsRoute
   '/payment/return': typeof PaymentReturnRoute
   '/puzzles_/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
@@ -259,9 +303,12 @@ export interface FileRoutesById {
   '/_authenticated/admin/roles': typeof AuthenticatedAdminRolesRoute
   '/_authenticated/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/_authenticated/children/$id': typeof AuthenticatedChildrenIdRouteWithChildren
+  '/_authenticated/children/create': typeof AuthenticatedChildrenCreateRoute
   '/_authenticated/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
   '/_authenticated/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/children/$id/edit': typeof AuthenticatedChildrenIdEditRoute
   '/api/public/kashier/webhook': typeof ApiPublicKashierWebhookRoute
 }
 export interface FileRouteTypes {
@@ -277,8 +324,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/checkout'
     | '/favorites'
+    | '/my-children'
     | '/my-orders'
     | '/request-story'
+    | '/rewards'
     | '/payment/return'
     | '/puzzles/$id'
     | '/stories/$slug'
@@ -289,9 +338,12 @@ export interface FileRouteTypes {
     | '/admin/roles'
     | '/admin/templates'
     | '/admin/users'
+    | '/children/$id'
+    | '/children/create'
     | '/order/$templateId'
     | '/story/$orderId'
     | '/admin/'
+    | '/children/$id/edit'
     | '/api/public/kashier/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -304,8 +356,10 @@ export interface FileRouteTypes {
     | '/puzzles'
     | '/checkout'
     | '/favorites'
+    | '/my-children'
     | '/my-orders'
     | '/request-story'
+    | '/rewards'
     | '/payment/return'
     | '/puzzles/$id'
     | '/stories/$slug'
@@ -316,9 +370,12 @@ export interface FileRouteTypes {
     | '/admin/roles'
     | '/admin/templates'
     | '/admin/users'
+    | '/children/$id'
+    | '/children/create'
     | '/order/$templateId'
     | '/story/$orderId'
     | '/admin'
+    | '/children/$id/edit'
     | '/api/public/kashier/webhook'
   id:
     | '__root__'
@@ -333,8 +390,10 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/checkout'
     | '/_authenticated/favorites'
+    | '/_authenticated/my-children'
     | '/_authenticated/my-orders'
     | '/_authenticated/request-story'
+    | '/_authenticated/rewards'
     | '/payment/return'
     | '/puzzles_/$id'
     | '/stories/$slug'
@@ -345,9 +404,12 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/roles'
     | '/_authenticated/admin/templates'
     | '/_authenticated/admin/users'
+    | '/_authenticated/children/$id'
+    | '/_authenticated/children/create'
     | '/_authenticated/order/$templateId'
     | '/_authenticated/story/$orderId'
     | '/_authenticated/admin/'
+    | '/_authenticated/children/$id/edit'
     | '/api/public/kashier/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -453,6 +515,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PaymentReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/rewards': {
+      id: '/_authenticated/rewards'
+      path: '/rewards'
+      fullPath: '/rewards'
+      preLoaderRoute: typeof AuthenticatedRewardsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/request-story': {
       id: '/_authenticated/request-story'
       path: '/request-story'
@@ -465,6 +534,13 @@ declare module '@tanstack/react-router' {
       path: '/my-orders'
       fullPath: '/my-orders'
       preLoaderRoute: typeof AuthenticatedMyOrdersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/my-children': {
+      id: '/_authenticated/my-children'
+      path: '/my-children'
+      fullPath: '/my-children'
+      preLoaderRoute: typeof AuthenticatedMyChildrenRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/favorites': {
@@ -507,6 +583,20 @@ declare module '@tanstack/react-router' {
       path: '/order/$templateId'
       fullPath: '/order/$templateId'
       preLoaderRoute: typeof AuthenticatedOrderTemplateIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/children/create': {
+      id: '/_authenticated/children/create'
+      path: '/children/create'
+      fullPath: '/children/create'
+      preLoaderRoute: typeof AuthenticatedChildrenCreateRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/children/$id': {
+      id: '/_authenticated/children/$id'
+      path: '/children/$id'
+      fullPath: '/children/$id'
+      preLoaderRoute: typeof AuthenticatedChildrenIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/admin/users': {
@@ -558,6 +648,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicKashierWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/children/$id/edit': {
+      id: '/_authenticated/children/$id/edit'
+      path: '/edit'
+      fullPath: '/children/$id/edit'
+      preLoaderRoute: typeof AuthenticatedChildrenIdEditRouteImport
+      parentRoute: typeof AuthenticatedChildrenIdRoute
+    }
   }
 }
 
@@ -584,12 +681,30 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
+interface AuthenticatedChildrenIdRouteChildren {
+  AuthenticatedChildrenIdEditRoute: typeof AuthenticatedChildrenIdEditRoute
+}
+
+const AuthenticatedChildrenIdRouteChildren: AuthenticatedChildrenIdRouteChildren =
+  {
+    AuthenticatedChildrenIdEditRoute: AuthenticatedChildrenIdEditRoute,
+  }
+
+const AuthenticatedChildrenIdRouteWithChildren =
+  AuthenticatedChildrenIdRoute._addFileChildren(
+    AuthenticatedChildrenIdRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedCheckoutRoute: typeof AuthenticatedCheckoutRoute
   AuthenticatedFavoritesRoute: typeof AuthenticatedFavoritesRoute
+  AuthenticatedMyChildrenRoute: typeof AuthenticatedMyChildrenRoute
   AuthenticatedMyOrdersRoute: typeof AuthenticatedMyOrdersRoute
   AuthenticatedRequestStoryRoute: typeof AuthenticatedRequestStoryRoute
+  AuthenticatedRewardsRoute: typeof AuthenticatedRewardsRoute
+  AuthenticatedChildrenIdRoute: typeof AuthenticatedChildrenIdRouteWithChildren
+  AuthenticatedChildrenCreateRoute: typeof AuthenticatedChildrenCreateRoute
   AuthenticatedOrderTemplateIdRoute: typeof AuthenticatedOrderTemplateIdRoute
   AuthenticatedStoryOrderIdRoute: typeof AuthenticatedStoryOrderIdRoute
 }
@@ -598,8 +713,12 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedCheckoutRoute: AuthenticatedCheckoutRoute,
   AuthenticatedFavoritesRoute: AuthenticatedFavoritesRoute,
+  AuthenticatedMyChildrenRoute: AuthenticatedMyChildrenRoute,
   AuthenticatedMyOrdersRoute: AuthenticatedMyOrdersRoute,
   AuthenticatedRequestStoryRoute: AuthenticatedRequestStoryRoute,
+  AuthenticatedRewardsRoute: AuthenticatedRewardsRoute,
+  AuthenticatedChildrenIdRoute: AuthenticatedChildrenIdRouteWithChildren,
+  AuthenticatedChildrenCreateRoute: AuthenticatedChildrenCreateRoute,
   AuthenticatedOrderTemplateIdRoute: AuthenticatedOrderTemplateIdRoute,
   AuthenticatedStoryOrderIdRoute: AuthenticatedStoryOrderIdRoute,
 }
