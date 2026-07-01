@@ -10,7 +10,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ChildAvatar } from "@/features/children/ChildAvatar";
-import { levelFor } from "@/features/rewards/levels";
+import { childLevelMeta, levelFromXp } from "@/features/rewards/childLevels";
+
 
 export const Route = createFileRoute("/_authenticated/my-children")({
   head: () => ({ meta: [{ title: "أطفالي — كيدزي" }] }),
@@ -53,6 +54,38 @@ function MyChildrenPage() {
           </Button>
         </div>
 
+        {/* Parent dashboard */}
+        {data && data.length > 0 && (() => {
+          const totals = data.reduce(
+            (acc, c) => {
+              const uRaw = (c as { child_story_universe?: unknown }).child_story_universe;
+              const u = (Array.isArray(uRaw) ? uRaw[0] : uRaw) as
+                | { experience_points?: number; story_count?: number; achievements?: unknown }
+                | null;
+              acc.stories += u?.story_count ?? 0;
+              acc.xp += u?.experience_points ?? 0;
+              acc.achievements += Array.isArray(u?.achievements) ? (u!.achievements as unknown[]).length : 0;
+              const cnt = u?.story_count ?? 0;
+              if (cnt > acc.topCount) {
+                acc.topCount = cnt;
+                acc.topName = c.name;
+              }
+              return acc;
+            },
+            { stories: 0, xp: 0, achievements: 0, topCount: 0, topName: "—" },
+          );
+          return (
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <DashCard emoji="👨‍👩‍👧" label="أطفال" value={String(data.length)} />
+              <DashCard emoji="📚" label="قصص مكتملة" value={String(totals.stories)} />
+              <DashCard emoji="🏆" label="إنجازات" value={String(totals.achievements)} />
+              <DashCard emoji="⭐" label="البطل الأنشط" value={totals.topName} />
+            </div>
+          );
+        })()}
+
+
+
         {isLoading ? (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -80,7 +113,9 @@ function MyChildrenPage() {
               const uRaw = (c as { child_story_universe?: { level: number; experience_points: number; story_count: number } | { level: number; experience_points: number; story_count: number }[] | null }).child_story_universe;
               const u = Array.isArray(uRaw) ? uRaw[0] : uRaw;
               const xp = u?.experience_points ?? 0;
-              const lvl = levelFor(xp);
+              const level = u?.level ?? levelFromXp(xp);
+              const lvl = childLevelMeta(level);
+
               return (
                 <Link
                   key={c.id}
@@ -108,8 +143,9 @@ function MyChildrenPage() {
                   </div>
                   <div className="mt-4 flex items-center justify-between rounded-2xl bg-secondary px-3 py-2 text-xs font-bold">
                     <span className={`bg-gradient-to-r ${lvl.color} bg-clip-text text-transparent`}>
-                      {lvl.emoji} {lvl.label} · مستوى {u?.level ?? 1}
+                      {lvl.emoji} {lvl.label} · مستوى {level}
                     </span>
+
                     <span className="flex items-center gap-1 text-muted-foreground">
                       <BookOpen className="h-3.5 w-3.5" />
                       {u?.story_count ?? 0}
@@ -122,6 +158,16 @@ function MyChildrenPage() {
         )}
       </main>
       <Footer />
+    </div>
+  );
+}
+
+function DashCard({ emoji, label, value }: { emoji: string; label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border-2 border-border bg-card p-4 text-center shadow-sm">
+      <div className="text-2xl">{emoji}</div>
+      <div className="mt-1 font-display text-xl font-extrabold">{value}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
     </div>
   );
 }

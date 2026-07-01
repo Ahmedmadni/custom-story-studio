@@ -6,6 +6,7 @@ import { pricePerPages, PRINT_COPY_PRICE_EGP } from "@/features/cart/pricing";
 
 const ItemInput = z.object({
   templateId: z.string().uuid(),
+  childId: z.string().uuid().nullable().optional(),
   childName: z.string().trim().min(1).max(40),
   childNameEn: z.string().trim().max(40).nullable().optional(),
   childAge: z.number().int().min(1).max(14).nullable().optional(),
@@ -19,6 +20,7 @@ const ItemInput = z.object({
   gifterName: z.string().trim().max(60).nullable().optional(),
   gifterRelation: z.string().trim().max(40).nullable().optional(),
 });
+
 
 const CheckoutInput = z.object({
   whatsapp: z.string().trim().min(8).max(20),
@@ -59,7 +61,9 @@ export const submitCheckout = createServerFn({ method: "POST" })
       return {
         user_id: context.userId,
         template_id: it.templateId,
+        child_id: it.childId ?? null,
         child_name: it.childName,
+
         child_name_en: it.childNameEn?.trim() || null,
         child_age: it.childAge ?? null,
         gender: it.gender,

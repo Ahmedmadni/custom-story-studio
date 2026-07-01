@@ -42,6 +42,8 @@ import {
 } from "@/features/orders/whatsapp";
 import { ComingSoonPaymentDialog } from "@/features/payments/ComingSoonPaymentDialog";
 import { ComingSoonPrintCard } from "@/components/ComingSoonPrintCard";
+import { ChildPicker, type ChildPickerProfile } from "@/features/children/ChildPicker";
+
 
 export const Route = createFileRoute("/_authenticated/checkout")({
   head: () => ({
@@ -56,6 +58,7 @@ const VODAFONE_NUMBER = "01120016502";
 type PhotoMode = "cartoon" | "real";
 
 type ItemDraft = {
+  childId: string | null;
   childName: string;
   childNameEn: string;
   childAge: string;
@@ -70,6 +73,7 @@ type ItemDraft = {
   gifterName: string;
   gifterRelation: string;
 };
+
 
 const RELATION_OPTIONS = ["الأم", "الأب", "الجدة", "الجد", "العمة", "العم", "الخالة", "الخال", "الأخت", "الأخ", "صديق العائلة"];
 
@@ -88,7 +92,9 @@ function CheckoutPage() {
       items.map((i) => [
         i.templateId,
         {
+          childId: null,
           childName: "",
+
           childNameEn: "",
           childAge: "",
           gender: "" as const,
@@ -221,6 +227,7 @@ function CheckoutPage() {
         const d = drafts[it.templateId];
         return {
           ...it,
+          childId: d.childId,
           childNameEn: d.childNameEn.trim() || null,
           language: d.language,
           photoMode: d.photoMode,
@@ -229,6 +236,7 @@ function CheckoutPage() {
           gifterName: d.gifterName.trim() || null,
           gifterRelation: d.gifterRelation.trim() || null,
         };
+
       });
 
       // 3) create orders (Vodafone Cash only — Kashier postponed)
@@ -295,6 +303,35 @@ function CheckoutPage() {
                     <h2 className="font-display text-lg font-bold">{item.title}</h2>
                   </div>
                 </div>
+
+                <div className="mt-4">
+                  <ChildPicker
+                    selectedId={d.childId}
+                    onSelect={(child: ChildPickerProfile | null) => {
+                      if (!child) {
+                        updateDraft(item.templateId, { childId: null });
+                        return;
+                      }
+                      const traitParts = [
+                        child.personality_traits?.length ? `صفاته: ${child.personality_traits.join("، ")}` : null,
+                        child.hobbies?.length ? `هواياته: ${child.hobbies.join("، ")}` : null,
+                        child.favorite_character ? `شخصيته المفضلة: ${child.favorite_character}` : null,
+                        child.favorite_color ? `لونه المفضل: ${child.favorite_color}` : null,
+                        child.dream_job ? `يحلم بأن يصبح: ${child.dream_job}` : null,
+                        child.super_power ? `قوته الخارقة: ${child.super_power}` : null,
+                      ].filter(Boolean).join(" · ");
+                      updateDraft(item.templateId, {
+                        childId: child.id,
+                        childName: child.name,
+                        childAge: child.age != null ? String(child.age) : "",
+                        gender: child.gender === "girl" ? "girl" : "boy",
+                        notes: traitParts || drafts[item.templateId].notes,
+                      });
+                    }}
+                  />
+                </div>
+
+
 
                 <div className="mt-4">
                   <Label className="font-bold">صورة الطفل</Label>
