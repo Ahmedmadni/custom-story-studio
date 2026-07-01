@@ -58,6 +58,7 @@ const VODAFONE_NUMBER = "01120016502";
 type PhotoMode = "cartoon" | "real";
 
 type ItemDraft = {
+  childId: string | null;
   childName: string;
   childNameEn: string;
   childAge: string;
@@ -72,6 +73,7 @@ type ItemDraft = {
   gifterName: string;
   gifterRelation: string;
 };
+
 
 const RELATION_OPTIONS = ["الأم", "الأب", "الجدة", "الجد", "العمة", "العم", "الخالة", "الخال", "الأخت", "الأخ", "صديق العائلة"];
 
