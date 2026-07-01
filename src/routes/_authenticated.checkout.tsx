@@ -92,7 +92,9 @@ function CheckoutPage() {
       items.map((i) => [
         i.templateId,
         {
+          childId: null,
           childName: "",
+
           childNameEn: "",
           childAge: "",
           gender: "" as const,
