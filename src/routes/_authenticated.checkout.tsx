@@ -42,6 +42,8 @@ import {
 } from "@/features/orders/whatsapp";
 import { ComingSoonPaymentDialog } from "@/features/payments/ComingSoonPaymentDialog";
 import { ComingSoonPrintCard } from "@/components/ComingSoonPrintCard";
+import { ChildPicker, type ChildPickerProfile } from "@/features/children/ChildPicker";
+
 
 export const Route = createFileRoute("/_authenticated/checkout")({
   head: () => ({
