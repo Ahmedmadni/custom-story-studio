@@ -10,7 +10,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ChildAvatar } from "@/features/children/ChildAvatar";
-import { levelFor } from "@/features/rewards/levels";
+import { childLevelMeta, levelFromXp } from "@/features/rewards/childLevels";
+
 
 export const Route = createFileRoute("/_authenticated/my-children")({
   head: () => ({ meta: [{ title: "أطفالي — كيدزي" }] }),
