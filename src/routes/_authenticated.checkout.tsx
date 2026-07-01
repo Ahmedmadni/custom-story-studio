@@ -227,6 +227,7 @@ function CheckoutPage() {
         const d = drafts[it.templateId];
         return {
           ...it,
+          childId: d.childId,
           childNameEn: d.childNameEn.trim() || null,
           language: d.language,
           photoMode: d.photoMode,
@@ -235,6 +236,7 @@ function CheckoutPage() {
           gifterName: d.gifterName.trim() || null,
           gifterRelation: d.gifterRelation.trim() || null,
         };
+
       });
 
       // 3) create orders (Vodafone Cash only — Kashier postponed)
