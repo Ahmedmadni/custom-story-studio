@@ -81,7 +81,9 @@ function MyChildrenPage() {
               const uRaw = (c as { child_story_universe?: { level: number; experience_points: number; story_count: number } | { level: number; experience_points: number; story_count: number }[] | null }).child_story_universe;
               const u = Array.isArray(uRaw) ? uRaw[0] : uRaw;
               const xp = u?.experience_points ?? 0;
-              const lvl = levelFor(xp);
+              const level = u?.level ?? levelFromXp(xp);
+              const lvl = childLevelMeta(level);
+
               return (
                 <Link
                   key={c.id}
