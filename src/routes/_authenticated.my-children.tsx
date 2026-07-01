@@ -54,6 +54,38 @@ function MyChildrenPage() {
           </Button>
         </div>
 
+        {/* Parent dashboard */}
+        {data && data.length > 0 && (() => {
+          const totals = data.reduce(
+            (acc, c) => {
+              const uRaw = (c as { child_story_universe?: unknown }).child_story_universe;
+              const u = (Array.isArray(uRaw) ? uRaw[0] : uRaw) as
+                | { experience_points?: number; story_count?: number; achievements?: unknown }
+                | null;
+              acc.stories += u?.story_count ?? 0;
+              acc.xp += u?.experience_points ?? 0;
+              acc.achievements += Array.isArray(u?.achievements) ? (u!.achievements as unknown[]).length : 0;
+              const cnt = u?.story_count ?? 0;
+              if (cnt > acc.topCount) {
+                acc.topCount = cnt;
+                acc.topName = c.name;
+              }
+              return acc;
+            },
+            { stories: 0, xp: 0, achievements: 0, topCount: 0, topName: "—" },
+          );
+          return (
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <DashCard emoji="👨‍👩‍👧" label="أطفال" value={String(data.length)} />
+              <DashCard emoji="📚" label="قصص مكتملة" value={String(totals.stories)} />
+              <DashCard emoji="🏆" label="إنجازات" value={String(totals.achievements)} />
+              <DashCard emoji="⭐" label="البطل الأنشط" value={totals.topName} />
+            </div>
+          );
+        })()}
+
+
+
         {isLoading ? (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
