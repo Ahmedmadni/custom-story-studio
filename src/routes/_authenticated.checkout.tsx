@@ -305,6 +305,35 @@ function CheckoutPage() {
                 </div>
 
                 <div className="mt-4">
+                  <ChildPicker
+                    selectedId={d.childId}
+                    onSelect={(child: ChildPickerProfile | null) => {
+                      if (!child) {
+                        updateDraft(item.templateId, { childId: null });
+                        return;
+                      }
+                      const traitParts = [
+                        child.personality_traits?.length ? `صفاته: ${child.personality_traits.join("، ")}` : null,
+                        child.hobbies?.length ? `هواياته: ${child.hobbies.join("، ")}` : null,
+                        child.favorite_character ? `شخصيته المفضلة: ${child.favorite_character}` : null,
+                        child.favorite_color ? `لونه المفضل: ${child.favorite_color}` : null,
+                        child.dream_job ? `يحلم بأن يصبح: ${child.dream_job}` : null,
+                        child.super_power ? `قوته الخارقة: ${child.super_power}` : null,
+                      ].filter(Boolean).join(" · ");
+                      updateDraft(item.templateId, {
+                        childId: child.id,
+                        childName: child.name,
+                        childAge: child.age != null ? String(child.age) : "",
+                        gender: child.gender === "girl" ? "girl" : "boy",
+                        notes: traitParts || drafts[item.templateId].notes,
+                      });
+                    }}
+                  />
+                </div>
+
+
+
+                <div className="mt-4">
                   <Label className="font-bold">صورة الطفل</Label>
                   <label className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-primary/40 bg-secondary/30 p-5 transition-colors hover:bg-secondary/60">
                     {d.preview ? (
