@@ -74,6 +74,58 @@ export type Database = {
         }
         Relationships: []
       }
+      child_story_history: {
+        Row: {
+          category: string | null
+          child_id: string
+          completed_at: string
+          id: string
+          order_id: string
+          template_id: string | null
+          xp_awarded: number
+        }
+        Insert: {
+          category?: string | null
+          child_id: string
+          completed_at?: string
+          id?: string
+          order_id: string
+          template_id?: string | null
+          xp_awarded?: number
+        }
+        Update: {
+          category?: string | null
+          child_id?: string
+          completed_at?: string
+          id?: string
+          order_id?: string
+          template_id?: string | null
+          xp_awarded?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_story_history_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "child_story_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "child_story_history_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "story_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       child_story_universe: {
         Row: {
           achievements: Json
@@ -228,6 +280,7 @@ export type Database = {
         Row: {
           admin_notes: string | null
           child_age: number | null
+          child_id: string | null
           child_name: string
           child_name_en: string | null
           child_photo_path: string | null
@@ -269,6 +322,7 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           child_age?: number | null
+          child_id?: string | null
           child_name: string
           child_name_en?: string | null
           child_photo_path?: string | null
@@ -310,6 +364,7 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           child_age?: number | null
+          child_id?: string | null
           child_name?: string
           child_name_en?: string | null
           child_photo_path?: string | null
@@ -349,6 +404,13 @@ export type Database = {
           whatsapp?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_published_template_id_fkey"
             columns: ["published_template_id"]
@@ -630,6 +692,11 @@ export type Database = {
           _type: string
           _user_id: string
         }
+        Returns: undefined
+      }
+      calc_child_level: { Args: { _xp: number }; Returns: number }
+      complete_story_for_child: {
+        Args: { _order_id: string }
         Returns: undefined
       }
       has_role: {
