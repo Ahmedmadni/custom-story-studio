@@ -161,3 +161,13 @@ function MyChildrenPage() {
     </div>
   );
 }
+
+function DashCard({ emoji, label, value }: { emoji: string; label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border-2 border-border bg-card p-4 text-center shadow-sm">
+      <div className="text-2xl">{emoji}</div>
+      <div className="mt-1 font-display text-xl font-extrabold">{value}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+    </div>
+  );
+}
