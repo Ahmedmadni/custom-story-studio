@@ -61,7 +61,9 @@ export const submitCheckout = createServerFn({ method: "POST" })
       return {
         user_id: context.userId,
         template_id: it.templateId,
+        child_id: it.childId ?? null,
         child_name: it.childName,
+
         child_name_en: it.childNameEn?.trim() || null,
         child_age: it.childAge ?? null,
         gender: it.gender,
