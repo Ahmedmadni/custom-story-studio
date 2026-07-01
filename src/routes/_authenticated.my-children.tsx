@@ -111,8 +111,9 @@ function MyChildrenPage() {
                   </div>
                   <div className="mt-4 flex items-center justify-between rounded-2xl bg-secondary px-3 py-2 text-xs font-bold">
                     <span className={`bg-gradient-to-r ${lvl.color} bg-clip-text text-transparent`}>
-                      {lvl.emoji} {lvl.label} · مستوى {u?.level ?? 1}
+                      {lvl.emoji} {lvl.label} · مستوى {level}
                     </span>
+
                     <span className="flex items-center gap-1 text-muted-foreground">
                       <BookOpen className="h-3.5 w-3.5" />
                       {u?.story_count ?? 0}
