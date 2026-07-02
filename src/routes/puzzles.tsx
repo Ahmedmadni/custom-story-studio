@@ -4,23 +4,37 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Clock, Puzzle, Sparkles, Star, Target, TrendingUp } from "lucide-react";
 import { PUZZLES } from "@/features/puzzles/puzzles-data";
-import { DIFFICULTY_COLOR, DIFFICULTY_LABEL, type PuzzleDifficulty } from "@/features/puzzles/types";
+import {
+  DIFFICULTY_COLOR,
+  DIFFICULTY_LABEL,
+  type PuzzleDifficulty,
+} from "@/features/puzzles/types";
 import { useAllPuzzleProgress } from "@/features/puzzles/usePuzzleProgress";
+import { SITE_URL } from "@/lib/siteUrl";
 
 export const Route = createFileRoute("/puzzles")({
   head: () => ({
     meta: [
       { title: "ألغاز وألعاب ذكاء للأطفال — كيدزي" },
-      { name: "description", content: "مجموعة ألغاز تفاعلية للأطفال 3-8 سنوات: ذاكرة، تركيز، أنماط، تصنيف وأكثر." },
+      {
+        name: "description",
+        content: "مجموعة ألغاز تفاعلية للأطفال 3-8 سنوات: ذاكرة، تركيز، أنماط، تصنيف وأكثر.",
+      },
       { property: "og:title", content: "ألغاز الأطفال — كيدزي" },
       { property: "og:description", content: "أكثر من 20 لعبة ذكاء قصيرة لتنمية مهارات الطفل." },
     ],
+    links: [{ rel: "canonical", href: `${SITE_URL}/puzzles` }],
   }),
   component: PuzzlesPage,
 });
 
 const FILTERS: (PuzzleDifficulty | "all")[] = ["all", "easy", "medium", "hard"];
-const FILTER_LABEL: Record<string, string> = { all: "الكل", easy: "سهل", medium: "متوسط", hard: "صعب" };
+const FILTER_LABEL: Record<string, string> = {
+  all: "الكل",
+  easy: "سهل",
+  medium: "متوسط",
+  hard: "صعب",
+};
 
 function PuzzlesPage() {
   const { progress } = useAllPuzzleProgress();
@@ -68,14 +82,33 @@ function PuzzlesPage() {
           aria-labelledby="parent-summary"
           className="mx-auto mb-8 max-w-5xl rounded-3xl border-2 border-primary/20 bg-gradient-to-l from-primary/10 to-accent/10 p-5"
         >
-          <h2 id="parent-summary" className="mb-3 flex items-center gap-2 font-display text-lg font-bold">
+          <h2
+            id="parent-summary"
+            className="mb-3 flex items-center gap-2 font-display text-lg font-bold"
+          >
             <Sparkles className="h-5 w-5 text-primary" /> لوحة الوالدين — ملخص التقدم
           </h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <StatCard icon={<Puzzle className="h-5 w-5" />} label="ألغاز أُنجزت" value={`${stats.completed} / ${PUZZLES.length}`} />
-            <StatCard icon={<Star className="h-5 w-5 text-accent" />} label="إجمالي النجوم" value={String(stats.totalStars)} />
-            <StatCard icon={<TrendingUp className="h-5 w-5" />} label="عدد المحاولات" value={String(stats.attempts)} />
-            <StatCard icon={<Target className="h-5 w-5" />} label="المهارة الأكثر ممارسة" value={stats.topSkill} />
+            <StatCard
+              icon={<Puzzle className="h-5 w-5" />}
+              label="ألغاز أُنجزت"
+              value={`${stats.completed} / ${PUZZLES.length}`}
+            />
+            <StatCard
+              icon={<Star className="h-5 w-5 text-accent" />}
+              label="إجمالي النجوم"
+              value={String(stats.totalStars)}
+            />
+            <StatCard
+              icon={<TrendingUp className="h-5 w-5" />}
+              label="عدد المحاولات"
+              value={String(stats.attempts)}
+            />
+            <StatCard
+              icon={<Target className="h-5 w-5" />}
+              label="المهارة الأكثر ممارسة"
+              value={stats.topSkill}
+            />
           </div>
         </section>
 
@@ -86,7 +119,9 @@ function PuzzlesPage() {
               key={f}
               onClick={() => setFilter(f)}
               className={`rounded-full px-4 py-2 text-sm font-bold transition-colors ${
-                filter === f ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-secondary/70"
+                filter === f
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary hover:bg-secondary/70"
               }`}
             >
               {FILTER_LABEL[f]}
@@ -114,7 +149,9 @@ function PuzzlesPage() {
                     {p.emoji}
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${DIFFICULTY_COLOR[p.difficulty]}`}>
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${DIFFICULTY_COLOR[p.difficulty]}`}
+                    >
                       {DIFFICULTY_LABEL[p.difficulty]}
                     </span>
                     {done && (
@@ -125,12 +162,17 @@ function PuzzlesPage() {
                   </div>
                 </div>
 
-                <h3 className="mt-3 font-display text-xl font-extrabold text-foreground">{p.title}</h3>
+                <h3 className="mt-3 font-display text-xl font-extrabold text-foreground">
+                  {p.title}
+                </h3>
                 <p className="mt-0.5 text-sm text-muted-foreground">{p.description}</p>
 
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {p.skills.slice(0, 2).map((s) => (
-                    <span key={s.key} className="rounded-full bg-card/80 px-2 py-0.5 text-[11px] font-bold text-foreground/75 ring-1 ring-border/40">
+                    <span
+                      key={s.key}
+                      className="rounded-full bg-card/80 px-2 py-0.5 text-[11px] font-bold text-foreground/75 ring-1 ring-border/40"
+                    >
                       {s.label}
                     </span>
                   ))}
@@ -142,7 +184,10 @@ function PuzzlesPage() {
                   </span>
                   <span className="inline-flex items-center gap-0.5 text-accent">
                     {Array.from({ length: 3 }).map((_, i) => (
-                      <Star key={i} className={`h-3.5 w-3.5 ${prog && i < prog.stars ? "fill-current" : "opacity-25"}`} />
+                      <Star
+                        key={i}
+                        className={`h-3.5 w-3.5 ${prog && i < prog.stars ? "fill-current" : "opacity-25"}`}
+                      />
                     ))}
                   </span>
                 </div>
@@ -159,7 +204,10 @@ function PuzzlesPage() {
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-card p-3 shadow-sm">
-      <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">{icon}{label}</div>
+      <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+        {icon}
+        {label}
+      </div>
       <div className="mt-1 font-display text-lg font-extrabold text-foreground">{value}</div>
     </div>
   );

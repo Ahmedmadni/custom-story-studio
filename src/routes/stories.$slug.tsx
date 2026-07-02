@@ -15,10 +15,12 @@ import { getTrustStats } from "@/features/stats/stats.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { STARTING_PRICE_EGP, useCart } from "@/features/cart/CartContext";
 import { parsePages } from "@/features/ai/storyTypes";
+import { SITE_URL } from "@/lib/siteUrl";
 
 export const Route = createFileRoute("/stories/$slug")({
-  head: () => ({
+  head: ({ params }) => ({
     meta: [{ title: "معاينة القصة — كيدزي" }],
+    links: [{ rel: "canonical", href: `${SITE_URL}/stories/${params.slug}` }],
   }),
   component: StoryPreview,
 });
@@ -79,6 +81,30 @@ function StoryPreview() {
 
   return (
     <div className="min-h-screen">
+      {story && (
+        <script
+          type="application/ld+json"
+          // بيانات القصة تأتي من مكتبتنا/إدارتنا لا من مُدخَل مستخدم مباشر على هذه الصفحة؛ نُفلت `</script` احتياطاً فقط.
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Book",
+              name: story.title,
+              description: story.summary,
+              image: story.cover_url ?? undefined,
+              inLanguage: story.language === "en" ? "en" : "ar",
+              genre: story.category ?? undefined,
+              audience: { "@type": "PeopleAudience", suggestedMinAge: 3, suggestedMaxAge: 12 },
+              offers: {
+                "@type": "Offer",
+                priceCurrency: "EGP",
+                price: STARTING_PRICE_EGP,
+                availability: "https://schema.org/InStock",
+              },
+            }).replace(/<\/script/gi, "<\\/script"),
+          }}
+        />
+      )}
       <Header />
       <main className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 pb-12">
         {isLoading ? (

@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { coverUrlOrDefault } from "@/lib/defaultCover";
+import { SITE_URL } from "@/lib/siteUrl";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -51,6 +52,7 @@ export const Route = createFileRoute("/")({
         content: "اكتشف آلاف القصص التفاعلية أو أنشئ قصة لطفلك بالذكاء الاصطناعي.",
       },
     ],
+    links: [{ rel: "canonical", href: SITE_URL }],
   }),
   component: Index,
 });

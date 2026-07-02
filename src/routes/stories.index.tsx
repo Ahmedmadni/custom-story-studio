@@ -16,6 +16,7 @@ import { StoryCard } from "@/features/library/StoryCard";
 import { OCCASIONS, type OccasionKey } from "@/features/library/occasions";
 import { supabase } from "@/integrations/supabase/client";
 import { CATEGORIES } from "@/features/ai/storyTypes";
+import { SITE_URL } from "@/lib/siteUrl";
 
 const searchSchema = z.object({
   occasion: z
@@ -44,6 +45,7 @@ export const Route = createFileRoute("/stories/")({
           "تصفح أكثر من 20 قصة أطفال نبيلة وإنسانية بأسلوب كرتوني ثلاثي الأبعاد، واجعل طفلك بطل الحكاية.",
       },
     ],
+    links: [{ rel: "canonical", href: `${SITE_URL}/stories` }],
   }),
   component: StoriesPage,
 });

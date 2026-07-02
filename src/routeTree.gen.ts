@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as PuzzlesRouteImport } from './routes/puzzles'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -52,6 +54,16 @@ import { Route as AuthenticatedChildrenIdEditRouteImport } from './routes/_authe
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RefundPolicyRoute = RefundPolicyRouteImport.update({
@@ -266,6 +278,8 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/puzzles': typeof PuzzlesRoute
   '/refund-policy': typeof RefundPolicyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/checkout': typeof AuthenticatedCheckoutRoute
@@ -306,6 +320,8 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/puzzles': typeof PuzzlesRoute
   '/refund-policy': typeof RefundPolicyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/favorites': typeof AuthenticatedFavoritesRoute
@@ -347,6 +363,8 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/puzzles': typeof PuzzlesRoute
   '/refund-policy': typeof RefundPolicyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
@@ -389,6 +407,8 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/puzzles'
     | '/refund-policy'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/terms'
     | '/admin'
     | '/checkout'
@@ -429,6 +449,8 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/puzzles'
     | '/refund-policy'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/terms'
     | '/checkout'
     | '/favorites'
@@ -469,6 +491,8 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/puzzles'
     | '/refund-policy'
+    | '/robots.txt'
+    | '/sitemap.xml'
     | '/terms'
     | '/_authenticated/admin'
     | '/_authenticated/checkout'
@@ -511,6 +535,8 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   PuzzlesRoute: typeof PuzzlesRoute
   RefundPolicyRoute: typeof RefundPolicyRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   PaymentReturnRoute: typeof PaymentReturnRoute
   PuzzlesIdRoute: typeof PuzzlesIdRoute
@@ -526,6 +552,20 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/refund-policy': {
@@ -883,6 +923,8 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   PuzzlesRoute: PuzzlesRoute,
   RefundPolicyRoute: RefundPolicyRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   PaymentReturnRoute: PaymentReturnRoute,
   PuzzlesIdRoute: PuzzlesIdRoute,

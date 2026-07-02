@@ -12,6 +12,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { StoryCard } from "@/features/library/StoryCard";
 import { supabase } from "@/integrations/supabase/client";
+import { SITE_URL } from "@/lib/siteUrl";
 
 export const Route = createFileRoute("/books")({
   head: () => ({
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/books")({
         content: "كتب تعليمية ممتعة للأطفال بأسلوب كرتوني ثلاثي الأبعاد.",
       },
     ],
+    links: [{ rel: "canonical", href: `${SITE_URL}/books` }],
   }),
   component: BooksPage,
 });

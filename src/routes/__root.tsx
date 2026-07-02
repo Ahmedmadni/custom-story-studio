@@ -15,6 +15,8 @@ import { CartProvider } from "@/features/cart/CartContext";
 import { ReferralCapture } from "@/features/referrals/ReferralCapture";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
+import { SITE_URL } from "@/lib/siteUrl";
+import { ADMIN_WHATSAPP } from "@/features/orders/whatsapp";
 
 function NotFoundComponent() {
   return (
@@ -119,6 +121,34 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&family=Alexandria:wght@400;600;700;800&family=Kufam:wght@400;700;900&display=swap",
+      },
+    ],
+    scripts: [
+      {
+        attrs: { type: "application/ld+json" },
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Kidzy — كيدزي",
+          url: SITE_URL,
+          logo: `${SITE_URL}/favicon.png`,
+          contactPoint: {
+            "@type": "ContactPoint",
+            contactType: "customer service",
+            telephone: `+${ADMIN_WHATSAPP}`,
+            areaServed: "EG",
+            availableLanguage: ["ar", "en"],
+          },
+        }),
+      },
+      {
+        attrs: { type: "application/ld+json" },
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Kidzy — كيدزي",
+          url: SITE_URL,
+        }),
       },
     ],
   }),
