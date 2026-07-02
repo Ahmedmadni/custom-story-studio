@@ -4,6 +4,7 @@ import {
   BookOpen,
   ChevronLeft,
   CreditCard,
+  HeartPulse,
   LayoutDashboard,
   Library,
   Package,
@@ -45,6 +46,7 @@ type NavGroup = {
 
 const singleItems: NavItem[] = [
   { to: "/admin", label: "نظرة عامة", icon: LayoutDashboard },
+  { to: "/admin/health", label: "صحة النظام", icon: HeartPulse },
   { to: "/admin/analytics", label: "التحليلات", icon: BarChart3 },
   { to: "/admin/orders", label: "الطلبات", icon: Package },
   { to: "/admin/payments", label: "المدفوعات", icon: CreditCard },
