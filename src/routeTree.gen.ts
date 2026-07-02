@@ -9,9 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as PuzzlesRouteImport } from './routes/puzzles'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as GamesRouteImport } from './routes/games'
 import { Route as CreateRouteImport } from './routes/create'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as BooksRouteImport } from './routes/books'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -44,9 +49,29 @@ import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authe
 import { Route as ApiPublicKashierWebhookRouteImport } from './routes/api/public/kashier.webhook'
 import { Route as AuthenticatedChildrenIdEditRouteImport } from './routes/_authenticated.children.$id.edit'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundPolicyRoute = RefundPolicyRouteImport.update({
+  id: '/refund-policy',
+  path: '/refund-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PuzzlesRoute = PuzzlesRouteImport.update({
   id: '/puzzles',
   path: '/puzzles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesRoute = GamesRouteImport.update({
@@ -57,6 +82,11 @@ const GamesRoute = GamesRouteImport.update({
 const CreateRoute = CreateRouteImport.update({
   id: '/create',
   path: '/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CartRoute = CartRouteImport.update({
@@ -229,9 +259,14 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
   '/cart': typeof CartRoute
+  '/contact': typeof ContactRoute
   '/create': typeof CreateRoute
   '/games': typeof GamesRoute
+  '/help': typeof HelpRoute
+  '/privacy': typeof PrivacyRoute
   '/puzzles': typeof PuzzlesRoute
+  '/refund-policy': typeof RefundPolicyRoute
+  '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/favorites': typeof AuthenticatedFavoritesRoute
@@ -264,9 +299,14 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
   '/cart': typeof CartRoute
+  '/contact': typeof ContactRoute
   '/create': typeof CreateRoute
   '/games': typeof GamesRoute
+  '/help': typeof HelpRoute
+  '/privacy': typeof PrivacyRoute
   '/puzzles': typeof PuzzlesRoute
+  '/refund-policy': typeof RefundPolicyRoute
+  '/terms': typeof TermsRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/favorites': typeof AuthenticatedFavoritesRoute
   '/my-children': typeof AuthenticatedMyChildrenRoute
@@ -300,9 +340,14 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
   '/cart': typeof CartRoute
+  '/contact': typeof ContactRoute
   '/create': typeof CreateRoute
   '/games': typeof GamesRoute
+  '/help': typeof HelpRoute
+  '/privacy': typeof PrivacyRoute
   '/puzzles': typeof PuzzlesRoute
+  '/refund-policy': typeof RefundPolicyRoute
+  '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/favorites': typeof AuthenticatedFavoritesRoute
@@ -337,9 +382,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/books'
     | '/cart'
+    | '/contact'
     | '/create'
     | '/games'
+    | '/help'
+    | '/privacy'
     | '/puzzles'
+    | '/refund-policy'
+    | '/terms'
     | '/admin'
     | '/checkout'
     | '/favorites'
@@ -372,9 +422,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/books'
     | '/cart'
+    | '/contact'
     | '/create'
     | '/games'
+    | '/help'
+    | '/privacy'
     | '/puzzles'
+    | '/refund-policy'
+    | '/terms'
     | '/checkout'
     | '/favorites'
     | '/my-children'
@@ -407,9 +462,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/books'
     | '/cart'
+    | '/contact'
     | '/create'
     | '/games'
+    | '/help'
+    | '/privacy'
     | '/puzzles'
+    | '/refund-policy'
+    | '/terms'
     | '/_authenticated/admin'
     | '/_authenticated/checkout'
     | '/_authenticated/favorites'
@@ -444,9 +504,14 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BooksRoute: typeof BooksRoute
   CartRoute: typeof CartRoute
+  ContactRoute: typeof ContactRoute
   CreateRoute: typeof CreateRoute
   GamesRoute: typeof GamesRoute
+  HelpRoute: typeof HelpRoute
+  PrivacyRoute: typeof PrivacyRoute
   PuzzlesRoute: typeof PuzzlesRoute
+  RefundPolicyRoute: typeof RefundPolicyRoute
+  TermsRoute: typeof TermsRoute
   PaymentReturnRoute: typeof PaymentReturnRoute
   PuzzlesIdRoute: typeof PuzzlesIdRoute
   StoriesSlugRoute: typeof StoriesSlugRoute
@@ -456,11 +521,39 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund-policy': {
+      id: '/refund-policy'
+      path: '/refund-policy'
+      fullPath: '/refund-policy'
+      preLoaderRoute: typeof RefundPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/puzzles': {
       id: '/puzzles'
       path: '/puzzles'
       fullPath: '/puzzles'
       preLoaderRoute: typeof PuzzlesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games': {
@@ -475,6 +568,13 @@ declare module '@tanstack/react-router' {
       path: '/create'
       fullPath: '/create'
       preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cart': {
@@ -776,9 +876,14 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BooksRoute: BooksRoute,
   CartRoute: CartRoute,
+  ContactRoute: ContactRoute,
   CreateRoute: CreateRoute,
   GamesRoute: GamesRoute,
+  HelpRoute: HelpRoute,
+  PrivacyRoute: PrivacyRoute,
   PuzzlesRoute: PuzzlesRoute,
+  RefundPolicyRoute: RefundPolicyRoute,
+  TermsRoute: TermsRoute,
   PaymentReturnRoute: PaymentReturnRoute,
   PuzzlesIdRoute: PuzzlesIdRoute,
   StoriesSlugRoute: StoriesSlugRoute,
