@@ -5,7 +5,12 @@ import { EmptyState } from "@/components/EmptyState";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { STARTING_PRICE_EGP, useCart } from "@/features/cart/CartContext";
+import {
+  nextPackageTier,
+  packageTierFor,
+  STARTING_PRICE_EGP,
+  useCart,
+} from "@/features/cart/CartContext";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -16,6 +21,8 @@ export const Route = createFileRoute("/cart")({
 
 function CartPage() {
   const { items, remove, count } = useCart();
+  const currentTier = packageTierFor(count);
+  const upcoming = nextPackageTier(count);
 
   return (
     <div className="min-h-screen">
@@ -43,6 +50,18 @@ function CartPage() {
           />
         ) : (
           <>
+            {(currentTier.discountPct > 0 || upcoming) && (
+              <div className="mt-6 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-4 text-sm font-bold text-primary">
+                {currentTier.discountPct > 0 && (
+                  <p>🎁 باقة {currentTier.label} مُفعّلة — خصم {currentTier.discountPct}% على كل القصص</p>
+                )}
+                {upcoming && (
+                  <p className={currentTier.discountPct > 0 ? "mt-1 opacity-80" : ""}>
+                    أضف {upcoming.minItems - count} قصص أخرى ووفّر {upcoming.discountPct}% (باقة {upcoming.label})
+                  </p>
+                )}
+              </div>
+            )}
             <div className="mt-8 space-y-3">
               {items.map((it) => (
                 <div

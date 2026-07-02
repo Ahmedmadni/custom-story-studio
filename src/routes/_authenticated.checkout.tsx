@@ -24,6 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   pagesOptionsFor,
+  packageTierFor,
   pricePerPages,
   useCart,
 } from "@/features/cart/CartContext";
@@ -116,6 +117,7 @@ function CheckoutPage() {
   const [receipt, setReceipt] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
 
   if (items.length === 0) {
     return (
@@ -241,18 +243,23 @@ function CheckoutPage() {
       });
 
       // 3) create orders (Vodafone Cash only — Kashier postponed)
-      await submitFn({
+      const result = await submitFn({
         data: {
           whatsapp: whatsapp.trim(),
           receiptPath,
           printCopy: false,
           deliveryAddress: null,
           items: itemsPayload,
+          couponCode: couponCode.trim() || null,
         },
       });
 
       clear();
-      toast.success("تم استلام طلبك! سنراجع الإيصال ونرسل القصة على واتساب 🎉");
+      toast.success(
+        result.couponDiscountEgp || result.packageDiscountEgp
+          ? `تم استلام طلبك! وفّرت ${result.couponDiscountEgp + result.packageDiscountEgp} ج 🎉`
+          : "تم استلام طلبك! سنراجع الإيصال ونرسل القصة على واتساب 🎉",
+      );
       void navigate({ to: "/my-orders" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "حدث خطأ");
@@ -267,7 +274,9 @@ function CheckoutPage() {
     const isCustom = Boolean(it.isCustom);
     return sum + pricePerPages((d?.pagesCount ?? 10) as 10 | 16, isCustom);
   }, 0);
-  const grandTotal = itemsSubtotal;
+  const packageTier = packageTierFor(items.length);
+  const packageDiscount = Math.round((itemsSubtotal * packageTier.discountPct) / 100);
+  const grandTotal = itemsSubtotal - packageDiscount;
 
 
 
@@ -678,14 +687,38 @@ function CheckoutPage() {
         </section>
 
         <section className="mt-4 rounded-3xl border-2 border-border bg-card p-5 shadow-sm">
+          {packageTier.discountPct > 0 && (
+            <p className="mb-3 rounded-2xl bg-grass/10 px-3 py-2 text-xs font-bold text-grass">
+              🎁 باقة {packageTier.label} مُفعّلة — خصم {packageTier.discountPct}% على {items.length} قصص
+            </p>
+          )}
           <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground shrink-0">كود الخصم</span>
+              <Input
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                placeholder="WELCOME20"
+                className="h-9 rounded-full text-center font-bold tracking-wider"
+              />
+            </label>
+            <div className="my-2 h-px bg-border" />
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">قصص ({items.length})</span>
               <span className="font-bold">{itemsSubtotal} ج</span>
             </div>
+            {packageDiscount > 0 && (
+              <div className="flex items-center justify-between text-sm text-grass">
+                <span>خصم الباقة</span>
+                <span className="font-bold">−{packageDiscount} ج</span>
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              يُطبَّق كود الخصم عند تأكيد الطلب — القيمة النهائية تظهر في رسالة التأكيد
+            </p>
             <div className="my-2 h-px bg-border" />
             <div className="flex items-center justify-between">
-              <span className="font-bold">الإجمالي</span>
+              <span className="font-bold">الإجمالي التقديري</span>
               <span className="font-display text-3xl font-extrabold text-primary">
                 {grandTotal} ج
               </span>
