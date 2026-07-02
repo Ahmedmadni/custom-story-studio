@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Award, Heart, LogOut, Menu, Shield, ShoppingCart, Sparkles, Users, X } from "lucide-react";
+import { Award, Gift, Heart, LogOut, Menu, Shield, ShoppingCart, Sparkles, Users, X } from "lucide-react";
 import { useState } from "react";
 
 import kidzyLogo from "@/assets/kidzy-logo.png.asset.json";
@@ -62,6 +62,7 @@ export function Header() {
     { to: "/my-orders", label: "طلباتي", icon: ShoppingCart },
     { to: "/favorites", label: "المفضلة", icon: Heart },
     { to: "/rewards", label: "مكافآتي", icon: Award },
+    { to: "/referrals", label: "ادعُ صديقاً", icon: Gift },
   ] as const;
 
   return (

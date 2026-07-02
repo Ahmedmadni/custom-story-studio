@@ -202,6 +202,14 @@ function RewardsPage() {
               </div>
             ))}
           </div>
+          <div className="mt-4">
+            <Button asChild variant="outline" className="rounded-full font-bold">
+              <Link to="/referrals">
+                <UserPlus className="ms-1 h-4 w-4" />
+                ادعُ صديقاً الآن
+              </Link>
+            </Button>
+          </div>
         </section>
 
         {/* History */}
