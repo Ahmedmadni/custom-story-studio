@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/features/cart/CartContext";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { OnboardingWizard } from "@/features/onboarding/OnboardingWizard";
 import { ReferralCapture } from "@/features/referrals/ReferralCapture";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
@@ -194,6 +195,7 @@ function RootComponent() {
         <CartProvider>
           <OfflineBanner />
           <ReferralCapture />
+          <OnboardingWizard />
           <Outlet />
           <Toaster richColors position="top-center" />
         </CartProvider>
