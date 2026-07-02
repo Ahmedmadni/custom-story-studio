@@ -33,7 +33,8 @@ function CartPage() {
           سلة المشتريات
         </h1>
         <p className="mt-2 text-muted-foreground">
-          السعر يبدأ من {STARTING_PRICE_EGP} جنيه لكل قصة — تختار عدد الصفحات وخيار الطباعة في الخطوة التالية
+          السعر يبدأ من {STARTING_PRICE_EGP} جنيه لكل قصة — تختار عدد الصفحات وخيار الطباعة في
+          الخطوة التالية
         </p>
 
         {count === 0 ? (
@@ -53,11 +54,15 @@ function CartPage() {
             {(currentTier.discountPct > 0 || upcoming) && (
               <div className="mt-6 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-4 text-sm font-bold text-primary">
                 {currentTier.discountPct > 0 && (
-                  <p>🎁 باقة {currentTier.label} مُفعّلة — خصم {currentTier.discountPct}% على كل القصص</p>
+                  <p>
+                    🎁 باقة {currentTier.label} مُفعّلة — خصم {currentTier.discountPct}% على كل
+                    القصص
+                  </p>
                 )}
                 {upcoming && (
                   <p className={currentTier.discountPct > 0 ? "mt-1 opacity-80" : ""}>
-                    أضف {upcoming.minItems - count} قصص أخرى ووفّر {upcoming.discountPct}% (باقة {upcoming.label})
+                    أضف {upcoming.minItems - count} قصص أخرى ووفّر {upcoming.discountPct}% (باقة{" "}
+                    {upcoming.label})
                   </p>
                 )}
               </div>
@@ -69,11 +74,7 @@ function CartPage() {
                   className="flex items-center gap-4 rounded-3xl border-2 border-border bg-card p-4 shadow-sm"
                 >
                   {it.coverUrl ? (
-                    <img
-                      src={it.coverUrl}
-                      alt=""
-                      className="h-20 w-16 rounded-xl object-cover"
-                    />
+                    <img src={it.coverUrl} alt="" className="h-20 w-16 rounded-xl object-cover" />
                   ) : (
                     <div className="flex h-20 w-16 items-center justify-center rounded-xl bg-secondary">
                       <BookOpen className="h-6 w-6 text-primary/50" />
@@ -107,7 +108,8 @@ function CartPage() {
                 <span className="font-extrabold">{count}</span>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                📄 تُسلَّم كل قصة كملف PDF عبر واتساب. يمكنك في الخطوة التالية اختيار طباعة نسخة ورقية وتوصيلها لعنوانك.
+                📄 تُسلَّم كل قصة كملف PDF عبر واتساب. يمكنك في الخطوة التالية اختيار طباعة نسخة
+                ورقية وتوصيلها لعنوانك.
               </p>
 
               <Button

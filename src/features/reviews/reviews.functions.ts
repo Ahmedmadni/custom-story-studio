@@ -82,7 +82,9 @@ export const adminListReviews = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("reviews")
-      .select("id, rating, body, child_age, category, is_published, created_at, orders(child_name), story_templates(title)")
+      .select(
+        "id, rating, body, child_age, category, is_published, created_at, orders(child_name), story_templates(title)",
+      )
       .order("created_at", { ascending: false });
     if (error) throw new Error("تعذر تحميل التقييمات");
     return (data ?? []).map((r) => ({

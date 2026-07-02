@@ -22,11 +22,9 @@ export const getTrustStats = createServerFn({ method: "GET" }).handler(async () 
       .limit(50),
   ]);
 
-  const storiesCount = (ordersRes.count ?? 0);
+  const storiesCount = ordersRes.count ?? 0;
   const families = new Set(
-    (usersRes.data ?? [])
-      .map((r) => (r as { user_id: string | null }).user_id)
-      .filter(Boolean),
+    (usersRes.data ?? []).map((r) => (r as { user_id: string | null }).user_id).filter(Boolean),
   ).size;
 
   let avgHours = 24;
@@ -89,7 +87,9 @@ export const getActivityFeed = createServerFn({ method: "GET" }).handler(async (
   const [ordersRes, levelUpsRes] = await Promise.all([
     supabaseAdmin
       .from("orders")
-      .select("child_name, updated_at, template:story_templates!orders_template_id_fkey(category, title)")
+      .select(
+        "child_name, updated_at, template:story_templates!orders_template_id_fkey(category, title)",
+      )
       .eq("status", "sent")
       .order("updated_at", { ascending: false })
       .limit(6),

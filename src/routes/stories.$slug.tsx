@@ -111,11 +111,7 @@ function StoryPreview() {
                   <BookOpen className="h-16 w-16 text-primary/50" />
                 </div>
               )}
-              <FavoriteButton
-                templateId={story.id}
-                size="lg"
-                className="absolute end-4 top-4"
-              />
+              <FavoriteButton templateId={story.id} size="lg" className="absolute end-4 top-4" />
             </div>
 
             <div>
@@ -131,18 +127,12 @@ function StoryPreview() {
                   </Badge>
                 )}
               </div>
-              <h1 className="mt-4 font-display text-4xl font-extrabold">
-                {story.title}
-              </h1>
-              <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
-                {story.summary}
-              </p>
+              <h1 className="mt-4 font-display text-4xl font-extrabold">{story.title}</h1>
+              <p className="mt-3 text-lg leading-relaxed text-muted-foreground">{story.summary}</p>
               {story.moral && (
                 <div className="mt-5 flex items-start gap-3 rounded-2xl bg-secondary/60 p-4">
                   <Heart className="mt-0.5 h-5 w-5 shrink-0 text-candy" />
-                  <p className="text-sm font-semibold">
-                    القيمة المستفادة: {story.moral}
-                  </p>
+                  <p className="text-sm font-semibold">القيمة المستفادة: {story.moral}</p>
                 </div>
               )}
 
@@ -179,7 +169,8 @@ function StoryPreview() {
                 )}
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                ادفع عبر فودافون كاش، ارفع صورة طفلك وإيصال السداد، وستصلك القصة على واتساب كملف PDF ✨
+                ادفع عبر فودافون كاش، ارفع صورة طفلك وإيصال السداد، وستصلك القصة على واتساب كملف PDF
+                ✨
               </p>
               <div className="mt-4 inline-flex flex-wrap gap-2 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-3 text-xs font-bold text-primary">
                 <span>📄 10 صفحات = 150 ج</span>
@@ -190,21 +181,13 @@ function StoryPreview() {
               </div>
               <DeliveryTimer hours={trust?.avgDeliveryHours ?? 24} className="mt-3" />
 
-
               {pages.length > 0 && (
                 <div className="mt-10">
-                  <h2 className="font-display text-xl font-bold">
-                    معاينة مجانية — أول 3 صفحات 🎁
-                  </h2>
+                  <h2 className="font-display text-xl font-bold">معاينة مجانية — أول 3 صفحات 🎁</h2>
                   <div className="mt-4 space-y-3">
                     {pages.slice(0, 3).map((p) => (
-                      <div
-                        key={p.n}
-                        className="rounded-2xl border-2 border-border bg-card p-4"
-                      >
-                        <span className="text-xs font-bold text-accent">
-                          الصفحة {p.n}
-                        </span>
+                      <div key={p.n} className="rounded-2xl border-2 border-border bg-card p-4">
+                        <span className="text-xs font-bold text-accent">الصفحة {p.n}</span>
                         <p className="mt-1 leading-relaxed">
                           {p.text.replaceAll("{child}", "بطلنا الصغير")}
                         </p>
@@ -224,9 +207,7 @@ function StoryPreview() {
                     <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/15 text-3xl">
                       🔒
                     </div>
-                    <h3 className="mt-3 font-display text-xl font-extrabold">
-                      أكمل قصة طفلك الآن
-                    </h3>
+                    <h3 className="mt-3 font-display text-xl font-extrabold">أكمل قصة طفلك الآن</h3>
                     <p className="mt-2 text-sm text-muted-foreground">
                       اطلب القصة كاملة باسم طفلك ورسوماته الشخصية — توصلك خلال ساعات على واتساب.
                     </p>
@@ -241,7 +222,12 @@ function StoryPreview() {
                           اطلب القصة
                         </Button>
                       )}
-                      <Button asChild size="lg" variant="outline" className="rounded-full px-8 text-base font-bold">
+                      <Button
+                        asChild
+                        size="lg"
+                        variant="outline"
+                        className="rounded-full px-8 text-base font-bold"
+                      >
                         <Link to="/stories">شاهد المزيد من القصص</Link>
                       </Button>
                     </div>
@@ -284,21 +270,14 @@ function StoryPreview() {
                       </div>
                     )}
                   </div>
-                  <p className="line-clamp-2 p-3 text-center text-sm font-bold">
-                    {w.title}
-                  </p>
+                  <p className="line-clamp-2 p-3 text-center text-sm font-bold">{w.title}</p>
                 </Link>
               ))}
             </div>
           </section>
         )}
 
-        {story && (
-          <RecommendedStories
-            excludeTemplateId={story.id}
-            category={story.category}
-          />
-        )}
+        {story && <RecommendedStories excludeTemplateId={story.id} category={story.category} />}
       </main>
       <Footer />
     </div>

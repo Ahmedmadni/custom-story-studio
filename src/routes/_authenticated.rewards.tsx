@@ -114,9 +114,7 @@ function RewardsPage() {
 
               <div className="mt-5 rounded-2xl bg-white/10 p-4">
                 <div className="mb-2 flex justify-between text-sm">
-                  <span>
-                    التقدّم نحو {next ? `${next.emoji} ${next.label}` : "أقصى مستوى 👑"}
-                  </span>
+                  <span>التقدّم نحو {next ? `${next.emoji} ${next.label}` : "أقصى مستوى 👑"}</span>
                   <span className="font-bold">{prog.pct}%</span>
                 </div>
                 <Progress value={prog.pct} className="h-3 bg-white/20" />

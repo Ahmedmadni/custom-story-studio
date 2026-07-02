@@ -23,7 +23,11 @@ export function ReviewsModerationList() {
       moderateFn({ data: vars }),
     onSuccess: (_r, vars) => {
       toast.success(
-        vars.action === "approve" ? "تم نشر التقييم ✅" : vars.action === "delete" ? "تم حذف التقييم" : "تم إخفاء التقييم",
+        vars.action === "approve"
+          ? "تم نشر التقييم ✅"
+          : vars.action === "delete"
+            ? "تم حذف التقييم"
+            : "تم إخفاء التقييم",
       );
       void queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
     },
@@ -48,7 +52,10 @@ export function ReviewsModerationList() {
           </p>
         ) : (
           pending.map((r) => (
-            <div key={r.id} className="flex flex-wrap items-center gap-4 rounded-3xl border-2 border-sunny/40 bg-sunny/10 p-4">
+            <div
+              key={r.id}
+              className="flex flex-wrap items-center gap-4 rounded-3xl border-2 border-sunny/40 bg-sunny/10 p-4"
+            >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1 text-accent">
                   {Array.from({ length: 5 }).map((_, i) => (
@@ -87,10 +94,15 @@ export function ReviewsModerationList() {
 
       {published.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-sm font-bold text-muted-foreground">منشورة حالياً ({published.length})</h3>
+          <h3 className="text-sm font-bold text-muted-foreground">
+            منشورة حالياً ({published.length})
+          </h3>
           <div className="mt-2 space-y-2">
             {published.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card p-3 text-sm">
+              <div
+                key={r.id}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card p-3 text-sm"
+              >
                 <span className="truncate">
                   {"★".repeat(r.rating)} — {r.body ?? "بدون نص"}
                 </span>

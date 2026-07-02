@@ -153,8 +153,7 @@ function MyOrders() {
                     {o.story_templates?.title ?? "قصة"}
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    البطل: {o.child_name} ·{" "}
-                    {new Date(o.created_at).toLocaleDateString("ar-EG")}
+                    البطل: {o.child_name} · {new Date(o.created_at).toLocaleDateString("ar-EG")}
                   </p>
                   <div className="mt-1 flex flex-wrap gap-2">
                     <PaymentBadge status={(o.payment_status ?? "unpaid") as string} />
@@ -173,7 +172,7 @@ function MyOrders() {
                       سبب رفض الدفع: {o.payment_rejection_reason}
                     </p>
                   )}
-                  {(["pending", "approved"].includes(o.status as string)) && (
+                  {["pending", "approved"].includes(o.status as string) && (
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                       <span className="font-bold text-muted-foreground">
                         تفضيلاتك (قابلة للتعديل قبل بدء التوليد):
@@ -249,7 +248,8 @@ function MyOrders() {
                           setEditing({
                             id: o.id,
                             child_name: o.child_name,
-                            child_name_en: (o as { child_name_en?: string | null }).child_name_en ?? null,
+                            child_name_en:
+                              (o as { child_name_en?: string | null }).child_name_en ?? null,
                             child_age: (o as { child_age?: number | null }).child_age ?? null,
                             gender: (o as { gender?: string }).gender ?? "boy",
                             whatsapp: (o as { whatsapp?: string }).whatsapp ?? "",
@@ -258,10 +258,16 @@ function MyOrders() {
                             photo_mode: (o.photo_mode as string) ?? "cartoon",
                             pages_count: (o as { pages_count?: number }).pages_count ?? 10,
                             print_copy: Boolean((o as { print_copy?: boolean }).print_copy),
-                            delivery_address: (o as { delivery_address?: string | null }).delivery_address ?? null,
-                            gifted_by_name: (o as { gifted_by_name?: string | null }).gifted_by_name ?? null,
-                            gifted_by_relation: (o as { gifted_by_relation?: string | null }).gifted_by_relation ?? null,
-                            publish_consent: Boolean((o as { publish_consent?: boolean }).publish_consent),
+                            delivery_address:
+                              (o as { delivery_address?: string | null }).delivery_address ?? null,
+                            gifted_by_name:
+                              (o as { gifted_by_name?: string | null }).gifted_by_name ?? null,
+                            gifted_by_relation:
+                              (o as { gifted_by_relation?: string | null }).gifted_by_relation ??
+                              null,
+                            publish_consent: Boolean(
+                              (o as { publish_consent?: boolean }).publish_consent,
+                            ),
                             isCustom: Boolean(o.story_templates?.is_custom),
                             title: o.story_templates?.title ?? "قصة",
                           });
@@ -332,9 +338,7 @@ function MyOrders() {
                     📕
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate font-display text-lg font-bold">
-                      {f.title}
-                    </h3>
+                    <h3 className="truncate font-display text-lg font-bold">{f.title}</h3>
                     {f.createdAt && (
                       <p className="text-sm text-muted-foreground">
                         {new Date(f.createdAt).toLocaleDateString("ar-EG", {

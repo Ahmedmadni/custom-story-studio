@@ -21,7 +21,6 @@ const ItemInput = z.object({
   gifterRelation: z.string().trim().max(40).nullable().optional(),
 });
 
-
 const CheckoutInput = z.object({
   whatsapp: z.string().trim().min(8).max(20),
   receiptPath: z.string().min(1),
@@ -155,7 +154,7 @@ export const submitCheckout = createServerFn({ method: "POST" })
         publish_consent: it.publishConsent,
         pages_count: it.pagesCount,
         print_copy: data.printCopy,
-        delivery_address: data.printCopy ? data.deliveryAddress?.trim() ?? null : null,
+        delivery_address: data.printCopy ? (data.deliveryAddress?.trim() ?? null) : null,
         gifted_by_name: it.gifterName?.trim() || null,
         gifted_by_relation: it.gifterRelation?.trim() || null,
       };
@@ -192,4 +191,3 @@ export const submitCheckout = createServerFn({ method: "POST" })
       couponDiscountEgp: couponDiscount,
     };
   });
-

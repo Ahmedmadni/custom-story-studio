@@ -55,8 +55,16 @@ export function AnalyticsDashboard() {
           value={`${data.conversionRatePct}%`}
           hint={`${data.verifiedOrders} من ${data.totalOrders} طلب`}
         />
-        <StatTile icon={DollarSign} label="الإيرادات المؤكدة" value={`${data.revenueEgp.toLocaleString("ar-EG")} ج`} />
-        <StatTile icon={ShoppingCart} label="متوسط قيمة الطلب" value={`${data.averageOrderValueEgp} ج`} />
+        <StatTile
+          icon={DollarSign}
+          label="الإيرادات المؤكدة"
+          value={`${data.revenueEgp.toLocaleString("ar-EG")} ج`}
+        />
+        <StatTile
+          icon={ShoppingCart}
+          label="متوسط قيمة الطلب"
+          value={`${data.averageOrderValueEgp} ج`}
+        />
         <StatTile
           icon={Repeat}
           label="معدّل الشراء المتكرر"
@@ -69,7 +77,11 @@ export function AnalyticsDashboard() {
           value={`${data.retentionRatePct}%`}
           hint="عادوا خلال 30 يوماً من نشاطهم السابق"
         />
-        <StatTile icon={BarChart3} label="عدد الطلبات المؤكدة" value={String(data.verifiedOrders)} />
+        <StatTile
+          icon={BarChart3}
+          label="عدد الطلبات المؤكدة"
+          value={String(data.verifiedOrders)}
+        />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

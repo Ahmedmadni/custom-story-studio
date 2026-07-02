@@ -52,9 +52,7 @@ export function ParentReviewsSection() {
         <h2 className="font-display text-3xl font-extrabold md:text-4xl">
           ماذا يقول الآباء عن Kidzy؟
         </h2>
-        <p className="mt-3 text-muted-foreground">
-          آلاف العائلات يثقون بنا لإسعاد أطفالهم
-        </p>
+        <p className="mt-3 text-muted-foreground">آلاف العائلات يثقون بنا لإسعاد أطفالهم</p>
       </div>
       <div className="mt-10 grid gap-6 md:grid-cols-3">
         {items.map((t) => (

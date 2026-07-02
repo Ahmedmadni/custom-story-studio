@@ -60,10 +60,7 @@ function readStorage(): CartItem[] {
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(
       (i: unknown): i is CartItem =>
-        !!i &&
-        typeof i === "object" &&
-        "templateId" in i &&
-        "title" in i,
+        !!i && typeof i === "object" && "templateId" in i && "title" in i,
     );
   } catch {
     return [];

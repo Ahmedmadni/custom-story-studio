@@ -1,15 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  Camera,
-  Check,
-  Copy,
-  Loader2,
-  Receipt,
-  Send,
-  ShoppingBag,
-  Smartphone,
-} from "lucide-react";
+import { Camera, Check, Copy, Loader2, Receipt, Send, ShoppingBag, Smartphone } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -38,14 +29,10 @@ import {
   type LanguageMode,
 } from "@/features/ai/storyTypes";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  ADMIN_WHATSAPP,
-  isValidEgyptianMobile,
-} from "@/features/orders/whatsapp";
+import { ADMIN_WHATSAPP, isValidEgyptianMobile } from "@/features/orders/whatsapp";
 import { ComingSoonPaymentDialog } from "@/features/payments/ComingSoonPaymentDialog";
 import { ComingSoonPrintCard } from "@/components/ComingSoonPrintCard";
 import { ChildPicker, type ChildPickerProfile } from "@/features/children/ChildPicker";
-
 
 export const Route = createFileRoute("/_authenticated/checkout")({
   head: () => ({
@@ -76,8 +63,19 @@ type ItemDraft = {
   gifterRelation: string;
 };
 
-
-const RELATION_OPTIONS = ["الأم", "الأب", "الجدة", "الجد", "العمة", "العم", "الخالة", "الخال", "الأخت", "الأخ", "صديق العائلة"];
+const RELATION_OPTIONS = [
+  "الأم",
+  "الأب",
+  "الجدة",
+  "الجد",
+  "العمة",
+  "العم",
+  "الخالة",
+  "الخال",
+  "الأخت",
+  "الأخ",
+  "صديق العائلة",
+];
 
 function CheckoutPage() {
   const { user } = useAuth();
@@ -87,9 +85,7 @@ function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<"vodafone_cash">("vodafone_cash");
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
 
-
   const [drafts, setDrafts] = useState<Record<string, ItemDraft>>(() =>
-
     Object.fromEntries(
       items.map((i) => [
         i.templateId,
@@ -125,9 +121,7 @@ function CheckoutPage() {
         <Header />
         <main className="container mx-auto max-w-2xl px-4 py-16 text-center">
           <ShoppingBag className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h1 className="mt-4 font-display text-2xl font-bold">
-            سلتك فارغة
-          </h1>
+          <h1 className="mt-4 font-display text-2xl font-bold">سلتك فارغة</h1>
           <Button asChild className="mt-6 rounded-full font-bold">
             <Link to="/stories">تصفح القصص</Link>
           </Button>
@@ -176,18 +170,13 @@ function CheckoutPage() {
     if (!user) return;
     if (!isValidEgyptianMobile(whatsapp))
       return toast.error("اكتب رقم واتساب مصري صحيح مثل 01012345678");
-    if (!receipt)
-      return toast.error("ارفع صورة إيصال التحويل");
-
+    if (!receipt) return toast.error("ارفع صورة إيصال التحويل");
 
     for (const item of items) {
       const d = drafts[item.templateId];
-      if (!d?.childName.trim())
-        return toast.error(`اكتب اسم الطفل لـ «${item.title}»`);
-      if (!d?.gender)
-        return toast.error(`اختر جنس البطل لـ «${item.title}»`);
-      if (!d?.photo)
-        return toast.error(`ارفع صورة الطفل لـ «${item.title}»`);
+      if (!d?.childName.trim()) return toast.error(`اكتب اسم الطفل لـ «${item.title}»`);
+      if (!d?.gender) return toast.error(`اختر جنس البطل لـ «${item.title}»`);
+      if (!d?.photo) return toast.error(`ارفع صورة الطفل لـ «${item.title}»`);
     }
 
     setSubmitting(true);
@@ -239,7 +228,6 @@ function CheckoutPage() {
           gifterName: d.gifterName.trim() || null,
           gifterRelation: d.gifterRelation.trim() || null,
         };
-
       });
 
       // 3) create orders (Vodafone Cash only — Kashier postponed)
@@ -268,7 +256,6 @@ function CheckoutPage() {
     }
   };
 
-
   const itemsSubtotal = items.reduce((sum, it) => {
     const d = drafts[it.templateId];
     const isCustom = Boolean(it.isCustom);
@@ -277,8 +264,6 @@ function CheckoutPage() {
   const packageTier = packageTierFor(items.length);
   const packageDiscount = Math.round((itemsSubtotal * packageTier.discountPct) / 100);
   const grandTotal = itemsSubtotal - packageDiscount;
-
-
 
   return (
     <div className="min-h-screen">
@@ -300,16 +285,10 @@ function CheckoutPage() {
               >
                 <div className="flex items-center gap-3">
                   {item.coverUrl ? (
-                    <img
-                      src={item.coverUrl}
-                      alt=""
-                      className="h-14 w-12 rounded-lg object-cover"
-                    />
+                    <img src={item.coverUrl} alt="" className="h-14 w-12 rounded-lg object-cover" />
                   ) : null}
                   <div>
-                    <p className="text-xs font-bold text-muted-foreground">
-                      القصة {idx + 1}
-                    </p>
+                    <p className="text-xs font-bold text-muted-foreground">القصة {idx + 1}</p>
                     <h2 className="font-display text-lg font-bold">{item.title}</h2>
                   </div>
                 </div>
@@ -323,13 +302,19 @@ function CheckoutPage() {
                         return;
                       }
                       const traitParts = [
-                        child.personality_traits?.length ? `صفاته: ${child.personality_traits.join("، ")}` : null,
+                        child.personality_traits?.length
+                          ? `صفاته: ${child.personality_traits.join("، ")}`
+                          : null,
                         child.hobbies?.length ? `هواياته: ${child.hobbies.join("، ")}` : null,
-                        child.favorite_character ? `شخصيته المفضلة: ${child.favorite_character}` : null,
+                        child.favorite_character
+                          ? `شخصيته المفضلة: ${child.favorite_character}`
+                          : null,
                         child.favorite_color ? `لونه المفضل: ${child.favorite_color}` : null,
                         child.dream_job ? `يحلم بأن يصبح: ${child.dream_job}` : null,
                         child.super_power ? `قوته الخارقة: ${child.super_power}` : null,
-                      ].filter(Boolean).join(" · ");
+                      ]
+                        .filter(Boolean)
+                        .join(" · ");
                       updateDraft(item.templateId, {
                         childId: child.id,
                         childName: child.name,
@@ -340,8 +325,6 @@ function CheckoutPage() {
                     }}
                   />
                 </div>
-
-
 
                 <div className="mt-4">
                   <Label className="font-bold">صورة الطفل</Label>
@@ -364,9 +347,7 @@ function CheckoutPage() {
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={(e) =>
-                        onPhotoChange(item.templateId, e.target.files?.[0] ?? null)
-                      }
+                      onChange={(e) => onPhotoChange(item.templateId, e.target.files?.[0] ?? null)}
                     />
                   </label>
                 </div>
@@ -376,9 +357,7 @@ function CheckoutPage() {
                     <Label className="font-bold">اسم الطفل</Label>
                     <Input
                       value={d.childName}
-                      onChange={(e) =>
-                        updateDraft(item.templateId, { childName: e.target.value })
-                      }
+                      onChange={(e) => updateDraft(item.templateId, { childName: e.target.value })}
                       placeholder="مثال: يوسف"
                       maxLength={40}
                       className="mt-2 rounded-xl"
@@ -391,9 +370,7 @@ function CheckoutPage() {
                       min={1}
                       max={14}
                       value={d.childAge}
-                      onChange={(e) =>
-                        updateDraft(item.templateId, { childAge: e.target.value })
-                      }
+                      onChange={(e) => updateDraft(item.templateId, { childAge: e.target.value })}
                       className="mt-2 rounded-xl"
                     />
                   </div>
@@ -448,9 +425,7 @@ function CheckoutPage() {
                   <Label className="font-bold">ملاحظات (اختياري)</Label>
                   <Textarea
                     value={d.notes}
-                    onChange={(e) =>
-                      updateDraft(item.templateId, { notes: e.target.value })
-                    }
+                    onChange={(e) => updateDraft(item.templateId, { notes: e.target.value })}
                     maxLength={500}
                     rows={2}
                     className="mt-2 rounded-xl"
@@ -477,9 +452,7 @@ function CheckoutPage() {
                         }`}
                       >
                         <span className="block text-sm font-bold">{opt.label}</span>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          {opt.hint}
-                        </p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">{opt.hint}</p>
                       </button>
                     ))}
                   </div>
@@ -505,9 +478,7 @@ function CheckoutPage() {
                       <button
                         key={opt.v}
                         type="button"
-                        onClick={() =>
-                          updateDraft(item.templateId, { photoMode: opt.v })
-                        }
+                        onClick={() => updateDraft(item.templateId, { photoMode: opt.v })}
                         className={`rounded-xl border-2 p-3 text-start transition-colors ${
                           d.photoMode === opt.v
                             ? "border-primary bg-primary/10"
@@ -518,9 +489,7 @@ function CheckoutPage() {
                           <span className="text-xl">{opt.emoji}</span>
                           {opt.label}
                         </span>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          {opt.hint}
-                        </p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">{opt.hint}</p>
                       </button>
                     ))}
                   </div>
@@ -532,7 +501,8 @@ function CheckoutPage() {
                     💝 إهداء القصة (اختياري)
                   </Label>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    اكتب اسم مهدي القصة (الأم/الأب/الجد…) — سيظهر في غلاف القصة وفي صفحة الإهداء داخل النص.
+                    اكتب اسم مهدي القصة (الأم/الأب/الجد…) — سيظهر في غلاف القصة وفي صفحة الإهداء
+                    داخل النص.
                   </p>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     <div>
@@ -586,8 +556,8 @@ function CheckoutPage() {
                       🌟 أوافق على نشر قصة طفلي ضمن «أعمالنا السابقة»
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      ستظهر فقط أسفل صفحة هذه القصة الأصلية بعد اعتماد الإدارة —
-                      ولن تتكرر في معرض القصص الرئيسي.
+                      ستظهر فقط أسفل صفحة هذه القصة الأصلية بعد اعتماد الإدارة — ولن تتكرر في معرض
+                      القصص الرئيسي.
                     </span>
                   </span>
                 </label>
@@ -669,8 +639,12 @@ function CheckoutPage() {
                 دفع فوري وآمن بالبطاقة — قيد التفعيل.
               </p>
               <div className="mt-2 flex items-center gap-2">
-                <span className="rounded-md bg-blue-600 px-2 py-0.5 text-[10px] font-extrabold text-white">VISA</span>
-                <span className="rounded-md bg-red-600 px-2 py-0.5 text-[10px] font-extrabold text-white">Mastercard</span>
+                <span className="rounded-md bg-blue-600 px-2 py-0.5 text-[10px] font-extrabold text-white">
+                  VISA
+                </span>
+                <span className="rounded-md bg-red-600 px-2 py-0.5 text-[10px] font-extrabold text-white">
+                  Mastercard
+                </span>
               </div>
             </button>
             <button
@@ -689,7 +663,8 @@ function CheckoutPage() {
         <section className="mt-4 rounded-3xl border-2 border-border bg-card p-5 shadow-sm">
           {packageTier.discountPct > 0 && (
             <p className="mb-3 rounded-2xl bg-grass/10 px-3 py-2 text-xs font-bold text-grass">
-              🎁 باقة {packageTier.label} مُفعّلة — خصم {packageTier.discountPct}% على {items.length} قصص
+              🎁 باقة {packageTier.label} مُفعّلة — خصم {packageTier.discountPct}% على{" "}
+              {items.length} قصص
             </p>
           )}
           <div className="space-y-2">
@@ -731,7 +706,6 @@ function CheckoutPage() {
           onOpenChange={setComingSoonOpen}
           onChooseVodafone={() => setPaymentMethod("vodafone_cash")}
         />
-
 
         {paymentMethod === "vodafone_cash" && (
           <section className="mt-4 rounded-3xl border-2 border-grass/40 bg-grass/5 p-5 shadow-sm">
@@ -810,10 +784,10 @@ function CheckoutPage() {
           </>
         </Button>
         <p className="mt-3 text-center text-xs text-muted-foreground">
-          سنراجع الإيصال خلال ساعات قليلة ونرسل القصة كملف PDF على واتساب الرقم {ADMIN_WHATSAPP.replace(/^20/, "0")}
+          سنراجع الإيصال خلال ساعات قليلة ونرسل القصة كملف PDF على واتساب الرقم{" "}
+          {ADMIN_WHATSAPP.replace(/^20/, "0")}
         </p>
         <WaitingListStatus className="mt-4" />
-
       </main>
       <Footer />
     </div>

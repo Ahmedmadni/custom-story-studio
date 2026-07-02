@@ -82,17 +82,34 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Kidzy — كيدزي | قصص وكتب تعليمية للأطفال" },
-      { name: "description", content: "منصة كيدزي لإنشاء قصص أطفال وكتب تعليمية مخصصة — طفلك هو البطل!" },
+      {
+        name: "description",
+        content: "منصة كيدزي لإنشاء قصص أطفال وكتب تعليمية مخصصة — طفلك هو البطل!",
+      },
       { name: "author", content: "Kidzy" },
       { property: "og:title", content: "Kidzy — كيدزي | قصص وكتب تعليمية للأطفال" },
-      { property: "og:description", content: "منصة كيدزي لإنشاء قصص أطفال وكتب تعليمية مخصصة — طفلك هو البطل!" },
+      {
+        property: "og:description",
+        content: "منصة كيدزي لإنشاء قصص أطفال وكتب تعليمية مخصصة — طفلك هو البطل!",
+      },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/sHg6QnS04TcmbXVlhYYOOD3JhZB2/social-images/social-1782076247789-ChatGPT_Image_Jun_22,_2026,_12_10_40_AM.webp" },
+      {
+        property: "og:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/sHg6QnS04TcmbXVlhYYOOD3JhZB2/social-images/social-1782076247789-ChatGPT_Image_Jun_22,_2026,_12_10_40_AM.webp",
+      },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Kidzy" },
       { name: "twitter:title", content: "Kidzy — كيدزي | قصص وكتب تعليمية للأطفال" },
-      { name: "twitter:description", content: "منصة كيدزي لإنشاء قصص أطفال وكتب تعليمية مخصصة — طفلك هو البطل!" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/sHg6QnS04TcmbXVlhYYOOD3JhZB2/social-images/social-1782076247789-ChatGPT_Image_Jun_22,_2026,_12_10_40_AM.webp" },
+      {
+        name: "twitter:description",
+        content: "منصة كيدزي لإنشاء قصص أطفال وكتب تعليمية مخصصة — طفلك هو البطل!",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/sHg6QnS04TcmbXVlhYYOOD3JhZB2/social-images/social-1782076247789-ChatGPT_Image_Jun_22,_2026,_12_10_40_AM.webp",
+      },
     ],
     links: [
       { rel: "icon", type: "image/png", href: "/favicon.png" },

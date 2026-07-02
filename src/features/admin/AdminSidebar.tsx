@@ -53,7 +53,6 @@ const singleItems: NavItem[] = [
   { to: "/admin/roles", label: "الصلاحيات", icon: ShieldCheck },
 ];
 
-
 const groupItems: NavGroup[] = [
   {
     label: "القوالب",
@@ -72,8 +71,7 @@ export function AdminSidebar() {
   const isActive = (to: string) =>
     to === "/admin" ? pathname === "/admin" : pathname.startsWith(to);
 
-  const groupOpen = (to: string) =>
-    pathname === to || pathname.startsWith(to);
+  const groupOpen = (to: string) => pathname === to || pathname.startsWith(to);
 
   return (
     <Sidebar side="right" collapsible="icon">
@@ -99,7 +97,11 @@ export function AdminSidebar() {
                 </SidebarMenuItem>
               ))}
               {groupItems.map((group) => (
-                <Collapsible key={group.to} defaultOpen={groupOpen(group.to)} className="group/collapsible">
+                <Collapsible
+                  key={group.to}
+                  defaultOpen={groupOpen(group.to)}
+                  className="group/collapsible"
+                >
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton tooltip={group.label}>

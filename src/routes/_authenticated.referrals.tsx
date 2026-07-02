@@ -70,7 +70,10 @@ function ReferralsPage() {
           <>
             <div className="mt-8 rounded-3xl border-2 border-primary/30 bg-primary/5 p-6 text-center">
               <p className="text-xs font-bold text-muted-foreground">رابط دعوتك الخاص</p>
-              <p dir="ltr" className="mt-2 truncate font-display text-lg font-extrabold text-primary">
+              <p
+                dir="ltr"
+                className="mt-2 truncate font-display text-lg font-extrabold text-primary"
+              >
                 {link || "—"}
               </p>
               <div className="mt-5 flex flex-wrap justify-center gap-3">
@@ -78,7 +81,12 @@ function ReferralsPage() {
                   <Copy className="ms-1 h-4 w-4" />
                   نسخ الرابط
                 </Button>
-                <Button variant="outline" className="rounded-full font-bold" onClick={shareLink} disabled={!link}>
+                <Button
+                  variant="outline"
+                  className="rounded-full font-bold"
+                  onClick={shareLink}
+                  disabled={!link}
+                >
                   <Share2 className="ms-1 h-4 w-4" />
                   مشاركة
                 </Button>
@@ -88,12 +96,16 @@ function ReferralsPage() {
             <div className="mt-6 grid grid-cols-2 gap-4">
               <div className="rounded-3xl border-2 border-border bg-card p-5 text-center">
                 <Users className="mx-auto h-6 w-6 text-primary" />
-                <p className="mt-2 font-display text-2xl font-extrabold">{info?.invitedCount ?? 0}</p>
+                <p className="mt-2 font-display text-2xl font-extrabold">
+                  {info?.invitedCount ?? 0}
+                </p>
                 <p className="text-xs text-muted-foreground">صديق دعوته بنجاح</p>
               </div>
               <div className="rounded-3xl border-2 border-border bg-card p-5 text-center">
                 <Gift className="mx-auto h-6 w-6 text-accent" />
-                <p className="mt-2 font-display text-2xl font-extrabold">{info?.pointsFromReferrals ?? 0}</p>
+                <p className="mt-2 font-display text-2xl font-extrabold">
+                  {info?.pointsFromReferrals ?? 0}
+                </p>
                 <p className="text-xs text-muted-foreground">نقطة من الإحالات</p>
               </div>
             </div>
