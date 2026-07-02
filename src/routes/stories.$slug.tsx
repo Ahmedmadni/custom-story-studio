@@ -3,6 +3,7 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BookOpen, Check, Heart, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 
+import { DeliveryTimer } from "@/components/DeliveryTimer";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FavoriteButton } from "@/features/library/FavoriteButton";
 import { RecommendedStories } from "@/features/library/RecommendedStories";
+import { getTrustStats } from "@/features/stats/stats.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { STARTING_PRICE_EGP, useCart } from "@/features/cart/CartContext";
 import { parsePages } from "@/features/ai/storyTypes";
@@ -36,6 +38,12 @@ function StoryPreview() {
         .maybeSingle();
       return data;
     },
+  });
+
+  const { data: trust } = useQuery({
+    queryKey: ["trust-stats"],
+    queryFn: () => getTrustStats(),
+    staleTime: 1000 * 60 * 10,
   });
 
   const { data: previousWorks } = useQuery({
@@ -180,6 +188,7 @@ function StoryPreview() {
                 <span className="text-primary/40">•</span>
                 <span className="opacity-70">🖨️ النسخة المطبوعة قريباً</span>
               </div>
+              <DeliveryTimer hours={trust?.avgDeliveryHours ?? 24} className="mt-3" />
 
 
               {pages.length > 0 && (
@@ -221,16 +230,21 @@ function StoryPreview() {
                     <p className="mt-2 text-sm text-muted-foreground">
                       اطلب القصة كاملة باسم طفلك ورسوماته الشخصية — توصلك خلال ساعات على واتساب.
                     </p>
-                    {!inCart && (
-                      <Button
-                        size="lg"
-                        onClick={addToCart}
-                        className="mt-4 rounded-full px-8 text-base font-bold shadow-lg"
-                      >
-                        <ShoppingCart className="ms-2 h-5 w-5" />
-                        اطلب القصة
+                    <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                      {!inCart && (
+                        <Button
+                          size="lg"
+                          onClick={addToCart}
+                          className="rounded-full px-8 text-base font-bold shadow-lg"
+                        >
+                          <ShoppingCart className="ms-2 h-5 w-5" />
+                          اطلب القصة
+                        </Button>
+                      )}
+                      <Button asChild size="lg" variant="outline" className="rounded-full px-8 text-base font-bold">
+                        <Link to="/stories">شاهد المزيد من القصص</Link>
                       </Button>
-                    )}
+                    </div>
                   </div>
                 </div>
               )}

@@ -25,7 +25,11 @@ import aiLaptop from "@/assets/ai-laptop.png";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { OccasionStrip } from "@/components/OccasionStrip";
+import { ParentReviewsSection } from "@/components/ParentReviewsSection";
+import { PortfolioGallery } from "@/components/PortfolioGallery";
+import { RecentActivityTicker } from "@/components/RecentActivityTicker";
 import { TrustCounters } from "@/components/TrustCounters";
+import { WaitingListStatus } from "@/components/WaitingListStatus";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,24 +64,6 @@ const categories = [
   { label: "قصص القيم والأخلاق", icon: "💛", from: "from-emerald-400/20", to: "to-teal-400/15" },
 ];
 
-
-const testimonials = [
-  {
-    name: "نورا — أم لطفلين",
-    text: "ابني صار يطلب قصة كيدزي كل ليلة قبل النوم! الرسومات خرافية والقيم رائعة.",
-    avatar: "👩🏻",
-  },
-  {
-    name: "أحمد — أب",
-    text: "أنشأت قصة باسم بنتي خلال دقيقة وكانت سعادتها لا توصف. تجربة استثنائية!",
-    avatar: "👨🏽",
-  },
-  {
-    name: "سارة — معلّمة",
-    text: "أستخدم قصص كيدزي في الفصل، الأطفال يندمجون والقصص ثرية وذكية.",
-    avatar: "👩🏼‍🏫",
-  },
-];
 
 function Index() {
   const { user } = useAuth();
@@ -224,6 +210,11 @@ function Index() {
           </div>
         </div>
       </section>
+
+      {/* ============ LIVE ACTIVITY TICKER ============ */}
+      <div className="container mx-auto -mt-4 px-4">
+        <RecentActivityTicker />
+      </div>
 
       {/* ============ TRUST COUNTERS ============ */}
       <TrustCounters />
@@ -482,6 +473,7 @@ function Index() {
                   ابدأ إنشاء قصتك المخصّصة
                 </Link>
               </Button>
+              <WaitingListStatus className="mt-6" />
             </div>
             <div className="relative">
               <span className="pointer-events-none absolute right-4 top-2 text-2xl">⭐</span>
@@ -550,38 +542,11 @@ function Index() {
       )}
 
 
-      {/* ============ TESTIMONIALS ============ */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="text-center">
-          <h2 className="font-display text-3xl font-extrabold md:text-4xl">
-            ماذا يقول الآباء عن Kidzy؟
-          </h2>
-          <p className="mt-3 text-muted-foreground">
-            آلاف العائلات يثقون بنا لإسعاد أطفالهم
-          </p>
-        </div>
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
-          {testimonials.map((t) => (
-            <div
-              key={t.name}
-              className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-soft)]"
-            >
-              <div className="flex items-center gap-1 text-accent">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-accent" />
-                ))}
-              </div>
-              <p className="mt-3 leading-relaxed text-foreground">"{t.text}"</p>
-              <div className="mt-5 flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-xl">
-                  {t.avatar}
-                </span>
-                <span className="font-bold">{t.name}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* ============ PORTFOLIO GALLERY ============ */}
+      <PortfolioGallery />
+
+      {/* ============ PARENT REVIEWS ============ */}
+      <ParentReviewsSection />
 
       {/* ============ SECONDARY (books/games/puzzles) ============ */}
       <section className="container mx-auto px-4 pb-16">

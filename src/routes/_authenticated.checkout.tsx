@@ -15,6 +15,7 @@ import { toast } from "sonner";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { WaitingListStatus } from "@/components/WaitingListStatus";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -778,7 +779,7 @@ function CheckoutPage() {
         <p className="mt-3 text-center text-xs text-muted-foreground">
           سنراجع الإيصال خلال ساعات قليلة ونرسل القصة كملف PDF على واتساب الرقم {ADMIN_WHATSAPP.replace(/^20/, "0")}
         </p>
-
+        <WaitingListStatus className="mt-4" />
 
       </main>
       <Footer />

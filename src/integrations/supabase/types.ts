@@ -547,6 +547,60 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          body: string | null
+          category: string | null
+          child_age: number | null
+          created_at: string
+          id: string
+          is_published: boolean
+          order_id: string
+          rating: number
+          template_id: string | null
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          category?: string | null
+          child_age?: number | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          order_id: string
+          rating: number
+          template_id?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          category?: string | null
+          child_age?: number | null
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          order_id?: string
+          rating?: number
+          template_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "story_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       story_templates: {
         Row: {
           admin_approved_at: string | null
