@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/features/cart/CartContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { OnboardingWizard } from "@/features/onboarding/OnboardingWizard";
 import { ReferralCapture } from "@/features/referrals/ReferralCapture";
@@ -196,7 +197,9 @@ function RootComponent() {
           <OfflineBanner />
           <ReferralCapture />
           <OnboardingWizard />
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
           <Toaster richColors position="top-center" />
         </CartProvider>
       </AuthProvider>
