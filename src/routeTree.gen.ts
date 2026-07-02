@@ -9,9 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as PuzzlesRouteImport } from './routes/puzzles'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as GamesRouteImport } from './routes/games'
 import { Route as CreateRouteImport } from './routes/create'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as BooksRouteImport } from './routes/books'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -23,6 +30,7 @@ import { Route as PuzzlesIdRouteImport } from './routes/puzzles_.$id'
 import { Route as PaymentReturnRouteImport } from './routes/payment.return'
 import { Route as AuthenticatedRewardsRouteImport } from './routes/_authenticated.rewards'
 import { Route as AuthenticatedRequestStoryRouteImport } from './routes/_authenticated.request-story'
+import { Route as AuthenticatedReferralsRouteImport } from './routes/_authenticated.referrals'
 import { Route as AuthenticatedMyOrdersRouteImport } from './routes/_authenticated.my-orders'
 import { Route as AuthenticatedMyChildrenRouteImport } from './routes/_authenticated.my-children'
 import { Route as AuthenticatedFavoritesRouteImport } from './routes/_authenticated.favorites'
@@ -38,13 +46,45 @@ import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminRolesRouteImport } from './routes/_authenticated.admin.roles'
 import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated.admin.payments'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated.admin.orders'
+import { Route as AuthenticatedAdminHealthRouteImport } from './routes/_authenticated.admin.health'
 import { Route as AuthenticatedAdminApprovalsRouteImport } from './routes/_authenticated.admin.approvals'
+import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated.admin.analytics'
 import { Route as ApiPublicKashierWebhookRouteImport } from './routes/api/public/kashier.webhook'
 import { Route as AuthenticatedChildrenIdEditRouteImport } from './routes/_authenticated.children.$id.edit'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundPolicyRoute = RefundPolicyRouteImport.update({
+  id: '/refund-policy',
+  path: '/refund-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PuzzlesRoute = PuzzlesRouteImport.update({
   id: '/puzzles',
   path: '/puzzles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesRoute = GamesRouteImport.update({
@@ -55,6 +95,11 @@ const GamesRoute = GamesRouteImport.update({
 const CreateRoute = CreateRouteImport.update({
   id: '/create',
   path: '/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CartRoute = CartRouteImport.update({
@@ -112,6 +157,11 @@ const AuthenticatedRequestStoryRoute =
     path: '/request-story',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedReferralsRoute = AuthenticatedReferralsRouteImport.update({
+  id: '/referrals',
+  path: '/referrals',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedMyOrdersRoute = AuthenticatedMyOrdersRouteImport.update({
   id: '/my-orders',
   path: '/my-orders',
@@ -193,10 +243,22 @@ const AuthenticatedAdminOrdersRoute =
     path: '/orders',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminHealthRoute =
+  AuthenticatedAdminHealthRouteImport.update({
+    id: '/health',
+    path: '/health',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminApprovalsRoute =
   AuthenticatedAdminApprovalsRouteImport.update({
     id: '/approvals',
     path: '/approvals',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminAnalyticsRoute =
+  AuthenticatedAdminAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const ApiPublicKashierWebhookRoute = ApiPublicKashierWebhookRouteImport.update({
@@ -216,21 +278,31 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
   '/cart': typeof CartRoute
+  '/contact': typeof ContactRoute
   '/create': typeof CreateRoute
   '/games': typeof GamesRoute
+  '/help': typeof HelpRoute
+  '/privacy': typeof PrivacyRoute
   '/puzzles': typeof PuzzlesRoute
+  '/refund-policy': typeof RefundPolicyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/favorites': typeof AuthenticatedFavoritesRoute
   '/my-children': typeof AuthenticatedMyChildrenRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/referrals': typeof AuthenticatedReferralsRoute
   '/request-story': typeof AuthenticatedRequestStoryRoute
   '/rewards': typeof AuthenticatedRewardsRoute
   '/payment/return': typeof PaymentReturnRoute
   '/puzzles/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories/': typeof StoriesIndexRoute
+  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
+  '/admin/health': typeof AuthenticatedAdminHealthRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/roles': typeof AuthenticatedAdminRolesRoute
@@ -249,20 +321,30 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
   '/cart': typeof CartRoute
+  '/contact': typeof ContactRoute
   '/create': typeof CreateRoute
   '/games': typeof GamesRoute
+  '/help': typeof HelpRoute
+  '/privacy': typeof PrivacyRoute
   '/puzzles': typeof PuzzlesRoute
+  '/refund-policy': typeof RefundPolicyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/favorites': typeof AuthenticatedFavoritesRoute
   '/my-children': typeof AuthenticatedMyChildrenRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/referrals': typeof AuthenticatedReferralsRoute
   '/request-story': typeof AuthenticatedRequestStoryRoute
   '/rewards': typeof AuthenticatedRewardsRoute
   '/payment/return': typeof PaymentReturnRoute
   '/puzzles/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories': typeof StoriesIndexRoute
+  '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
+  '/admin/health': typeof AuthenticatedAdminHealthRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/admin/roles': typeof AuthenticatedAdminRolesRoute
@@ -283,21 +365,31 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
   '/cart': typeof CartRoute
+  '/contact': typeof ContactRoute
   '/create': typeof CreateRoute
   '/games': typeof GamesRoute
+  '/help': typeof HelpRoute
+  '/privacy': typeof PrivacyRoute
   '/puzzles': typeof PuzzlesRoute
+  '/refund-policy': typeof RefundPolicyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/_authenticated/favorites': typeof AuthenticatedFavoritesRoute
   '/_authenticated/my-children': typeof AuthenticatedMyChildrenRoute
   '/_authenticated/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/_authenticated/referrals': typeof AuthenticatedReferralsRoute
   '/_authenticated/request-story': typeof AuthenticatedRequestStoryRoute
   '/_authenticated/rewards': typeof AuthenticatedRewardsRoute
   '/payment/return': typeof PaymentReturnRoute
   '/puzzles_/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/stories/': typeof StoriesIndexRoute
+  '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
+  '/_authenticated/admin/health': typeof AuthenticatedAdminHealthRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
   '/_authenticated/admin/roles': typeof AuthenticatedAdminRolesRoute
@@ -318,21 +410,31 @@ export interface FileRouteTypes {
     | '/auth'
     | '/books'
     | '/cart'
+    | '/contact'
     | '/create'
     | '/games'
+    | '/help'
+    | '/privacy'
     | '/puzzles'
+    | '/refund-policy'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/terms'
     | '/admin'
     | '/checkout'
     | '/favorites'
     | '/my-children'
     | '/my-orders'
+    | '/referrals'
     | '/request-story'
     | '/rewards'
     | '/payment/return'
     | '/puzzles/$id'
     | '/stories/$slug'
     | '/stories/'
+    | '/admin/analytics'
     | '/admin/approvals'
+    | '/admin/health'
     | '/admin/orders'
     | '/admin/payments'
     | '/admin/roles'
@@ -351,20 +453,30 @@ export interface FileRouteTypes {
     | '/auth'
     | '/books'
     | '/cart'
+    | '/contact'
     | '/create'
     | '/games'
+    | '/help'
+    | '/privacy'
     | '/puzzles'
+    | '/refund-policy'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/terms'
     | '/checkout'
     | '/favorites'
     | '/my-children'
     | '/my-orders'
+    | '/referrals'
     | '/request-story'
     | '/rewards'
     | '/payment/return'
     | '/puzzles/$id'
     | '/stories/$slug'
     | '/stories'
+    | '/admin/analytics'
     | '/admin/approvals'
+    | '/admin/health'
     | '/admin/orders'
     | '/admin/payments'
     | '/admin/roles'
@@ -384,21 +496,31 @@ export interface FileRouteTypes {
     | '/auth'
     | '/books'
     | '/cart'
+    | '/contact'
     | '/create'
     | '/games'
+    | '/help'
+    | '/privacy'
     | '/puzzles'
+    | '/refund-policy'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/terms'
     | '/_authenticated/admin'
     | '/_authenticated/checkout'
     | '/_authenticated/favorites'
     | '/_authenticated/my-children'
     | '/_authenticated/my-orders'
+    | '/_authenticated/referrals'
     | '/_authenticated/request-story'
     | '/_authenticated/rewards'
     | '/payment/return'
     | '/puzzles_/$id'
     | '/stories/$slug'
     | '/stories/'
+    | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/approvals'
+    | '/_authenticated/admin/health'
     | '/_authenticated/admin/orders'
     | '/_authenticated/admin/payments'
     | '/_authenticated/admin/roles'
@@ -419,9 +541,16 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BooksRoute: typeof BooksRoute
   CartRoute: typeof CartRoute
+  ContactRoute: typeof ContactRoute
   CreateRoute: typeof CreateRoute
   GamesRoute: typeof GamesRoute
+  HelpRoute: typeof HelpRoute
+  PrivacyRoute: typeof PrivacyRoute
   PuzzlesRoute: typeof PuzzlesRoute
+  RefundPolicyRoute: typeof RefundPolicyRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermsRoute: typeof TermsRoute
   PaymentReturnRoute: typeof PaymentReturnRoute
   PuzzlesIdRoute: typeof PuzzlesIdRoute
   StoriesSlugRoute: typeof StoriesSlugRoute
@@ -431,11 +560,53 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund-policy': {
+      id: '/refund-policy'
+      path: '/refund-policy'
+      fullPath: '/refund-policy'
+      preLoaderRoute: typeof RefundPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/puzzles': {
       id: '/puzzles'
       path: '/puzzles'
       fullPath: '/puzzles'
       preLoaderRoute: typeof PuzzlesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games': {
@@ -450,6 +621,13 @@ declare module '@tanstack/react-router' {
       path: '/create'
       fullPath: '/create'
       preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cart': {
@@ -527,6 +705,13 @@ declare module '@tanstack/react-router' {
       path: '/request-story'
       fullPath: '/request-story'
       preLoaderRoute: typeof AuthenticatedRequestStoryRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/referrals': {
+      id: '/_authenticated/referrals'
+      path: '/referrals'
+      fullPath: '/referrals'
+      preLoaderRoute: typeof AuthenticatedReferralsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/my-orders': {
@@ -634,11 +819,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOrdersRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/health': {
+      id: '/_authenticated/admin/health'
+      path: '/health'
+      fullPath: '/admin/health'
+      preLoaderRoute: typeof AuthenticatedAdminHealthRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/approvals': {
       id: '/_authenticated/admin/approvals'
       path: '/approvals'
       fullPath: '/admin/approvals'
       preLoaderRoute: typeof AuthenticatedAdminApprovalsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/analytics': {
+      id: '/_authenticated/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/api/public/kashier/webhook': {
@@ -659,7 +858,9 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminApprovalsRoute: typeof AuthenticatedAdminApprovalsRoute
+  AuthenticatedAdminHealthRoute: typeof AuthenticatedAdminHealthRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
   AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
   AuthenticatedAdminRolesRoute: typeof AuthenticatedAdminRolesRoute
@@ -669,7 +870,9 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
   AuthenticatedAdminApprovalsRoute: AuthenticatedAdminApprovalsRoute,
+  AuthenticatedAdminHealthRoute: AuthenticatedAdminHealthRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
   AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
   AuthenticatedAdminRolesRoute: AuthenticatedAdminRolesRoute,
@@ -701,6 +904,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFavoritesRoute: typeof AuthenticatedFavoritesRoute
   AuthenticatedMyChildrenRoute: typeof AuthenticatedMyChildrenRoute
   AuthenticatedMyOrdersRoute: typeof AuthenticatedMyOrdersRoute
+  AuthenticatedReferralsRoute: typeof AuthenticatedReferralsRoute
   AuthenticatedRequestStoryRoute: typeof AuthenticatedRequestStoryRoute
   AuthenticatedRewardsRoute: typeof AuthenticatedRewardsRoute
   AuthenticatedChildrenIdRoute: typeof AuthenticatedChildrenIdRouteWithChildren
@@ -715,6 +919,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFavoritesRoute: AuthenticatedFavoritesRoute,
   AuthenticatedMyChildrenRoute: AuthenticatedMyChildrenRoute,
   AuthenticatedMyOrdersRoute: AuthenticatedMyOrdersRoute,
+  AuthenticatedReferralsRoute: AuthenticatedReferralsRoute,
   AuthenticatedRequestStoryRoute: AuthenticatedRequestStoryRoute,
   AuthenticatedRewardsRoute: AuthenticatedRewardsRoute,
   AuthenticatedChildrenIdRoute: AuthenticatedChildrenIdRouteWithChildren,
@@ -733,9 +938,16 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BooksRoute: BooksRoute,
   CartRoute: CartRoute,
+  ContactRoute: ContactRoute,
   CreateRoute: CreateRoute,
   GamesRoute: GamesRoute,
+  HelpRoute: HelpRoute,
+  PrivacyRoute: PrivacyRoute,
   PuzzlesRoute: PuzzlesRoute,
+  RefundPolicyRoute: RefundPolicyRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermsRoute: TermsRoute,
   PaymentReturnRoute: PaymentReturnRoute,
   PuzzlesIdRoute: PuzzlesIdRoute,
   StoriesSlugRoute: StoriesSlugRoute,

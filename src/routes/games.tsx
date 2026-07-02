@@ -7,15 +7,20 @@ import type { AgeGroup, GameKey } from "@/features/games/types";
 import { GamePlayer } from "@/features/games/GamePlayer";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Gamepad2 } from "lucide-react";
+import { SITE_URL } from "@/lib/siteUrl";
 
 export const Route = createFileRoute("/games")({
   head: () => ({
     meta: [
       { title: "ألعاب وتعليم للأطفال — كيدزي" },
-      { name: "description", content: "ألعاب ذكاء تفاعلية لتعليم الأطفال الأرقام والحروف والأشكال والألوان والتلوين." },
+      {
+        name: "description",
+        content: "ألعاب ذكاء تفاعلية لتعليم الأطفال الأرقام والحروف والأشكال والألوان والتلوين.",
+      },
       { property: "og:title", content: "ألعاب وتعليم — كيدزي" },
       { property: "og:description", content: "ألعاب تعليمية ممتعة لتنمية مهارات طفلك." },
     ],
+    links: [{ rel: "canonical", href: `${SITE_URL}/games` }],
   }),
   component: GamesPage,
 });
@@ -58,7 +63,12 @@ function GamesPage() {
 
         {active && game ? (
           <div className="mx-auto max-w-3xl">
-            <Button variant="outline" size="sm" onClick={() => setActive(null)} className="mb-3 rounded-full">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setActive(null)}
+              className="mb-3 rounded-full"
+            >
               <ArrowRight className="ms-1 h-4 w-4" /> العودة للألعاب
             </Button>
             <h2 className="mb-3 font-display text-2xl font-bold">

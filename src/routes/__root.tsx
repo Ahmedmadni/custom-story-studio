@@ -12,26 +12,38 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/features/cart/CartContext";
+import { OfflineBanner } from "@/components/OfflineBanner";
+import { OnboardingWizard } from "@/features/onboarding/OnboardingWizard";
+import { ReferralCapture } from "@/features/referrals/ReferralCapture";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
+import { SITE_URL } from "@/lib/siteUrl";
+import { ADMIN_WHATSAPP } from "@/features/orders/whatsapp";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
-        </div>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 text-center">
+      <span className="text-7xl">🧭</span>
+      <h1 className="mt-4 font-display text-6xl font-extrabold text-primary">٤٠٤</h1>
+      <h2 className="mt-3 font-display text-xl font-extrabold text-foreground">
+        هذه الصفحة تاهت في الغابة السحرية
+      </h2>
+      <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+        الصفحة التي تبحث عنها غير موجودة أو تم نقلها. دعنا نعيدك إلى مكتبة القصص.
+      </p>
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        <Link
+          to="/"
+          className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-md transition-transform hover:scale-105"
+        >
+          العودة للرئيسية
+        </Link>
+        <Link
+          to="/stories"
+          className="inline-flex items-center justify-center rounded-full border-2 border-border px-6 py-2.5 text-sm font-bold text-foreground transition-colors hover:bg-secondary"
+        >
+          تصفّح القصص
+        </Link>
       </div>
     </div>
   );
@@ -45,31 +57,36 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
-          </a>
-        </div>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 text-center">
+      <span className="text-7xl">😵‍💫</span>
+      <h1 className="mt-4 font-display text-xl font-extrabold text-foreground">
+        حدث خطأ غير متوقع
+      </h1>
+      <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+        تعذّر تحميل هذه الصفحة. جرّب مرة أخرى، أو عد إلى الرئيسية إن استمرت المشكلة.
+      </p>
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        <button
+          onClick={() => {
+            router.invalidate();
+            reset();
+          }}
+          className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-md transition-transform hover:scale-105"
+        >
+          إعادة المحاولة
+        </button>
+        <a
+          href="/"
+          className="inline-flex items-center justify-center rounded-full border-2 border-border px-6 py-2.5 text-sm font-bold text-foreground transition-colors hover:bg-secondary"
+        >
+          الرئيسية
+        </a>
+        <a
+          href="/contact"
+          className="inline-flex items-center justify-center rounded-full border-2 border-border px-6 py-2.5 text-sm font-bold text-foreground transition-colors hover:bg-secondary"
+        >
+          تواصل مع الدعم
+        </a>
       </div>
     </div>
   );
@@ -81,17 +98,34 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Kidzy — كيدزي | قصص وكتب تعليمية للأطفال" },
-      { name: "description", content: "منصة كيدزي لإنشاء قصص أطفال وكتب تعليمية مخصصة — طفلك هو البطل!" },
+      {
+        name: "description",
+        content: "منصة كيدزي لإنشاء قصص أطفال وكتب تعليمية مخصصة — طفلك هو البطل!",
+      },
       { name: "author", content: "Kidzy" },
       { property: "og:title", content: "Kidzy — كيدزي | قصص وكتب تعليمية للأطفال" },
-      { property: "og:description", content: "منصة كيدزي لإنشاء قصص أطفال وكتب تعليمية مخصصة — طفلك هو البطل!" },
+      {
+        property: "og:description",
+        content: "منصة كيدزي لإنشاء قصص أطفال وكتب تعليمية مخصصة — طفلك هو البطل!",
+      },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/sHg6QnS04TcmbXVlhYYOOD3JhZB2/social-images/social-1782076247789-ChatGPT_Image_Jun_22,_2026,_12_10_40_AM.webp" },
+      {
+        property: "og:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/sHg6QnS04TcmbXVlhYYOOD3JhZB2/social-images/social-1782076247789-ChatGPT_Image_Jun_22,_2026,_12_10_40_AM.webp",
+      },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Kidzy" },
       { name: "twitter:title", content: "Kidzy — كيدزي | قصص وكتب تعليمية للأطفال" },
-      { name: "twitter:description", content: "منصة كيدزي لإنشاء قصص أطفال وكتب تعليمية مخصصة — طفلك هو البطل!" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/sHg6QnS04TcmbXVlhYYOOD3JhZB2/social-images/social-1782076247789-ChatGPT_Image_Jun_22,_2026,_12_10_40_AM.webp" },
+      {
+        name: "twitter:description",
+        content: "منصة كيدزي لإنشاء قصص أطفال وكتب تعليمية مخصصة — طفلك هو البطل!",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/sHg6QnS04TcmbXVlhYYOOD3JhZB2/social-images/social-1782076247789-ChatGPT_Image_Jun_22,_2026,_12_10_40_AM.webp",
+      },
     ],
     links: [
       { rel: "icon", type: "image/png", href: "/favicon.png" },
@@ -101,6 +135,34 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&family=Alexandria:wght@400;600;700;800&family=Kufam:wght@400;700;900&display=swap",
+      },
+    ],
+    scripts: [
+      {
+        attrs: { type: "application/ld+json" },
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Kidzy — كيدزي",
+          url: SITE_URL,
+          logo: `${SITE_URL}/favicon.png`,
+          contactPoint: {
+            "@type": "ContactPoint",
+            contactType: "customer service",
+            telephone: `+${ADMIN_WHATSAPP}`,
+            areaServed: "EG",
+            availableLanguage: ["ar", "en"],
+          },
+        }),
+      },
+      {
+        attrs: { type: "application/ld+json" },
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Kidzy — كيدزي",
+          url: SITE_URL,
+        }),
       },
     ],
   }),
@@ -131,6 +193,9 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <CartProvider>
+          <OfflineBanner />
+          <ReferralCapture />
+          <OnboardingWizard />
           <Outlet />
           <Toaster richColors position="top-center" />
         </CartProvider>

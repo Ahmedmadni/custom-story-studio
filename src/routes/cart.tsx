@@ -5,7 +5,12 @@ import { EmptyState } from "@/components/EmptyState";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { STARTING_PRICE_EGP, useCart } from "@/features/cart/CartContext";
+import {
+  nextPackageTier,
+  packageTierFor,
+  STARTING_PRICE_EGP,
+  useCart,
+} from "@/features/cart/CartContext";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -16,6 +21,8 @@ export const Route = createFileRoute("/cart")({
 
 function CartPage() {
   const { items, remove, count } = useCart();
+  const currentTier = packageTierFor(count);
+  const upcoming = nextPackageTier(count);
 
   return (
     <div className="min-h-screen">
@@ -26,7 +33,8 @@ function CartPage() {
           سلة المشتريات
         </h1>
         <p className="mt-2 text-muted-foreground">
-          السعر يبدأ من {STARTING_PRICE_EGP} جنيه لكل قصة — تختار عدد الصفحات وخيار الطباعة في الخطوة التالية
+          السعر يبدأ من {STARTING_PRICE_EGP} جنيه لكل قصة — تختار عدد الصفحات وخيار الطباعة في
+          الخطوة التالية
         </p>
 
         {count === 0 ? (
@@ -43,6 +51,22 @@ function CartPage() {
           />
         ) : (
           <>
+            {(currentTier.discountPct > 0 || upcoming) && (
+              <div className="mt-6 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-4 text-sm font-bold text-primary">
+                {currentTier.discountPct > 0 && (
+                  <p>
+                    🎁 باقة {currentTier.label} مُفعّلة — خصم {currentTier.discountPct}% على كل
+                    القصص
+                  </p>
+                )}
+                {upcoming && (
+                  <p className={currentTier.discountPct > 0 ? "mt-1 opacity-80" : ""}>
+                    أضف {upcoming.minItems - count} قصص أخرى ووفّر {upcoming.discountPct}% (باقة{" "}
+                    {upcoming.label})
+                  </p>
+                )}
+              </div>
+            )}
             <div className="mt-8 space-y-3">
               {items.map((it) => (
                 <div
@@ -53,6 +77,7 @@ function CartPage() {
                     <img
                       src={it.coverUrl}
                       alt=""
+                      loading="lazy"
                       className="h-20 w-16 rounded-xl object-cover"
                     />
                   ) : (
@@ -88,7 +113,8 @@ function CartPage() {
                 <span className="font-extrabold">{count}</span>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                📄 تُسلَّم كل قصة كملف PDF عبر واتساب. يمكنك في الخطوة التالية اختيار طباعة نسخة ورقية وتوصيلها لعنوانك.
+                📄 تُسلَّم كل قصة كملف PDF عبر واتساب. يمكنك في الخطوة التالية اختيار طباعة نسخة
+                ورقية وتوصيلها لعنوانك.
               </p>
 
               <Button

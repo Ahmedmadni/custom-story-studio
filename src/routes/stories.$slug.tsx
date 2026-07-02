@@ -3,6 +3,8 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BookOpen, Check, Heart, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 
+import { DeliveryTimer } from "@/components/DeliveryTimer";
+import { TrustBadges } from "@/components/TrustBadges";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Badge } from "@/components/ui/badge";
@@ -10,13 +12,16 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FavoriteButton } from "@/features/library/FavoriteButton";
 import { RecommendedStories } from "@/features/library/RecommendedStories";
+import { getTrustStats } from "@/features/stats/stats.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { STARTING_PRICE_EGP, useCart } from "@/features/cart/CartContext";
 import { parsePages } from "@/features/ai/storyTypes";
+import { SITE_URL } from "@/lib/siteUrl";
 
 export const Route = createFileRoute("/stories/$slug")({
-  head: () => ({
+  head: ({ params }) => ({
     meta: [{ title: "معاينة القصة — كيدزي" }],
+    links: [{ rel: "canonical", href: `${SITE_URL}/stories/${params.slug}` }],
   }),
   component: StoryPreview,
 });
@@ -36,6 +41,12 @@ function StoryPreview() {
         .maybeSingle();
       return data;
     },
+  });
+
+  const { data: trust } = useQuery({
+    queryKey: ["trust-stats"],
+    queryFn: () => getTrustStats(),
+    staleTime: 1000 * 60 * 10,
   });
 
   const { data: previousWorks } = useQuery({
@@ -71,6 +82,30 @@ function StoryPreview() {
 
   return (
     <div className="min-h-screen">
+      {story && (
+        <script
+          type="application/ld+json"
+          // بيانات القصة تأتي من مكتبتنا/إدارتنا لا من مُدخَل مستخدم مباشر على هذه الصفحة؛ نُفلت `</script` احتياطاً فقط.
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Book",
+              name: story.title,
+              description: story.summary,
+              image: story.cover_url ?? undefined,
+              inLanguage: story.language === "en" ? "en" : "ar",
+              genre: story.category ?? undefined,
+              audience: { "@type": "PeopleAudience", suggestedMinAge: 3, suggestedMaxAge: 12 },
+              offers: {
+                "@type": "Offer",
+                priceCurrency: "EGP",
+                price: STARTING_PRICE_EGP,
+                availability: "https://schema.org/InStock",
+              },
+            }).replace(/<\/script/gi, "<\\/script"),
+          }}
+        />
+      )}
       <Header />
       <main className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 pb-12">
         {isLoading ? (
@@ -103,11 +138,7 @@ function StoryPreview() {
                   <BookOpen className="h-16 w-16 text-primary/50" />
                 </div>
               )}
-              <FavoriteButton
-                templateId={story.id}
-                size="lg"
-                className="absolute end-4 top-4"
-              />
+              <FavoriteButton templateId={story.id} size="lg" className="absolute end-4 top-4" />
             </div>
 
             <div>
@@ -123,18 +154,12 @@ function StoryPreview() {
                   </Badge>
                 )}
               </div>
-              <h1 className="mt-4 font-display text-4xl font-extrabold">
-                {story.title}
-              </h1>
-              <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
-                {story.summary}
-              </p>
+              <h1 className="mt-4 font-display text-4xl font-extrabold">{story.title}</h1>
+              <p className="mt-3 text-lg leading-relaxed text-muted-foreground">{story.summary}</p>
               {story.moral && (
                 <div className="mt-5 flex items-start gap-3 rounded-2xl bg-secondary/60 p-4">
                   <Heart className="mt-0.5 h-5 w-5 shrink-0 text-candy" />
-                  <p className="text-sm font-semibold">
-                    القيمة المستفادة: {story.moral}
-                  </p>
+                  <p className="text-sm font-semibold">القيمة المستفادة: {story.moral}</p>
                 </div>
               )}
 
@@ -171,7 +196,8 @@ function StoryPreview() {
                 )}
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                ادفع عبر فودافون كاش، ارفع صورة طفلك وإيصال السداد، وستصلك القصة على واتساب كملف PDF ✨
+                ادفع عبر فودافون كاش، ارفع صورة طفلك وإيصال السداد، وستصلك القصة على واتساب كملف PDF
+                ✨
               </p>
               <div className="mt-4 inline-flex flex-wrap gap-2 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-3 text-xs font-bold text-primary">
                 <span>📄 10 صفحات = 150 ج</span>
@@ -180,22 +206,16 @@ function StoryPreview() {
                 <span className="text-primary/40">•</span>
                 <span className="opacity-70">🖨️ النسخة المطبوعة قريباً</span>
               </div>
-
+              <DeliveryTimer hours={trust?.avgDeliveryHours ?? 24} className="mt-3" />
+              <TrustBadges className="mt-4 justify-start" />
 
               {pages.length > 0 && (
                 <div className="mt-10">
-                  <h2 className="font-display text-xl font-bold">
-                    معاينة مجانية — أول 3 صفحات 🎁
-                  </h2>
+                  <h2 className="font-display text-xl font-bold">معاينة مجانية — أول 3 صفحات 🎁</h2>
                   <div className="mt-4 space-y-3">
                     {pages.slice(0, 3).map((p) => (
-                      <div
-                        key={p.n}
-                        className="rounded-2xl border-2 border-border bg-card p-4"
-                      >
-                        <span className="text-xs font-bold text-accent">
-                          الصفحة {p.n}
-                        </span>
+                      <div key={p.n} className="rounded-2xl border-2 border-border bg-card p-4">
+                        <span className="text-xs font-bold text-accent">الصفحة {p.n}</span>
                         <p className="mt-1 leading-relaxed">
                           {p.text.replaceAll("{child}", "بطلنا الصغير")}
                         </p>
@@ -215,22 +235,30 @@ function StoryPreview() {
                     <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/15 text-3xl">
                       🔒
                     </div>
-                    <h3 className="mt-3 font-display text-xl font-extrabold">
-                      أكمل قصة طفلك الآن
-                    </h3>
+                    <h3 className="mt-3 font-display text-xl font-extrabold">أكمل قصة طفلك الآن</h3>
                     <p className="mt-2 text-sm text-muted-foreground">
                       اطلب القصة كاملة باسم طفلك ورسوماته الشخصية — توصلك خلال ساعات على واتساب.
                     </p>
-                    {!inCart && (
+                    <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                      {!inCart && (
+                        <Button
+                          size="lg"
+                          onClick={addToCart}
+                          className="rounded-full px-8 text-base font-bold shadow-lg"
+                        >
+                          <ShoppingCart className="ms-2 h-5 w-5" />
+                          اطلب القصة
+                        </Button>
+                      )}
                       <Button
+                        asChild
                         size="lg"
-                        onClick={addToCart}
-                        className="mt-4 rounded-full px-8 text-base font-bold shadow-lg"
+                        variant="outline"
+                        className="rounded-full px-8 text-base font-bold"
                       >
-                        <ShoppingCart className="ms-2 h-5 w-5" />
-                        اطلب القصة
+                        <Link to="/stories">شاهد المزيد من القصص</Link>
                       </Button>
-                    )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -270,21 +298,14 @@ function StoryPreview() {
                       </div>
                     )}
                   </div>
-                  <p className="line-clamp-2 p-3 text-center text-sm font-bold">
-                    {w.title}
-                  </p>
+                  <p className="line-clamp-2 p-3 text-center text-sm font-bold">{w.title}</p>
                 </Link>
               ))}
             </div>
           </section>
         )}
 
-        {story && (
-          <RecommendedStories
-            excludeTemplateId={story.id}
-            category={story.category}
-          />
-        )}
+        {story && <RecommendedStories excludeTemplateId={story.id} category={story.category} />}
       </main>
       <Footer />
     </div>

@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Award, Gift, Sparkles, ShoppingBag, Star, UserPlus, Users } from "lucide-react";
 
+import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -114,9 +115,7 @@ function RewardsPage() {
 
               <div className="mt-5 rounded-2xl bg-white/10 p-4">
                 <div className="mb-2 flex justify-between text-sm">
-                  <span>
-                    التقدّم نحو {next ? `${next.emoji} ${next.label}` : "أقصى مستوى 👑"}
-                  </span>
+                  <span>التقدّم نحو {next ? `${next.emoji} ${next.label}` : "أقصى مستوى 👑"}</span>
                   <span className="font-bold">{prog.pct}%</span>
                 </div>
                 <Progress value={prog.pct} className="h-3 bg-white/20" />
@@ -202,18 +201,33 @@ function RewardsPage() {
               </div>
             ))}
           </div>
+          <div className="mt-4">
+            <Button asChild variant="outline" className="rounded-full font-bold">
+              <Link to="/referrals">
+                <UserPlus className="ms-1 h-4 w-4" />
+                ادعُ صديقاً الآن
+              </Link>
+            </Button>
+          </div>
         </section>
 
         {/* History */}
         <section className="mt-8">
           <h2 className="mb-4 font-display text-xl font-bold">سجل النقاط</h2>
-          <div className="rounded-2xl border bg-card divide-y">
-            {!txs || txs.length === 0 ? (
-              <div className="p-6 text-center text-sm text-muted-foreground">
-                لا توجد حركات بعد. ابدأ بطلب قصة لتربح نقاط!
-              </div>
-            ) : (
-              txs.map((t) => (
+          {!txs || txs.length === 0 ? (
+            <EmptyState
+              icon={<Sparkles className="h-7 w-7" />}
+              title="لا توجد حركات نقاط بعد"
+              description="اطلب قصة أو ادعُ صديقاً لتبدأ في جمع النقاط وفتح المكافآت."
+              action={
+                <Button asChild className="rounded-full font-bold">
+                  <Link to="/stories">تصفّح القصص</Link>
+                </Button>
+              }
+            />
+          ) : (
+            <div className="rounded-2xl border bg-card divide-y">
+              {txs.map((t) => (
                 <div key={t.id} className="flex items-center justify-between gap-4 p-4">
                   <div>
                     <div className="text-sm font-semibold">{t.note || txTypeLabel(t.type)}</div>
@@ -230,9 +244,9 @@ function RewardsPage() {
                     {t.points}
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <div className="mt-10 flex justify-center">

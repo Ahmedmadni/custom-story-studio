@@ -1,6 +1,17 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Award, Heart, LogOut, Menu, Shield, ShoppingCart, Sparkles, Users, X } from "lucide-react";
+import {
+  Award,
+  Gift,
+  Heart,
+  LogOut,
+  Menu,
+  Shield,
+  ShoppingCart,
+  Sparkles,
+  Users,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 
 import kidzyLogo from "@/assets/kidzy-logo.png.asset.json";
@@ -62,17 +73,14 @@ export function Header() {
     { to: "/my-orders", label: "طلباتي", icon: ShoppingCart },
     { to: "/favorites", label: "المفضلة", icon: Heart },
     { to: "/rewards", label: "مكافآتي", icon: Award },
+    { to: "/referrals", label: "ادعُ صديقاً", icon: Gift },
   ] as const;
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-card/80 backdrop-blur-xl no-print">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
-          <img
-            src={kidzyLogo.url}
-            alt="Kidzy — كيدزي"
-            className="h-10 w-auto drop-shadow-sm"
-          />
+          <img src={kidzyLogo.url} alt="Kidzy — كيدزي" className="h-10 w-auto drop-shadow-sm" />
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
@@ -145,7 +153,10 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
-          <Link to="/cart" className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-secondary">
+          <Link
+            to="/cart"
+            className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-secondary"
+          >
             <ShoppingCart className="h-4 w-4" />
             {count > 0 && (
               <span className="absolute -end-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-extrabold text-primary-foreground">

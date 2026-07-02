@@ -54,9 +54,7 @@ function FavoritesPage() {
               <Heart className="h-7 w-7 fill-pink-500 text-pink-500" />
               قصصي المفضّلة
             </h1>
-            <p className="mt-2 text-muted-foreground">
-              كل القصص اللي حفظتها لطفلك في مكان واحد
-            </p>
+            <p className="mt-2 text-muted-foreground">كل القصص اللي حفظتها لطفلك في مكان واحد</p>
           </div>
           <Button asChild className="rounded-full" variant="outline">
             <Link to="/stories">
@@ -78,6 +76,11 @@ function FavoritesPage() {
             icon={<Heart className="h-7 w-7" />}
             title="لا توجد قصص في المفضلة بعد"
             description="اضغط على القلب ❤️ بجانب أي قصة لإضافتها هنا."
+            action={
+              <Button asChild className="rounded-full font-bold">
+                <Link to="/stories">تصفّح القصص</Link>
+              </Button>
+            }
           />
         ) : (
           <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">

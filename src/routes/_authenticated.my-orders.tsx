@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpen, Eye, FileDown, Pencil, ShoppingCart, Trash2 } from "lucide-react";
+import { BookOpen, Eye, FileDown, Pencil, ShoppingCart, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { listMyPdfs } from "@/features/pdf/pdf.functions";
 import { updateMyOrderPreferences, deleteMyOrder } from "@/features/admin/admin.functions";
 import { OrderEditDialog, type EditableOrder } from "@/features/orders/OrderEditDialog";
+import { ReviewDialog } from "@/features/reviews/ReviewDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +46,16 @@ function MyOrders() {
   const [editing, setEditing] = useState<EditableOrder | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState<{ orderId: string; title: string } | null>(null);
+
+  const { data: reviewedOrderIds } = useQuery({
+    queryKey: ["my-reviewed-orders", user?.id],
+    enabled: Boolean(user),
+    queryFn: async () => {
+      const { data } = await supabase.from("reviews").select("order_id").eq("user_id", user!.id);
+      return new Set((data ?? []).map((r) => r.order_id as string));
+    },
+  });
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["my-orders", user?.id],
@@ -130,6 +141,7 @@ function MyOrders() {
                   <img
                     src={o.story_templates.cover_url}
                     alt=""
+                    loading="lazy"
                     className="h-20 w-16 rounded-xl object-cover"
                   />
                 ) : (
@@ -142,8 +154,7 @@ function MyOrders() {
                     {o.story_templates?.title ?? "قصة"}
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    البطل: {o.child_name} ·{" "}
-                    {new Date(o.created_at).toLocaleDateString("ar-EG")}
+                    البطل: {o.child_name} · {new Date(o.created_at).toLocaleDateString("ar-EG")}
                   </p>
                   <div className="mt-1 flex flex-wrap gap-2">
                     <PaymentBadge status={(o.payment_status ?? "unpaid") as string} />
@@ -162,7 +173,7 @@ function MyOrders() {
                       سبب رفض الدفع: {o.payment_rejection_reason}
                     </p>
                   )}
-                  {(["pending", "approved"].includes(o.status as string)) && (
+                  {["pending", "approved"].includes(o.status as string) && (
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                       <span className="font-bold text-muted-foreground">
                         تفضيلاتك (قابلة للتعديل قبل بدء التوليد):
@@ -214,6 +225,18 @@ function MyOrders() {
                       </Link>
                     </Button>
                   )}
+                  {o.status === "sent" && !reviewedOrderIds?.has(o.id) && (
+                    <Button
+                      variant="outline"
+                      className="rounded-full font-bold text-accent-foreground"
+                      onClick={() =>
+                        setReviewing({ orderId: o.id, title: o.story_templates?.title ?? "قصة" })
+                      }
+                    >
+                      <Star className="ms-1 h-4 w-4" />
+                      قيّم تجربتك
+                    </Button>
+                  )}
                   {canEdit({
                     status: o.status as string,
                     payment_status: (o.payment_status as string | null) ?? null,
@@ -226,7 +249,8 @@ function MyOrders() {
                           setEditing({
                             id: o.id,
                             child_name: o.child_name,
-                            child_name_en: (o as { child_name_en?: string | null }).child_name_en ?? null,
+                            child_name_en:
+                              (o as { child_name_en?: string | null }).child_name_en ?? null,
                             child_age: (o as { child_age?: number | null }).child_age ?? null,
                             gender: (o as { gender?: string }).gender ?? "boy",
                             whatsapp: (o as { whatsapp?: string }).whatsapp ?? "",
@@ -235,10 +259,16 @@ function MyOrders() {
                             photo_mode: (o.photo_mode as string) ?? "cartoon",
                             pages_count: (o as { pages_count?: number }).pages_count ?? 10,
                             print_copy: Boolean((o as { print_copy?: boolean }).print_copy),
-                            delivery_address: (o as { delivery_address?: string | null }).delivery_address ?? null,
-                            gifted_by_name: (o as { gifted_by_name?: string | null }).gifted_by_name ?? null,
-                            gifted_by_relation: (o as { gifted_by_relation?: string | null }).gifted_by_relation ?? null,
-                            publish_consent: Boolean((o as { publish_consent?: boolean }).publish_consent),
+                            delivery_address:
+                              (o as { delivery_address?: string | null }).delivery_address ?? null,
+                            gifted_by_name:
+                              (o as { gifted_by_name?: string | null }).gifted_by_name ?? null,
+                            gifted_by_relation:
+                              (o as { gifted_by_relation?: string | null }).gifted_by_relation ??
+                              null,
+                            publish_consent: Boolean(
+                              (o as { publish_consent?: boolean }).publish_consent,
+                            ),
                             isCustom: Boolean(o.story_templates?.is_custom),
                             title: o.story_templates?.title ?? "قصة",
                           });
@@ -265,6 +295,12 @@ function MyOrders() {
         </div>
 
         <OrderEditDialog order={editing} open={editOpen} onOpenChange={setEditOpen} />
+        <ReviewDialog
+          orderId={reviewing?.orderId ?? null}
+          storyTitle={reviewing?.title}
+          open={Boolean(reviewing)}
+          onOpenChange={(v) => !v && setReviewing(null)}
+        />
 
         <AlertDialog open={!!deletingId} onOpenChange={(v) => !v && setDeletingId(null)}>
           <AlertDialogContent>
@@ -303,9 +339,7 @@ function MyOrders() {
                     📕
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate font-display text-lg font-bold">
-                      {f.title}
-                    </h3>
+                    <h3 className="truncate font-display text-lg font-bold">{f.title}</h3>
                     {f.createdAt && (
                       <p className="text-sm text-muted-foreground">
                         {new Date(f.createdAt).toLocaleDateString("ar-EG", {

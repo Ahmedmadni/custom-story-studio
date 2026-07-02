@@ -25,12 +25,18 @@ import aiLaptop from "@/assets/ai-laptop.png";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { OccasionStrip } from "@/components/OccasionStrip";
+import { ParentReviewsSection } from "@/components/ParentReviewsSection";
+import { PortfolioGallery } from "@/components/PortfolioGallery";
+import { RecentActivityTicker } from "@/components/RecentActivityTicker";
+import { TrustBadges } from "@/components/TrustBadges";
 import { TrustCounters } from "@/components/TrustCounters";
+import { WaitingListStatus } from "@/components/WaitingListStatus";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { coverUrlOrDefault } from "@/lib/defaultCover";
+import { SITE_URL } from "@/lib/siteUrl";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -47,6 +53,7 @@ export const Route = createFileRoute("/")({
         content: "اكتشف آلاف القصص التفاعلية أو أنشئ قصة لطفلك بالذكاء الاصطناعي.",
       },
     ],
+    links: [{ rel: "canonical", href: SITE_URL }],
   }),
   component: Index,
 });
@@ -58,25 +65,6 @@ const categories = [
   { label: "قصص قبل النوم", icon: "🌙", from: "from-indigo-500/15", to: "to-purple-400/15" },
   { label: "قصص الخيال", icon: "🦄", from: "from-pink-400/20", to: "to-rose-400/15" },
   { label: "قصص القيم والأخلاق", icon: "💛", from: "from-emerald-400/20", to: "to-teal-400/15" },
-];
-
-
-const testimonials = [
-  {
-    name: "نورا — أم لطفلين",
-    text: "ابني صار يطلب قصة كيدزي كل ليلة قبل النوم! الرسومات خرافية والقيم رائعة.",
-    avatar: "👩🏻",
-  },
-  {
-    name: "أحمد — أب",
-    text: "أنشأت قصة باسم بنتي خلال دقيقة وكانت سعادتها لا توصف. تجربة استثنائية!",
-    avatar: "👨🏽",
-  },
-  {
-    name: "سارة — معلّمة",
-    text: "أستخدم قصص كيدزي في الفصل، الأطفال يندمجون والقصص ثرية وذكية.",
-    avatar: "👩🏼‍🏫",
-  },
 ];
 
 function Index() {
@@ -118,7 +106,9 @@ function Index() {
     queryFn: async () => {
       const { data } = await supabase
         .from("orders")
-        .select("id, child_name, status, template:story_templates!orders_template_id_fkey(id, slug, title, cover_url)")
+        .select(
+          "id, child_name, status, template:story_templates!orders_template_id_fkey(id, slug, title, cover_url)",
+        )
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(6);
@@ -134,10 +124,7 @@ function Index() {
 
       {/* ============ HERO ============ */}
       <section className="relative overflow-hidden">
-        <div
-          className="absolute inset-0 -z-10"
-          style={{ background: "var(--gradient-hero)" }}
-        />
+        <div className="absolute inset-0 -z-10" style={{ background: "var(--gradient-hero)" }} />
         <div className="absolute -top-32 -end-32 -z-10 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
         <div className="absolute top-40 -start-40 -z-10 h-96 w-96 rounded-full bg-candy/15 blur-3xl" />
 
@@ -155,8 +142,8 @@ function Index() {
               </span>
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground md:mx-0">
-              اكتشف آلاف القصص التفاعلية المصمّمة للأطفال — أو أنشئ قصة فريدة
-              بطلها طفلك خلال ثوانٍ بقوة الذكاء الاصطناعي.
+              اكتشف آلاف القصص التفاعلية المصمّمة للأطفال — أو أنشئ قصة فريدة بطلها طفلك خلال ثوانٍ
+              بقوة الذكاء الاصطناعي.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3 md:justify-start">
               <Button
@@ -173,9 +160,15 @@ function Index() {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground md:justify-start">
               <div className="flex items-center gap-1.5">
                 <div className="flex -space-x-1.5">
-                  <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/15 text-sm">👧</span>
-                  <span className="grid h-7 w-7 place-items-center rounded-full bg-candy/15 text-sm">🧒</span>
-                  <span className="grid h-7 w-7 place-items-center rounded-full bg-accent/30 text-sm">👦</span>
+                  <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/15 text-sm">
+                    👧
+                  </span>
+                  <span className="grid h-7 w-7 place-items-center rounded-full bg-candy/15 text-sm">
+                    🧒
+                  </span>
+                  <span className="grid h-7 w-7 place-items-center rounded-full bg-accent/30 text-sm">
+                    👦
+                  </span>
                 </div>
                 <span className="font-semibold">+5,000 طفل سعيد</span>
               </div>
@@ -215,8 +208,14 @@ function Index() {
                       {heroStory.title}
                     </h3>
                   </div>
-                  <Button asChild size="sm" className="shrink-0 rounded-full bg-primary px-4 font-bold">
-                    <Link to="/stories/$slug" params={{ slug: heroStory.slug }}>اقرأ الآن</Link>
+                  <Button
+                    asChild
+                    size="sm"
+                    className="shrink-0 rounded-full bg-primary px-4 font-bold"
+                  >
+                    <Link to="/stories/$slug" params={{ slug: heroStory.slug }}>
+                      اقرأ الآن
+                    </Link>
                   </Button>
                 </div>
               </div>
@@ -225,18 +224,46 @@ function Index() {
         </div>
       </section>
 
+      {/* ============ LIVE ACTIVITY TICKER ============ */}
+      <div className="container mx-auto -mt-4 px-4">
+        <RecentActivityTicker />
+      </div>
+
       {/* ============ TRUST COUNTERS ============ */}
       <TrustCounters />
+      <div className="container mx-auto -mt-2 px-4 pb-2">
+        <TrustBadges />
+      </div>
 
       {/* ============ FEATURE ICONS (4 cards) ============ */}
       <section className="container mx-auto -mt-6 px-4">
         <div className="rounded-[2rem] border border-border/60 bg-card/90 p-6 shadow-[var(--shadow-card)] backdrop-blur md:p-8">
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
             {[
-              { img: iconAi, to: "/request-story", title: "قصص بالذكاء الاصطناعي", desc: "قصص مخصّصة لطفلك بتقنية الذكاء الاصطناعي" },
-              { img: iconBooks, to: "/books", title: "كتب تعليمية", desc: "كتب تفاعلية ومحتوى تعليمي ممتع ومفيد" },
-              { img: iconGames, to: "/games", title: "ألعاب تعليمية", desc: "ألعاب شيّقة تنمّي المهارات وتعزّز التعلم" },
-              { img: iconPuzzles, to: "/puzzles", title: "ألغاز وتحديات", desc: "ألغاز متنوّعة لتنمية التفكير والذكاء" },
+              {
+                img: iconAi,
+                to: "/request-story",
+                title: "قصص بالذكاء الاصطناعي",
+                desc: "قصص مخصّصة لطفلك بتقنية الذكاء الاصطناعي",
+              },
+              {
+                img: iconBooks,
+                to: "/books",
+                title: "كتب تعليمية",
+                desc: "كتب تفاعلية ومحتوى تعليمي ممتع ومفيد",
+              },
+              {
+                img: iconGames,
+                to: "/games",
+                title: "ألعاب تعليمية",
+                desc: "ألعاب شيّقة تنمّي المهارات وتعزّز التعلم",
+              },
+              {
+                img: iconPuzzles,
+                to: "/puzzles",
+                title: "ألغاز وتحديات",
+                desc: "ألغاز متنوّعة لتنمية التفكير والذكاء",
+              },
             ].map((f) => (
               <Link
                 key={f.to}
@@ -252,7 +279,9 @@ function Index() {
                   className="h-24 w-24 object-contain drop-shadow-lg transition-transform group-hover:scale-110 md:h-28 md:w-28"
                 />
                 <h3 className="mt-3 font-display text-base font-extrabold md:text-lg">{f.title}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">{f.desc}</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">
+                  {f.desc}
+                </p>
               </Link>
             ))}
           </div>
@@ -279,16 +308,35 @@ function Index() {
           />
           <div className="grid gap-8 md:grid-cols-3">
             {[
-              { n: 1, color: "from-violet-500 to-violet-700", title: "اختر العمر", desc: "حدّد عمر طفلك للحصول على محتوى مناسب له" },
-              { n: 2, color: "from-sky-400 to-sky-600", title: "اختر الاهتمامات", desc: "اختر مجالات اهتمام طفلك لنقدّم له الأفضل" },
-              { n: 3, color: "from-emerald-400 to-emerald-600", title: "استمتع بالتعلم", desc: "استمتع بمحتوى تعليمي تفاعلي ممتع وآمن" },
+              {
+                n: 1,
+                color: "from-violet-500 to-violet-700",
+                title: "اختر العمر",
+                desc: "حدّد عمر طفلك للحصول على محتوى مناسب له",
+              },
+              {
+                n: 2,
+                color: "from-sky-400 to-sky-600",
+                title: "اختر الاهتمامات",
+                desc: "اختر مجالات اهتمام طفلك لنقدّم له الأفضل",
+              },
+              {
+                n: 3,
+                color: "from-emerald-400 to-emerald-600",
+                title: "استمتع بالتعلم",
+                desc: "استمتع بمحتوى تعليمي تفاعلي ممتع وآمن",
+              },
             ].map((s) => (
               <div key={s.n} className="text-center">
-                <div className={`mx-auto grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br ${s.color} font-display text-2xl font-black text-white shadow-lg`}>
+                <div
+                  className={`mx-auto grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br ${s.color} font-display text-2xl font-black text-white shadow-lg`}
+                >
                   {s.n}
                 </div>
                 <h3 className="mt-4 font-display text-lg font-extrabold text-primary">{s.title}</h3>
-                <p className="mx-auto mt-2 max-w-[220px] text-sm leading-relaxed text-muted-foreground">{s.desc}</p>
+                <p className="mx-auto mt-2 max-w-[220px] text-sm leading-relaxed text-muted-foreground">
+                  {s.desc}
+                </p>
               </div>
             ))}
           </div>
@@ -307,9 +355,7 @@ function Index() {
       <section className="container mx-auto px-4 py-12">
         <div className="mb-6 flex items-end justify-between">
           <div>
-            <h2 className="font-display text-2xl font-extrabold md:text-3xl">
-              تصفّح حسب التصنيف
-            </h2>
+            <h2 className="font-display text-2xl font-extrabold md:text-3xl">تصفّح حسب التصنيف</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               اعثر على القصة المناسبة لاهتمامات طفلك
             </p>
@@ -324,9 +370,7 @@ function Index() {
             >
               <span className="text-4xl drop-shadow-sm">{c.icon}</span>
               <div>
-                <h3 className="font-display text-base font-extrabold leading-tight">
-                  {c.label}
-                </h3>
+                <h3 className="font-display text-base font-extrabold leading-tight">{c.label}</h3>
                 <span className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-primary">
                   استكشف <ChevronLeft className="h-3 w-3" />
                 </span>
@@ -347,9 +391,7 @@ function Index() {
               <Sparkles className="h-6 w-6 text-primary" />
               قصص مميّزة
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              أفضل ما اخترناه لك هذا الأسبوع
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">أفضل ما اخترناه لك هذا الأسبوع</p>
           </div>
           <Link
             to="/stories"
@@ -402,12 +444,8 @@ function Index() {
         <section className="container mx-auto px-4 py-10">
           <div className="mb-6 flex items-end justify-between">
             <div>
-              <h2 className="font-display text-2xl font-extrabold md:text-3xl">
-                تابع القراءة
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                قصص بدأتها مؤخراً
-              </p>
+              <h2 className="font-display text-2xl font-extrabold md:text-3xl">تابع القراءة</h2>
+              <p className="mt-1 text-sm text-muted-foreground">قصص بدأتها مؤخراً</p>
             </div>
             <Link to="/my-orders" className="text-sm font-bold text-primary hover:underline">
               كل طلباتي ←
@@ -415,7 +453,11 @@ function Index() {
           </div>
           <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {continueReading.map((o) => {
-              const tpl = o.template as { slug?: string; title?: string; cover_url?: string | null } | null;
+              const tpl = o.template as {
+                slug?: string;
+                title?: string;
+                cover_url?: string | null;
+              } | null;
               if (!tpl?.slug) return null;
               return (
                 <Link
@@ -461,11 +503,16 @@ function Index() {
                 <span className="text-primary">باسم طفلك</span> خلال ثوانٍ
               </h2>
               <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-                أدخل اسم طفلك، عمره، والموضوع الذي يحبه — وستحصل على قصة مصوّرة
-                كاملة مع رسوم سينمائية ودرس قيمي مميّز.
+                أدخل اسم طفلك، عمره، والموضوع الذي يحبه — وستحصل على قصة مصوّرة كاملة مع رسوم
+                سينمائية ودرس قيمي مميّز.
               </p>
               <ul className="mt-6 grid gap-3 text-sm font-semibold">
-                {["اختر الاسم والعمر", "اختر الموضوع والدرس الأخلاقي", "اختر طول القصة", "احصل عليها فوراً"].map((p) => (
+                {[
+                  "اختر الاسم والعمر",
+                  "اختر الموضوع والدرس الأخلاقي",
+                  "اختر طول القصة",
+                  "احصل عليها فوراً",
+                ].map((p) => (
                   <li key={p} className="flex items-center gap-2">
                     <Check className="h-5 w-5 text-primary" />
                     {p}
@@ -482,6 +529,7 @@ function Index() {
                   ابدأ إنشاء قصتك المخصّصة
                 </Link>
               </Button>
+              <WaitingListStatus className="mt-6" />
             </div>
             <div className="relative">
               <span className="pointer-events-none absolute right-4 top-2 text-2xl">⭐</span>
@@ -510,9 +558,7 @@ function Index() {
                 <Flame className="h-6 w-6 text-candy" />
                 الأكثر رواجاً
               </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                ما يقرأه الأطفال الآن
-              </p>
+              <p className="mt-1 text-sm text-muted-foreground">ما يقرأه الأطفال الآن</p>
             </div>
             <Link to="/stories" className="text-sm font-bold text-primary hover:underline">
               عرض الكل ←
@@ -549,39 +595,11 @@ function Index() {
         </section>
       )}
 
+      {/* ============ PORTFOLIO GALLERY ============ */}
+      <PortfolioGallery />
 
-      {/* ============ TESTIMONIALS ============ */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="text-center">
-          <h2 className="font-display text-3xl font-extrabold md:text-4xl">
-            ماذا يقول الآباء عن Kidzy؟
-          </h2>
-          <p className="mt-3 text-muted-foreground">
-            آلاف العائلات يثقون بنا لإسعاد أطفالهم
-          </p>
-        </div>
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
-          {testimonials.map((t) => (
-            <div
-              key={t.name}
-              className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-soft)]"
-            >
-              <div className="flex items-center gap-1 text-accent">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-accent" />
-                ))}
-              </div>
-              <p className="mt-3 leading-relaxed text-foreground">"{t.text}"</p>
-              <div className="mt-5 flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-xl">
-                  {t.avatar}
-                </span>
-                <span className="font-bold">{t.name}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* ============ PARENT REVIEWS ============ */}
+      <ParentReviewsSection />
 
       {/* ============ SECONDARY (books/games/puzzles) ============ */}
       <section className="container mx-auto px-4 pb-16">
@@ -592,7 +610,12 @@ function Index() {
           {[
             { to: "/books", icon: BookOpen, label: "كتب تعليمية", desc: "حروف وأرقام وعلوم" },
             { to: "/games", icon: Heart, label: "ألعاب تعليمية", desc: "ألعاب تنمّي المهارات" },
-            { to: "/puzzles", icon: Sparkles, label: "ألغاز وتحديات", desc: "تنمية التفكير والذكاء" },
+            {
+              to: "/puzzles",
+              icon: Sparkles,
+              label: "ألغاز وتحديات",
+              desc: "تنمية التفكير والذكاء",
+            },
           ].map((i) => (
             <Link
               key={i.to}
