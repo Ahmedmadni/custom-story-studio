@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+  BarChart3,
   BookOpen,
   ChevronLeft,
   CreditCard,
@@ -44,6 +45,7 @@ type NavGroup = {
 
 const singleItems: NavItem[] = [
   { to: "/admin", label: "نظرة عامة", icon: LayoutDashboard },
+  { to: "/admin/analytics", label: "التحليلات", icon: BarChart3 },
   { to: "/admin/orders", label: "الطلبات", icon: Package },
   { to: "/admin/payments", label: "المدفوعات", icon: CreditCard },
   { to: "/admin/approvals", label: "اعتماد المحتوى", icon: ShieldCheck },
