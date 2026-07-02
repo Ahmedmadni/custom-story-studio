@@ -286,7 +286,12 @@ function CheckoutPage() {
               >
                 <div className="flex items-center gap-3">
                   {item.coverUrl ? (
-                    <img src={item.coverUrl} alt="" className="h-14 w-12 rounded-lg object-cover" />
+                    <img
+                      src={item.coverUrl}
+                      alt=""
+                      loading="lazy"
+                      className="h-14 w-12 rounded-lg object-cover"
+                    />
                   ) : null}
                   <div>
                     <p className="text-xs font-bold text-muted-foreground">القصة {idx + 1}</p>

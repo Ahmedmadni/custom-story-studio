@@ -10,6 +10,8 @@ export const getRouter = () => {
     context: { queryClient },
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
+    // يجلب مسبقاً (prefetch) بيانات الصفحة عند تحويم/لمس الرابط بدل انتظار النقر
+    defaultPreload: "intent",
   });
 
   return router;

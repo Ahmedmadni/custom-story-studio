@@ -141,6 +141,7 @@ function MyOrders() {
                   <img
                     src={o.story_templates.cover_url}
                     alt=""
+                    loading="lazy"
                     className="h-20 w-16 rounded-xl object-cover"
                   />
                 ) : (

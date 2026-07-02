@@ -234,6 +234,7 @@ function ChildDetailPage() {
                         <img
                           src={tpl.cover_url}
                           alt=""
+                          loading="lazy"
                           className="h-14 w-12 rounded-lg object-cover"
                         />
                       ) : null}

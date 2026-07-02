@@ -74,7 +74,12 @@ function CartPage() {
                   className="flex items-center gap-4 rounded-3xl border-2 border-border bg-card p-4 shadow-sm"
                 >
                   {it.coverUrl ? (
-                    <img src={it.coverUrl} alt="" className="h-20 w-16 rounded-xl object-cover" />
+                    <img
+                      src={it.coverUrl}
+                      alt=""
+                      loading="lazy"
+                      className="h-20 w-16 rounded-xl object-cover"
+                    />
                   ) : (
                     <div className="flex h-20 w-16 items-center justify-center rounded-xl bg-secondary">
                       <BookOpen className="h-6 w-6 text-primary/50" />

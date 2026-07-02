@@ -16,16 +16,20 @@ export function ChildAvatar({
   className?: string;
 }) {
   const dims =
-    size === "sm" ? "h-12 w-12 text-2xl"
-    : size === "lg" ? "h-24 w-24 text-5xl"
-    : size === "xl" ? "h-32 w-32 text-6xl"
-    : "h-16 w-16 text-3xl";
+    size === "sm"
+      ? "h-12 w-12 text-2xl"
+      : size === "lg"
+        ? "h-24 w-24 text-5xl"
+        : size === "xl"
+          ? "h-32 w-32 text-6xl"
+          : "h-16 w-16 text-3xl";
 
   if (photoUrl) {
     return (
       <img
         src={photoUrl}
         alt={name ?? "child"}
+        loading="lazy"
         className={cn("rounded-3xl object-cover ring-4 ring-white shadow-md", dims, className)}
       />
     );
