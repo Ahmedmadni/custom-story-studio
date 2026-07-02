@@ -3,7 +3,10 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-/** بيانات صفحة الإحالة الخاصة بالمستخدم: كوده، وعدد من دعاهم بنجاح. */
+/**
+ * بيانات صفحة الإحالة الخاصة بالمستخدم: كوده، عدد من دعاهم (بانتظار أول
+ * طلب مؤكَّد)، وعدد الإحالات المكافأة فعلياً (بعد أول طلب مؤكَّد لدى المدعو).
+ */
 export const getMyReferralInfo = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -13,15 +16,19 @@ export const getMyReferralInfo = createServerFn({ method: "GET" })
       .eq("id", context.userId)
       .single();
 
-    const { count } = await context.supabase
+    const { data: referrals } = await context.supabase
       .from("referrals")
-      .select("id", { count: "exact", head: true })
+      .select("status")
       .eq("inviter_id", context.userId);
+
+    const invitedCount = referrals?.length ?? 0;
+    const rewardedCount = referrals?.filter((r) => r.status === "rewarded").length ?? 0;
 
     return {
       referralCode: profile?.referral_code ?? null,
-      invitedCount: count ?? 0,
-      pointsFromReferrals: (count ?? 0) * 100,
+      invitedCount,
+      rewardedCount,
+      pointsFromReferrals: rewardedCount * 100,
     };
   });
 
@@ -29,8 +36,18 @@ const ClaimInput = z.object({ code: z.string().trim().min(3).max(20) });
 
 /**
  * يُستدعى تلقائياً أول مرة يظهر فيها مستخدم مسجّل دخوله ولديه كود إحالة
- * غير مُطالَب به محفوظاً محلياً (F5) — انظر ReferralCapture. يمنح المُحيل
- * 100 نقطة فوراً عبر award_points، ويصدر كوبون خصم 10% لمرة واحدة للمدعو.
+ * غير مُطالَب به محفوظاً محلياً (F5) — انظر ReferralCapture.
+ *
+ * حماية من إساءة الاستخدام: لا يُمنح المُحيل نقاطه هنا بعد الآن — الإحالة
+ * تُسجَّل بحالة `pending` فقط، ولا يُمنح المُحيل الـ 100 نقطة إلا بعد أول
+ * طلب مؤكَّد الدفع فعلياً للمدعو (انظر rewardReferralAfterFirstVerifiedOrder
+ * التي يستدعيها adminVerifyPayment). هذا يمنع تصعيد حسابات وهمية لجمع نقاط
+ * دون أي عملية شراء حقيقية.
+ *
+ * كوبون خصم 10% للمدعو يُصدَر فوراً هنا (لا عند أول طلب) لأنه — بعكس
+ * النقاط — بلا قيمة نقدية قابلة للاستخراج بمعزل عن دفعة حقيقية موثّقة؛
+ * الغرض منه أصلاً هو تحفيز أول طلب، فتأجيل إصداره لما بعد ذلك الطلب يُبطل
+ * الغرض منه.
  */
 export const claimReferral = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -69,17 +86,38 @@ export const claimReferral = createServerFn({ method: "POST" })
       inviter_id: inviterProfile.id,
       invited_user_id: context.userId,
       coupon_code: couponCode,
-      status: "rewarded",
+      status: "pending",
     });
     if (refErr) throw new Error("تعذر تسجيل الإحالة");
 
-    await supabaseAdmin.rpc("award_points", {
-      _user_id: inviterProfile.id,
-      _points: 100,
-      _type: "referral",
-      _reference_id: context.userId,
-      _note: "مكافأة إحالة صديق ناجحة",
-    });
-
     return { ok: true, couponCode };
   });
+
+/**
+ * يُستدعى من adminVerifyPayment عند تأكيد دفع أي طلب. لو كان هذا المستخدم
+ * مدعوّاً بإحالة لا تزال `pending`، يمنح المُحيل 100 نقطة الآن ويقفل
+ * الإحالة إلى `rewarded`. آمن عند التكرار: يعتمد على
+ * `UPDATE ... WHERE status = 'pending'` فلا يُمنح المُحيل أكثر من مرة حتى
+ * لو تكرّر الاستدعاء أو تحقّقت عدة طلبات للمستخدم نفسه لاحقاً.
+ */
+export async function rewardReferralAfterFirstVerifiedOrder(invitedUserId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const { data: referral } = await supabaseAdmin
+    .from("referrals")
+    .update({ status: "rewarded" })
+    .eq("invited_user_id", invitedUserId)
+    .eq("status", "pending")
+    .select("inviter_id")
+    .maybeSingle();
+
+  if (!referral) return;
+
+  await supabaseAdmin.rpc("award_points", {
+    _user_id: referral.inviter_id,
+    _points: 100,
+    _type: "referral",
+    _reference_id: invitedUserId,
+    _note: "مكافأة إحالة صديق ناجحة (بعد أول طلب مؤكَّد)",
+  });
+}

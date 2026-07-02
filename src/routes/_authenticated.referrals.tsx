@@ -61,7 +61,8 @@ function ReferralsPage() {
           </div>
           <h1 className="mt-4 font-display text-3xl font-extrabold">ادعُ صديقاً واربحوا معاً</h1>
           <p className="mt-2 text-muted-foreground">
-            شارك رابطك — تحصل أنت على 100 نقطة، ويحصل صديقك على خصم 10% على أول طلب
+            شارك رابطك — يحصل صديقك على خصم 10% على أول طلب، وتحصل أنت على 100 نقطة بعد إتمامه طلبه
+            الأول
           </p>
         </div>
 
@@ -94,29 +95,42 @@ function ReferralsPage() {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-4">
-              <div className="rounded-3xl border-2 border-border bg-card p-5 text-center">
-                <Users className="mx-auto h-6 w-6 text-primary" />
-                <p className="mt-2 font-display text-2xl font-extrabold">
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              <div className="rounded-3xl border-2 border-border bg-card p-4 text-center">
+                <Users className="mx-auto h-5 w-5 text-primary" />
+                <p className="mt-2 font-display text-xl font-extrabold">
                   {info?.invitedCount ?? 0}
                 </p>
-                <p className="text-xs text-muted-foreground">صديق دعوته بنجاح</p>
+                <p className="text-[11px] text-muted-foreground">صديق انضم برابطك</p>
               </div>
-              <div className="rounded-3xl border-2 border-border bg-card p-5 text-center">
-                <Gift className="mx-auto h-6 w-6 text-accent" />
-                <p className="mt-2 font-display text-2xl font-extrabold">
+              <div className="rounded-3xl border-2 border-border bg-card p-4 text-center">
+                <Users className="mx-auto h-5 w-5 text-grass" />
+                <p className="mt-2 font-display text-xl font-extrabold">
+                  {info?.rewardedCount ?? 0}
+                </p>
+                <p className="text-[11px] text-muted-foreground">أكمل أول طلب</p>
+              </div>
+              <div className="rounded-3xl border-2 border-border bg-card p-4 text-center">
+                <Gift className="mx-auto h-5 w-5 text-accent" />
+                <p className="mt-2 font-display text-xl font-extrabold">
                   {info?.pointsFromReferrals ?? 0}
                 </p>
-                <p className="text-xs text-muted-foreground">نقطة من الإحالات</p>
+                <p className="text-[11px] text-muted-foreground">نقطة من الإحالات</p>
               </div>
             </div>
+            {(info?.invitedCount ?? 0) > (info?.rewardedCount ?? 0) && (
+              <p className="mt-3 text-center text-xs text-muted-foreground">
+                {(info?.invitedCount ?? 0) - (info?.rewardedCount ?? 0)} صديق سجّل ولم يكمل طلبه
+                الأول بعد — ستحصل على نقاطك بمجرد إتمامه.
+              </p>
+            )}
 
             {(info?.invitedCount ?? 0) === 0 && (
               <EmptyState
                 className="mt-6"
                 icon={<Users className="h-7 w-7" />}
                 title="لم تدعُ أحداً بعد"
-                description="شارك رابطك الآن مع أول صديق — ستحصل على 100 نقطة بمجرد تسجيله."
+                description="شارك رابطك الآن مع أول صديق — ستحصل على 100 نقطة بمجرد إتمامه أول طلب."
                 action={
                   <Button className="rounded-full font-bold" onClick={shareLink} disabled={!link}>
                     <Share2 className="ms-1 h-4 w-4" />
@@ -132,8 +146,11 @@ function ReferralsPage() {
           <p className="font-bold text-foreground">كيف تعمل؟</p>
           <ol className="mt-2 list-inside list-decimal space-y-1">
             <li>شارك رابطك مع أصدقائك وعائلتك.</li>
-            <li>عند تسجيل صديقك عبر الرابط، يحصل فوراً على كود خصم 10%.</li>
-            <li>تحصل أنت على 100 نقطة تُضاف لحسابك في «مكافآت كيدزي».</li>
+            <li>عند تسجيل صديقك عبر الرابط، يحصل فوراً على كود خصم 10% لأول طلب.</li>
+            <li>
+              بعد إتمامه أول طلب مؤكَّد الدفع، تحصل أنت على 100 نقطة تُضاف لحسابك في «مكافآت كيدزي»
+              — هذا يمنع إساءة استخدام الإحالات بحسابات وهمية.
+            </li>
           </ol>
         </div>
       </main>
