@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Copy, Gift, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/EmptyState";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -109,6 +110,21 @@ function ReferralsPage() {
                 <p className="text-xs text-muted-foreground">نقطة من الإحالات</p>
               </div>
             </div>
+
+            {(info?.invitedCount ?? 0) === 0 && (
+              <EmptyState
+                className="mt-6"
+                icon={<Users className="h-7 w-7" />}
+                title="لم تدعُ أحداً بعد"
+                description="شارك رابطك الآن مع أول صديق — ستحصل على 100 نقطة بمجرد تسجيله."
+                action={
+                  <Button className="rounded-full font-bold" onClick={shareLink} disabled={!link}>
+                    <Share2 className="ms-1 h-4 w-4" />
+                    شارك الآن
+                  </Button>
+                }
+              />
+            )}
           </>
         )}
 

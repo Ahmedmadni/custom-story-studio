@@ -56,7 +56,12 @@ function StoriesPage() {
 
   const [category, setCategory] = useState<string | null>(null);
 
-  const { data: stories, isLoading, isError, refetch } = useQuery({
+  const {
+    data: stories,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["stories", "story", occasionKey],
     queryFn: async () => {
       let q = supabase
@@ -100,12 +105,8 @@ function StoriesPage() {
       <main className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 pb-12">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl font-extrabold md:text-4xl">
-              مكتبة الحكايات 📚
-            </h1>
-            <p className="mt-2 text-muted-foreground">
-              اختر الحكاية التي سيكون طفلك بطلها
-            </p>
+            <h1 className="font-display text-3xl font-extrabold md:text-4xl">مكتبة الحكايات 📚</h1>
+            <p className="mt-2 text-muted-foreground">اختر الحكاية التي سيكون طفلك بطلها</p>
           </div>
           <Button
             asChild
@@ -141,20 +142,11 @@ function StoriesPage() {
         )}
 
         <div className="mt-6">
-          <FilterChips
-            options={[...CATEGORIES]}
-            value={category}
-            onChange={setCategory}
-          />
+          <FilterChips options={[...CATEGORIES]} value={category} onChange={setCategory} />
         </div>
 
-
         {isError ? (
-          <ErrorBlock
-            className="mt-10"
-            title="تعذّر تحميل القصص"
-            onRetry={() => void refetch()}
-          />
+          <ErrorBlock className="mt-10" title="تعذّر تحميل القصص" onRetry={() => void refetch()} />
         ) : (
           <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
             {isLoading ? (
@@ -170,7 +162,16 @@ function StoriesPage() {
             className="mt-12"
             icon={<BookOpen className="h-7 w-7" />}
             title="لا توجد قصص في هذا التصنيف بعد"
-            description="جرّب تصنيفاً آخر."
+            description="جرّب تصنيفاً آخر أو تصفّح كل القصص."
+            action={
+              <Button
+                variant="outline"
+                className="rounded-full font-bold"
+                onClick={() => setCategory(null)}
+              >
+                عرض كل القصص
+              </Button>
+            }
           />
         )}
 
@@ -182,8 +183,8 @@ function StoriesPage() {
                 لم تجد القصة المناسبة؟ ✨
               </h3>
               <p className="mt-2 text-muted-foreground">
-                ابدأ بقصة مخصصة بأفكار جديدة من اختيارك — اسم الطفل، الموضوع،
-                والشخصيات — ودع الذكاء الاصطناعي يبدع لك حكاية فريدة.
+                ابدأ بقصة مخصصة بأفكار جديدة من اختيارك — اسم الطفل، الموضوع، والشخصيات — ودع الذكاء
+                الاصطناعي يبدع لك حكاية فريدة.
               </p>
             </div>
             <Button
@@ -212,7 +213,9 @@ function StoriesPage() {
               قصص نُفّذت لأطفال حقيقيين على منصة كيدزي وأذِن أهلهم بمشاركتها كنموذج لأعمالنا.
             </p>
             <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-              {galleryStories.map((s) => <StoryCard key={s.id} story={s} />)}
+              {galleryStories.map((s) => (
+                <StoryCard key={s.id} story={s} />
+              ))}
             </div>
           </section>
         )}

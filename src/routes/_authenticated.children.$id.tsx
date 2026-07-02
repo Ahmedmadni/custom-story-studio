@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit3, Loader2, Trash2, BookOpen, Trophy, Sparkles, Clock } from "lucide-react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/EmptyState";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,11 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { ChildAvatar } from "@/features/children/ChildAvatar";
 import { childLevelMeta, xpProgress, levelFromXp } from "@/features/rewards/childLevels";
-import { ACHIEVEMENTS, ACHIEVEMENT_ORDER, type AchievementKey } from "@/features/rewards/achievements";
+import {
+  ACHIEVEMENTS,
+  ACHIEVEMENT_ORDER,
+  type AchievementKey,
+} from "@/features/rewards/achievements";
 import { LevelUpWatcher } from "@/features/rewards/LevelUpModal";
 
 export const Route = createFileRoute("/_authenticated/children/$id")({
@@ -42,7 +47,9 @@ function ChildDetailPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("child_story_history")
-        .select("id, completed_at, xp_awarded, category, template_id, order_id, story_templates!template_id(title, cover_url, category)")
+        .select(
+          "id, completed_at, xp_awarded, category, template_id, order_id, story_templates!template_id(title, cover_url, category)",
+        )
         .eq("child_id", id)
         .order("completed_at", { ascending: false })
         .limit(20);
@@ -75,9 +82,12 @@ function ChildDetailPage() {
   }
 
   const uRaw = (child as { child_story_universe?: unknown }).child_story_universe;
-  const universeData = (Array.isArray(uRaw) ? uRaw[0] : uRaw) as
-    | { level?: number; experience_points?: number; story_count?: number; achievements?: unknown }
-    | null;
+  const universeData = (Array.isArray(uRaw) ? uRaw[0] : uRaw) as {
+    level?: number;
+    experience_points?: number;
+    story_count?: number;
+    achievements?: unknown;
+  } | null;
   const xp = universeData?.experience_points ?? 0;
   const storyCount = universeData?.story_count ?? 0;
   const level = universeData?.level ?? levelFromXp(xp);
@@ -173,42 +183,81 @@ function ChildDetailPage() {
         <div className="mt-6 grid gap-4 sm:grid-cols-4">
           <StatCard icon={<BookOpen />} label="قصص مكتملة" value={String(storyCount)} />
           <StatCard icon={<Sparkles />} label="XP إجمالي" value={xp.toLocaleString("ar-EG")} />
-          <StatCard icon={<Trophy />} label="إنجازات" value={`${unlocked.size} / ${ACHIEVEMENT_ORDER.length}`} />
-          <StatCard icon={<span className="text-lg">{meta.emoji}</span>} label={meta.label} value={`مستوى ${level}`} />
+          <StatCard
+            icon={<Trophy />}
+            label="إنجازات"
+            value={`${unlocked.size} / ${ACHIEVEMENT_ORDER.length}`}
+          />
+          <StatCard
+            icon={<span className="text-lg">{meta.emoji}</span>}
+            label={meta.label}
+            value={`مستوى ${level}`}
+          />
         </div>
 
         {/* Recent Stories timeline */}
-        {history && history.length > 0 && (
-          <section className="mt-8 rounded-3xl border bg-card p-6">
-            <h2 className="mb-4 flex items-center gap-2 font-display text-xl font-bold">
-              <Clock className="h-5 w-5 text-primary" />
-              خط زمن الحكايات
-            </h2>
+        <section className="mt-8 rounded-3xl border bg-card p-6">
+          <h2 className="mb-4 flex items-center gap-2 font-display text-xl font-bold">
+            <Clock className="h-5 w-5 text-primary" />
+            خط زمن الحكايات
+          </h2>
+          {!history || history.length === 0 ? (
+            <EmptyState
+              icon={<Trophy className="h-7 w-7" />}
+              title="لا توجد إنجازات بعد"
+              description="بمجرد اكتمال أول قصة لهذا الطفل، ستظهر هنا كل قصصه وما كسبه من نقاط خبرة."
+              action={
+                <Button asChild className="rounded-full font-bold">
+                  <Link to="/stories">اطلب قصة الآن</Link>
+                </Button>
+              }
+            />
+          ) : (
             <ol className="relative space-y-4 border-s-2 border-primary/20 ps-6">
               {history.map((h) => {
-                const tpl = (h as { story_templates?: { title?: string; cover_url?: string | null; category?: string | null } | null }).story_templates;
+                const tpl = (
+                  h as {
+                    story_templates?: {
+                      title?: string;
+                      cover_url?: string | null;
+                      category?: string | null;
+                    } | null;
+                  }
+                ).story_templates;
                 return (
                   <li key={h.id} className="relative">
-                    <span className="absolute -start-[33px] top-1 grid h-6 w-6 place-items-center rounded-full bg-primary text-xs text-white shadow">📖</span>
+                    <span className="absolute -start-[33px] top-1 grid h-6 w-6 place-items-center rounded-full bg-primary text-xs text-white shadow">
+                      📖
+                    </span>
                     <div className="flex items-center gap-3 rounded-2xl border bg-background p-3">
                       {tpl?.cover_url ? (
-                        <img src={tpl.cover_url} alt="" className="h-14 w-12 rounded-lg object-cover" />
+                        <img
+                          src={tpl.cover_url}
+                          alt=""
+                          className="h-14 w-12 rounded-lg object-cover"
+                        />
                       ) : null}
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-bold">{tpl?.title ?? "قصة"}</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(h.completed_at as string).toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" })}
+                          {new Date(h.completed_at as string).toLocaleDateString("ar-EG", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
                           {tpl?.category ? ` · ${tpl.category}` : ""}
                         </p>
                       </div>
-                      <Badge className="bg-primary/10 text-primary hover:bg-primary/10">+{h.xp_awarded} XP</Badge>
+                      <Badge className="bg-primary/10 text-primary hover:bg-primary/10">
+                        +{h.xp_awarded} XP
+                      </Badge>
                     </div>
                   </li>
                 );
               })}
             </ol>
-          </section>
-        )}
+          )}
+        </section>
 
         {/* Favorite categories */}
         {topCategories.length > 0 && (
