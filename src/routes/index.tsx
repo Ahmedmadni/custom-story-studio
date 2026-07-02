@@ -28,6 +28,7 @@ import { OccasionStrip } from "@/components/OccasionStrip";
 import { ParentReviewsSection } from "@/components/ParentReviewsSection";
 import { PortfolioGallery } from "@/components/PortfolioGallery";
 import { RecentActivityTicker } from "@/components/RecentActivityTicker";
+import { TrustBadges } from "@/components/TrustBadges";
 import { TrustCounters } from "@/components/TrustCounters";
 import { WaitingListStatus } from "@/components/WaitingListStatus";
 import { Button } from "@/components/ui/button";
@@ -230,6 +231,9 @@ function Index() {
 
       {/* ============ TRUST COUNTERS ============ */}
       <TrustCounters />
+      <div className="container mx-auto -mt-2 px-4 pb-2">
+        <TrustBadges />
+      </div>
 
       {/* ============ FEATURE ICONS (4 cards) ============ */}
       <section className="container mx-auto -mt-6 px-4">

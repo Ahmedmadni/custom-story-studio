@@ -112,9 +112,14 @@ function PaymentReturnPage() {
               <p className="mt-2 text-muted-foreground">
                 لم نتلقَّ تأكيدًا للدفع. يمكنك المحاولة مرة أخرى أو اختيار طريقة دفع بديلة.
               </p>
-              <Button asChild className="mt-6 rounded-full font-bold">
-                <Link to="/cart">العودة للسلة</Link>
-              </Button>
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <Button asChild className="rounded-full font-bold">
+                  <Link to="/cart">العودة للسلة</Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-full font-bold">
+                  <Link to="/contact">تواصل مع الدعم</Link>
+                </Button>
+              </div>
             </>
           )}
         </div>

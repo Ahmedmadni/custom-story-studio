@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { TrustBadges } from "@/components/TrustBadges";
 import { WaitingListStatus } from "@/components/WaitingListStatus";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -788,6 +789,7 @@ function CheckoutPage() {
           {ADMIN_WHATSAPP.replace(/^20/, "0")}
         </p>
         <WaitingListStatus className="mt-4" />
+        <TrustBadges className="mt-6" />
       </main>
       <Footer />
     </div>

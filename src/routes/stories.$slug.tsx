@@ -4,6 +4,7 @@ import { BookOpen, Check, Heart, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 
 import { DeliveryTimer } from "@/components/DeliveryTimer";
+import { TrustBadges } from "@/components/TrustBadges";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Badge } from "@/components/ui/badge";
@@ -206,6 +207,7 @@ function StoryPreview() {
                 <span className="opacity-70">🖨️ النسخة المطبوعة قريباً</span>
               </div>
               <DeliveryTimer hours={trust?.avgDeliveryHours ?? 24} className="mt-3" />
+              <TrustBadges className="mt-4 justify-start" />
 
               {pages.length > 0 && (
                 <div className="mt-10">
