@@ -36,7 +36,12 @@ export const adminListUsers = createServerFn({ method: "POST" })
     await assertAdmin(context as unknown as AuthedContext);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const all: Array<{ id: string; email: string | undefined; created_at: string; last_sign_in_at: string | null | undefined }> = [];
+    const all: Array<{
+      id: string;
+      email: string | undefined;
+      created_at: string;
+      last_sign_in_at: string | null | undefined;
+    }> = [];
     let page = 1;
     // page until empty
     while (true) {
@@ -58,8 +63,14 @@ export const adminListUsers = createServerFn({ method: "POST" })
 
     const ids = all.map((u) => u.id);
     const [rolesRes, ordersRes] = await Promise.all([
-      supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
-      supabaseAdmin.from("orders").select("user_id").in("user_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
+      supabaseAdmin
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
+      supabaseAdmin
+        .from("orders")
+        .select("user_id")
+        .in("user_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
     ]);
 
     const rolesByUser = new Map<string, Array<"admin" | "user">>();
@@ -95,12 +106,23 @@ export const adminGrantRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => RoleSchema.parse(data))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context as unknown as AuthedContext);
+    const ctx = context as unknown as AuthedContext;
+    await assertAdmin(ctx);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("user_roles")
       .upsert({ user_id: data.userId, role: data.role }, { onConflict: "user_id,role" });
     if (error) throw new Error(error.message);
+
+    const { logAdminAction } = await import("@/lib/audit/logAdminAction.server");
+    await logAdminAction({
+      actorId: ctx.userId,
+      action: "grant_role",
+      targetType: "user",
+      targetId: data.userId,
+      metadata: { role: data.role },
+    });
+
     return { ok: true };
   });
 
@@ -120,5 +142,15 @@ export const adminRevokeRole = createServerFn({ method: "POST" })
       .eq("user_id", data.userId)
       .eq("role", data.role);
     if (error) throw new Error(error.message);
+
+    const { logAdminAction } = await import("@/lib/audit/logAdminAction.server");
+    await logAdminAction({
+      actorId: ctx.userId,
+      action: "revoke_role",
+      targetType: "user",
+      targetId: data.userId,
+      metadata: { role: data.role },
+    });
+
     return { ok: true };
   });

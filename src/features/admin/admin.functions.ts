@@ -240,6 +240,14 @@ export const adminVerifyPayment = createServerFn({ method: "POST" })
       console.error("rewardReferralAfterFirstVerifiedOrder failed", e);
     }
 
+    const { logAdminAction } = await import("@/lib/audit/logAdminAction.server");
+    await logAdminAction({
+      actorId: context.userId,
+      action: "verify_payment",
+      targetType: "order",
+      targetId: data.orderId,
+    });
+
     return { ok: true };
   });
 
@@ -263,6 +271,16 @@ export const adminRejectPayment = createServerFn({ method: "POST" })
       })
       .eq("id", data.orderId);
     if (error) throw new Error("تعذر رفض الدفع");
+
+    const { logAdminAction } = await import("@/lib/audit/logAdminAction.server");
+    await logAdminAction({
+      actorId: context.userId,
+      action: "reject_payment",
+      targetType: "order",
+      targetId: data.orderId,
+      metadata: { reason: data.reason },
+    });
+
     return { ok: true };
   });
 
