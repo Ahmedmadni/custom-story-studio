@@ -197,6 +197,7 @@ function Index() {
               alt="طفل سعيد يقرأ كتاباً سحرياً مع روبوت كيدزي"
               width={1280}
               height={1024}
+              fetchPriority="high"
               className="relative mx-auto w-full max-w-[640px] drop-shadow-[0_25px_50px_rgba(108,77,255,0.25)]"
             />
             {heroStory && (
