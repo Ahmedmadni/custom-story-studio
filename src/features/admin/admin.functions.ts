@@ -223,6 +223,12 @@ export const adminVerifyPayment = createServerFn({ method: "POST" })
         payment_status: "verified",
         payment_verified_by: context.userId,
         payment_verified_at: new Date().toISOString(),
+        // للطلبات المرسَلة بإيصال (Vodafone Cash)، paid_at كان يُضبط عند رفع
+        // الإيصال لا عند التأكيد الفعلي — ما يجعل تقرير "إيرادات اليوم" في
+        // /admin/health (يُصفّي على paid_at) يُفوّت طلبات أُكِّدت اليوم لكن
+        // رُفع إيصالها يوماً سابقاً. نضبطها هنا لتطابق سلوك Kashier/الطلبات
+        // المعتمدة مباشرة من الأدمن (paid_at = لحظة التأكيد الفعلية دائماً).
+        paid_at: new Date().toISOString(),
         payment_rejection_reason: null,
         status: "approved",
       })
