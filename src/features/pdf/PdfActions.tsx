@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { saveStoryPdf } from "@/features/pdf/pdf.functions";
-import { generateStoryPdf, type PdfStoryPage } from "@/features/pdf/storyPdf";
+import type { PdfStoryPage } from "@/features/pdf/storyPdf";
 import { shareWaLink } from "@/features/orders/whatsapp";
 
 interface PdfActionsProps {
@@ -54,11 +54,21 @@ export function PdfActions({
   const cacheRef = useRef<{ sig: string; blob: Blob } | null>(null);
   const savedSigRef = useRef<string | null>(null);
 
-  const sig = JSON.stringify([title, childName, language, gifterName, gifterRelation, ...pages.map((p) => [p.n, p.imageUrl ?? ""])]);
+  const sig = JSON.stringify([
+    title,
+    childName,
+    language,
+    gifterName,
+    gifterRelation,
+    ...pages.map((p) => [p.n, p.imageUrl ?? ""]),
+  ]);
   const fileName = `${title.replace(/[\\/:*?"<>|]/g, "")}.pdf`;
 
   const ensurePdf = async (): Promise<Blob> => {
     if (cacheRef.current?.sig === sig) return cacheRef.current.blob;
+    // مُحمَّل عند الطلب فقط: jspdf + html2canvas-pro تضيف ~620 كيلوبايت خام
+    // لا داعي لتحميلها إلا عند ضغط المستخدم فعلياً على تحميل/مشاركة PDF.
+    const { generateStoryPdf } = await import("@/features/pdf/storyPdf");
     const blob = await generateStoryPdf({
       title,
       childName,
@@ -75,7 +85,6 @@ export function PdfActions({
     return blob;
   };
 
-
   const saveToAccount = async (blob: Blob) => {
     if (savedSigRef.current === sig) return;
     try {
@@ -84,9 +93,7 @@ export function PdfActions({
       savedSigRef.current = sig;
       toast.success("📁 تم حفظ نسخة PDF في حسابك");
     } catch (e) {
-      toast.error(
-        e instanceof Error ? e.message : "تعذر حفظ النسخة في حسابك — الملف متاح للتحميل",
-      );
+      toast.error(e instanceof Error ? e.message : "تعذر حفظ النسخة في حسابك — الملف متاح للتحميل");
     }
   };
 

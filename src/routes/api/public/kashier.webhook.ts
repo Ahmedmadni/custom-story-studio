@@ -22,11 +22,13 @@ function verifyKashierSignature(
 ): boolean {
   // Kashier signs concatenation of "key=value&" pairs listed in signatureKeys
   const keysRaw = data.signatureKeys;
-  const keys = Array.isArray(keysRaw) ? (keysRaw as string[]) : String(keysRaw ?? "").split(",").filter(Boolean);
+  const keys = Array.isArray(keysRaw)
+    ? (keysRaw as string[])
+    : String(keysRaw ?? "")
+        .split(",")
+        .filter(Boolean);
   if (keys.length === 0) return false;
-  const queryString = keys
-    .map((k) => `${k}=${data[k] ?? ""}`)
-    .join("&");
+  const queryString = keys.map((k) => `${k}=${data[k] ?? ""}`).join("&");
   const expected = createHmac("sha256", secret).update(queryString).digest("hex");
   try {
     const a = Buffer.from(signature, "hex");
@@ -81,7 +83,6 @@ export const Route = createFileRoute("/api/public/kashier/webhook")({
           raw_payload: body as never,
         });
 
-
         if (!sigOk) {
           return new Response("Invalid signature", { status: 401, headers: corsHeaders });
         }
@@ -105,7 +106,7 @@ export const Route = createFileRoute("/api/public/kashier/webhook")({
         }
 
         if (status === "SUCCESS" || status === "PAID" || status === "CAPTURED") {
-          const { error } = await supabaseAdmin
+          const { data: verifiedOrders, error } = await supabaseAdmin
             .from("orders")
             .update({
               payment_status: "verified",
@@ -113,10 +114,23 @@ export const Route = createFileRoute("/api/public/kashier/webhook")({
               kashier_transaction_id: kashierTxId || null,
               kashier_payload: body as never,
             })
-            .eq("kashier_order_id", kashierOrderId);
+            .eq("kashier_order_id", kashierOrderId)
+            .select("user_id");
           if (error) {
             console.error("kashier mark verified failed", error);
             return new Response("DB error", { status: 500, headers: corsHeaders });
+          }
+
+          // مكافأة الإحالة (إن وُجدت) بعد أول طلب مؤكَّد — لا تُفشل الويبهوك لو حدث خطأ هنا
+          try {
+            const { rewardReferralAfterFirstVerifiedOrder } =
+              await import("@/features/referrals/referrals.functions");
+            const userIds = new Set((verifiedOrders ?? []).map((o) => o.user_id));
+            for (const userId of userIds) {
+              await rewardReferralAfterFirstVerifiedOrder(userId);
+            }
+          } catch (e) {
+            console.error("rewardReferralAfterFirstVerifiedOrder failed", e);
           }
         } else if (status === "FAILED" || status === "DECLINED" || status === "EXPIRED") {
           await supabaseAdmin
@@ -129,7 +143,6 @@ export const Route = createFileRoute("/api/public/kashier/webhook")({
             .eq("kashier_order_id", kashierOrderId)
             .neq("payment_status", "verified");
         }
-
 
         return new Response("ok", { status: 200, headers: corsHeaders });
       },

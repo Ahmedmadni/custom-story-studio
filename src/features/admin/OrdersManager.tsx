@@ -23,12 +23,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -68,7 +63,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { waLink } from "@/features/orders/whatsapp";
-import { generateStoryPdf, type PdfStoryPage } from "@/features/pdf/storyPdf";
+import type { PdfStoryPage } from "@/features/pdf/storyPdf";
 
 type AdminOrder = {
   id: string;
@@ -101,7 +96,15 @@ type AdminOrder = {
   customBrief: string | null;
 };
 
-type StatusFilter = "all" | "action" | "pending" | "approved" | "generating" | "ready" | "sent" | "rejected";
+type StatusFilter =
+  | "all"
+  | "action"
+  | "pending"
+  | "approved"
+  | "generating"
+  | "ready"
+  | "sent"
+  | "rejected";
 
 const STATUS_TABS: Array<{ v: StatusFilter; label: string }> = [
   { v: "all", label: "الكل" },
@@ -116,7 +119,8 @@ const STATUS_TABS: Array<{ v: StatusFilter; label: string }> = [
 
 function nextStepHint(o: AdminOrder): string {
   if (o.paymentStatus === "receipt_uploaded") return "📥 إيصال دفع بحاجة لمراجعة";
-  if (o.status === "pending" && o.paymentStatus === "verified") return "✅ اعتمد الطلب لبدء التوليد";
+  if (o.status === "pending" && o.paymentStatus === "verified")
+    return "✅ اعتمد الطلب لبدء التوليد";
   if (o.status === "approved" || o.status === "generating")
     return `🎨 توليد الصفحات (${o.donePages}/${o.totalPages})`;
   if (o.status === "ready") return "📤 أرسل القصة للعميل على واتساب";
@@ -127,7 +131,11 @@ function nextStepHint(o: AdminOrder): string {
 }
 
 function needsAction(o: AdminOrder): boolean {
-  return o.paymentStatus === "receipt_uploaded" || o.status === "ready" || (o.status === "pending" && o.paymentStatus === "verified");
+  return (
+    o.paymentStatus === "receipt_uploaded" ||
+    o.status === "ready" ||
+    (o.status === "pending" && o.paymentStatus === "verified")
+  );
 }
 
 export function OrdersManager() {
@@ -158,7 +166,6 @@ export function OrdersManager() {
       setDeleting(null);
     },
   });
-
 
   const filtered = useMemo(() => {
     const list = (orders ?? []) as AdminOrder[];
@@ -192,15 +199,21 @@ export function OrdersManager() {
               key={t.v}
               onClick={() => setFilter(t.v)}
               className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-colors ${
-                filter === t.v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+                filter === t.v
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-secondary"
               }`}
             >
               {t.label}
               {t.v === "all" && counts.all > 0 && (
-                <span className="rounded-full bg-background/30 px-1.5 text-[10px]">{counts.all}</span>
+                <span className="rounded-full bg-background/30 px-1.5 text-[10px]">
+                  {counts.all}
+                </span>
               )}
               {t.v === "action" && counts.action > 0 && (
-                <span className="rounded-full bg-sunny px-1.5 text-[10px] text-sunny-foreground">{counts.action}</span>
+                <span className="rounded-full bg-sunny px-1.5 text-[10px] text-sunny-foreground">
+                  {counts.action}
+                </span>
               )}
             </button>
           ))}
@@ -245,7 +258,13 @@ export function OrdersManager() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       {o.photoUrl ? (
-                        <img src={o.photoUrl} alt="" loading="lazy" decoding="async" className="h-10 w-10 rounded-xl object-cover" />
+                        <img
+                          src={o.photoUrl}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="h-10 w-10 rounded-xl object-cover"
+                        />
                       ) : (
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary">
                           <ImageIcon className="h-4 w-4 text-muted-foreground" />
@@ -253,7 +272,8 @@ export function OrdersManager() {
                       )}
                       <div>
                         <p className="font-bold">
-                          {o.childName}{o.childAge ? ` · ${o.childAge}س` : ""}
+                          {o.childName}
+                          {o.childAge ? ` · ${o.childAge}س` : ""}
                           {o.giftedByName && (
                             <span
                               className="ms-2 rounded-full bg-pink-100 px-2 py-0.5 text-[10px] font-bold text-pink-700"
@@ -280,34 +300,73 @@ export function OrdersManager() {
                           )}
                         </p>
                         <p className="text-xs text-muted-foreground line-clamp-1">
-                          {o.isCustomRequest && !o.templateId ? "طلب مخصص — لم يُولَّد بعد" : o.storyTitle}
+                          {o.isCustomRequest && !o.templateId
+                            ? "طلب مخصص — لم يُولَّد بعد"
+                            : o.storyTitle}
                         </p>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell><StatusBadge status={o.status} /></TableCell>
-                  <TableCell><PaymentBadge status={o.paymentStatus} /></TableCell>
+                  <TableCell>
+                    <StatusBadge status={o.status} />
+                  </TableCell>
+                  <TableCell>
+                    <PaymentBadge status={o.paymentStatus} />
+                  </TableCell>
                   <TableCell className="font-bold text-xs">
                     {o.donePages}/{o.totalPages}
                   </TableCell>
-                  <TableCell className="text-xs" dir="ltr">{o.whatsapp}</TableCell>
+                  <TableCell className="text-xs" dir="ltr">
+                    {o.whatsapp}
+                  </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {new Date(o.createdAt).toLocaleDateString("ar-EG")}
                   </TableCell>
                   <TableCell className="text-xs">
-                    <span className={needsAction(o) ? "font-bold text-primary" : "text-muted-foreground"}>
+                    <span
+                      className={
+                        needsAction(o) ? "font-bold text-primary" : "text-muted-foreground"
+                      }
+                    >
                       {nextStepHint(o)}
                     </span>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Button size="sm" variant="ghost" className="h-8 rounded-full" title="عرض" onClick={(e) => { e.stopPropagation(); setSelected(o); }}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 rounded-full"
+                        title="عرض"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelected(o);
+                        }}
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-8 rounded-full" title="تعديل" onClick={(e) => { e.stopPropagation(); setEditing(o); }}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 rounded-full"
+                        title="تعديل"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditing(o);
+                        }}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-8 rounded-full text-destructive hover:bg-destructive/10" title="حذف" onClick={(e) => { e.stopPropagation(); setDeleting(o); }}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 rounded-full text-destructive hover:bg-destructive/10"
+                        title="حذف"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleting(o);
+                        }}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -336,7 +395,8 @@ export function OrdersManager() {
           <AlertDialogHeader>
             <AlertDialogTitle>حذف الطلب نهائياً؟</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم حذف الطلب «{deleting?.storyTitle} — {deleting?.childName}» وكل صفحاته المولّدة وصورة الطفل وإيصال الدفع. لا يمكن التراجع.
+              سيتم حذف الطلب «{deleting?.storyTitle} — {deleting?.childName}» وكل صفحاته المولّدة
+              وصورة الطفل وإيصال الدفع. لا يمكن التراجع.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -405,11 +465,21 @@ function AdminOrderEditDialog({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <Label>اسم الطفل</Label>
-            <Input value={childName} onChange={(e) => setChildName(e.target.value)} maxLength={40} />
+            <Input
+              value={childName}
+              onChange={(e) => setChildName(e.target.value)}
+              maxLength={40}
+            />
           </div>
           <div>
             <Label>العمر</Label>
-            <Input type="number" min={1} max={14} value={childAge} onChange={(e) => setChildAge(e.target.value)} />
+            <Input
+              type="number"
+              min={1}
+              max={14}
+              value={childAge}
+              onChange={(e) => setChildAge(e.target.value)}
+            />
           </div>
           <div>
             <Label>الواتساب</Label>
@@ -417,33 +487,62 @@ function AdminOrderEditDialog({
           </div>
           <div>
             <Label>السعر (جنيه)</Label>
-            <Input type="number" min={0} value={priceEgp} onChange={(e) => setPriceEgp(e.target.value)} />
+            <Input
+              type="number"
+              min={0}
+              value={priceEgp}
+              onChange={(e) => setPriceEgp(e.target.value)}
+            />
           </div>
           <div>
             <Label>اسم مُهدي القصة</Label>
-            <Input value={giftedByName} onChange={(e) => setGiftedByName(e.target.value)} maxLength={60} />
+            <Input
+              value={giftedByName}
+              onChange={(e) => setGiftedByName(e.target.value)}
+              maxLength={60}
+            />
           </div>
           <div>
             <Label>صلة مُهدي القصة</Label>
-            <Input value={giftedByRelation} onChange={(e) => setGiftedByRelation(e.target.value)} maxLength={40} />
+            <Input
+              value={giftedByRelation}
+              onChange={(e) => setGiftedByRelation(e.target.value)}
+              maxLength={40}
+            />
           </div>
           <div className="md:col-span-2">
             <Label>ملاحظات العميل</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} rows={2} />
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              maxLength={500}
+              rows={2}
+            />
           </div>
           <div className="md:col-span-2">
             <Label>ملاحظات إدارية (داخلية)</Label>
-            <Textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} maxLength={500} rows={2} />
+            <Textarea
+              value={adminNotes}
+              onChange={(e) => setAdminNotes(e.target.value)}
+              maxLength={500}
+              rows={2}
+            />
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" className="rounded-full" onClick={onClose}>إلغاء</Button>
+          <Button variant="outline" className="rounded-full" onClick={onClose}>
+            إلغاء
+          </Button>
           <Button
             className="rounded-full font-bold"
             disabled={save.isPending || !childName.trim() || !whatsapp.trim()}
             onClick={() => save.mutate()}
           >
-            {save.isPending ? <Loader2 className="ms-1 h-4 w-4 animate-spin" /> : <Check className="ms-1 h-4 w-4" />}
+            {save.isPending ? (
+              <Loader2 className="ms-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Check className="ms-1 h-4 w-4" />
+            )}
             حفظ
           </Button>
         </div>
@@ -482,28 +581,47 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
   };
 
   const updatePrefsMutation = useMutation({
-    mutationFn: (patch: { language?: AdminOrder["language"]; photoMode?: AdminOrder["photoMode"] }) =>
-      updatePrefsFn({ data: { orderId: order.id, ...patch } }),
-    onSuccess: () => { toast.success("تم تحديث تفضيلات الطلب"); refresh(); },
+    mutationFn: (patch: {
+      language?: AdminOrder["language"];
+      photoMode?: AdminOrder["photoMode"];
+    }) => updatePrefsFn({ data: { orderId: order.id, ...patch } }),
+    onSuccess: () => {
+      toast.success("تم تحديث تفضيلات الطلب");
+      refresh();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const verifyMutation = useMutation({
     mutationFn: () => verifyFn({ data: { orderId: order.id } }),
-    onSuccess: () => { toast.success("تم تأكيد الدفع ✅"); refresh(); },
+    onSuccess: () => {
+      toast.success("تم تأكيد الدفع ✅");
+      refresh();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const rejectPayMutation = useMutation({
     mutationFn: () => rejectPayFn({ data: { orderId: order.id, reason: rejectReason.trim() } }),
-    onSuccess: () => { toast.success("تم رفض الدفع وإبلاغ العميل"); refresh(); onClose(); },
+    onSuccess: () => {
+      toast.success("تم رفض الدفع وإبلاغ العميل");
+      refresh();
+      onClose();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const statusMutation = useMutation({
-    mutationFn: (status: "approved" | "rejected" | "sent") => setStatusFn({ data: { orderId: order.id, status } }),
+    mutationFn: (status: "approved" | "rejected" | "sent") =>
+      setStatusFn({ data: { orderId: order.id, status } }),
     onSuccess: (_, status) => {
-      toast.success(status === "approved" ? "تمت الموافقة" : status === "sent" ? "تم تحديده كمُرسَل" : "تم الرفض");
+      toast.success(
+        status === "approved"
+          ? "تمت الموافقة"
+          : status === "sent"
+            ? "تم تحديده كمُرسَل"
+            : "تم الرفض",
+      );
       refresh();
       if (status !== "sent") onClose();
     },
@@ -515,7 +633,10 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
       if (!order.templateId) throw new Error("لا يوجد قالب مرتبط بالطلب");
       return approveContentFn({ data: { templateId: order.templateId } });
     },
-    onSuccess: () => { toast.success("تم اعتماد المحتوى ✅"); refresh(); },
+    onSuccess: () => {
+      toast.success("تم اعتماد المحتوى ✅");
+      refresh();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -531,7 +652,10 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
 
   const unpublishMutation = useMutation({
     mutationFn: () => unpublishFn({ data: { orderId: order.id } }),
-    onSuccess: () => { toast.success("تم إلغاء النشر"); refresh(); },
+    onSuccess: () => {
+      toast.success("تم إلغاء النشر");
+      refresh();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -579,10 +703,14 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
       .filter((p) => !!p.imageUrl)
       .map((p) => ({ n: p.pageNumber, text: p.text ?? "", imageUrl: p.imageUrl }))
       .sort((a, b) => a.n - b.n);
-    if (pdfPages.length === 0) { toast.error("لا توجد صفحات مولدة للتصدير"); return; }
+    if (pdfPages.length === 0) {
+      toast.error("لا توجد صفحات مولدة للتصدير");
+      return;
+    }
     setExportingPdf(true);
     setPdfProgress({ done: 0, total: pdfPages.length });
     try {
+      const { generateStoryPdf } = await import("@/features/pdf/storyPdf");
       const blob = await generateStoryPdf({
         title: order.storyTitle,
         childName: order.childName,
@@ -641,13 +769,31 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
           <TabsContent value="info" className="mt-4 space-y-4">
             <div className="flex flex-wrap items-start gap-4">
               {order.photoUrl && (
-                <img src={order.photoUrl} alt="" className="h-28 w-28 rounded-2xl object-cover shadow-md" />
+                <img
+                  src={order.photoUrl}
+                  alt=""
+                  className="h-28 w-28 rounded-2xl object-cover shadow-md"
+                />
               )}
               <div className="flex-1 space-y-2 text-sm">
-                <p><b>الواتساب:</b> <span dir="ltr">{order.whatsapp}</span></p>
-                {order.childAge && <p><b>العمر:</b> {order.childAge} سنوات</p>}
-                {order.heroCharacter && <p><b>الشخصية:</b> 🦸 {order.heroCharacter}</p>}
-                {order.notes && <p><b>ملاحظات العميل:</b> {order.notes}</p>}
+                <p>
+                  <b>الواتساب:</b> <span dir="ltr">{order.whatsapp}</span>
+                </p>
+                {order.childAge && (
+                  <p>
+                    <b>العمر:</b> {order.childAge} سنوات
+                  </p>
+                )}
+                {order.heroCharacter && (
+                  <p>
+                    <b>الشخصية:</b> 🦸 {order.heroCharacter}
+                  </p>
+                )}
+                {order.notes && (
+                  <p>
+                    <b>ملاحظات العميل:</b> {order.notes}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   تم الإنشاء: {new Date(order.createdAt).toLocaleString("ar-EG")}
                 </p>
@@ -658,15 +804,17 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
             {order.isCustomRequest && order.customBrief && (
               <div className="rounded-2xl border-2 border-accent/40 bg-accent/5 p-4 text-sm">
                 <h4 className="mb-2 font-bold">🪄 فكرة العميل للقصة المخصصة</h4>
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">{order.customBrief}</pre>
+                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                  {order.customBrief}
+                </pre>
                 {!order.templateId && (
                   <p className="mt-3 text-xs text-muted-foreground">
-                    لم يُولَّد قالب القصة بعد — افتح <code>/create</code> وأنشئ القصة وفق الفكرة، ثم اربط الطلب يدوياً.
+                    لم يُولَّد قالب القصة بعد — افتح <code>/create</code> وأنشئ القصة وفق الفكرة، ثم
+                    اربط الطلب يدوياً.
                   </p>
                 )}
               </div>
             )}
-
 
             {/* بيانات الإهداء (الأهل / مُهدي القصة) */}
             {(order.giftedByName || order.publishConsent) && (
@@ -674,16 +822,14 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
                 <h4 className="mb-2 font-bold">💝 بيانات الإهداء</h4>
                 {order.giftedByName ? (
                   <p>
-                    <b>مُهدي القصة:</b>{" "}
-                    {order.giftedByRelation ? `${order.giftedByRelation} ` : ""}
+                    <b>مُهدي القصة:</b> {order.giftedByRelation ? `${order.giftedByRelation} ` : ""}
                     {order.giftedByName}
                   </p>
                 ) : (
                   <p className="text-muted-foreground">لا يوجد اسم مُهدي</p>
                 )}
                 <p className="mt-1">
-                  <b>موافقة النشر في «من أعمالنا»:</b>{" "}
-                  {order.publishConsent ? "✅ نعم" : "— لا"}
+                  <b>موافقة النشر في «من أعمالنا»:</b> {order.publishConsent ? "✅ نعم" : "— لا"}
                 </p>
               </div>
             )}
@@ -697,7 +843,11 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
                     className="rounded-full border-2 border-border bg-card px-3 py-1.5 font-semibold"
                     value={order.language}
                     disabled={updatePrefsMutation.isPending}
-                    onChange={(e) => updatePrefsMutation.mutate({ language: e.target.value as AdminOrder["language"] })}
+                    onChange={(e) =>
+                      updatePrefsMutation.mutate({
+                        language: e.target.value as AdminOrder["language"],
+                      })
+                    }
                   >
                     <option value="ar">عربي</option>
                     <option value="en">English</option>
@@ -710,7 +860,11 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
                     className="rounded-full border-2 border-border bg-card px-3 py-1.5 font-semibold"
                     value={order.photoMode}
                     disabled={updatePrefsMutation.isPending}
-                    onChange={(e) => updatePrefsMutation.mutate({ photoMode: e.target.value as AdminOrder["photoMode"] })}
+                    onChange={(e) =>
+                      updatePrefsMutation.mutate({
+                        photoMode: e.target.value as AdminOrder["photoMode"],
+                      })
+                    }
                   >
                     <option value="cartoon">🎨 كرتوني</option>
                     <option value="real">📷 وجه حقيقي</option>
@@ -746,8 +900,17 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
                 مراجعة الدفع — {order.priceEgp} جنيه فودافون كاش
               </h3>
               {order.receiptUrl ? (
-                <a href={order.receiptUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block">
-                  <img src={order.receiptUrl} alt="إيصال الدفع" className="h-48 rounded-xl border bg-card object-contain p-1 shadow hover:shadow-lg" />
+                <a
+                  href={order.receiptUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-block"
+                >
+                  <img
+                    src={order.receiptUrl}
+                    alt="إيصال الدفع"
+                    className="h-48 rounded-xl border bg-card object-contain p-1 shadow hover:shadow-lg"
+                  />
                 </a>
               ) : (
                 <p className="mt-2 text-sm text-muted-foreground">لم يُرفع إيصال بعد</p>
@@ -840,7 +1003,11 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
                     disabled={batchRunning || generating !== null}
                     onClick={() => void generateAll()}
                   >
-                    {batchRunning ? <Loader2 className="ms-1 h-4 w-4 animate-spin" /> : <Wand2 className="ms-1 h-4 w-4" />}
+                    {batchRunning ? (
+                      <Loader2 className="ms-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Wand2 className="ms-1 h-4 w-4" />
+                    )}
                     توليد كل المتبقي
                   </Button>
                 </div>
@@ -848,20 +1015,32 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
                   {pageNumbers.map((n) => {
                     const p = pageMap.get(n);
                     return (
-                      <div key={n} className="overflow-hidden rounded-2xl border-2 border-border bg-secondary/30">
+                      <div
+                        key={n}
+                        className="overflow-hidden rounded-2xl border-2 border-border bg-secondary/30"
+                      >
                         <div className="relative aspect-square">
                           {p?.imageUrl ? (
-                            <img src={p.imageUrl} alt={`صفحة ${n}`} className="h-full w-full object-cover" />
+                            <img
+                              src={p.imageUrl}
+                              alt={`صفحة ${n}`}
+                              className="h-full w-full object-cover"
+                            />
                           ) : (
                             <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                              {generating === n ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : "لم تولد بعد"}
+                              {generating === n ? (
+                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                              ) : (
+                                "لم تولد بعد"
+                              )}
                             </div>
                           )}
                         </div>
                         <div className="flex items-center justify-between p-2">
                           <span className="text-xs font-bold">صفحة {n}</span>
                           <Button
-                            size="sm" variant="outline"
+                            size="sm"
+                            variant="outline"
                             className="h-7 rounded-full text-xs font-bold"
                             disabled={generating !== null || batchRunning}
                             onClick={() => void generateOne(n)}
@@ -886,12 +1065,21 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
                 disabled={exportingPdf || batchRunning || generating !== null || readyCount === 0}
                 onClick={() => void handleAdminExport()}
               >
-                {exportingPdf ? <Loader2 className="ms-1 h-4 w-4 animate-spin" /> : <FileDown className="ms-1 h-4 w-4" />}
+                {exportingPdf ? (
+                  <Loader2 className="ms-1 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="ms-1 h-4 w-4" />
+                )}
                 تصدير PDF
               </Button>
               {(order.status === "ready" || order.status === "sent") && (
-                <Button asChild className="rounded-full bg-grass font-bold text-grass-foreground hover:bg-grass/90"
-                  onClick={() => { if (order.status === "ready") statusMutation.mutate("sent"); }}>
+                <Button
+                  asChild
+                  className="rounded-full bg-grass font-bold text-grass-foreground hover:bg-grass/90"
+                  onClick={() => {
+                    if (order.status === "ready") statusMutation.mutate("sent");
+                  }}
+                >
                   <a href={waLink(order.whatsapp, waMessage)} target="_blank" rel="noreferrer">
                     <MessageCircle className="ms-1 h-4 w-4" /> إرسال عبر الواتساب
                   </a>
@@ -916,14 +1104,24 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {order.publishedSlug && (
-                        <Button asChild size="sm" variant="outline" className="rounded-full font-bold">
-                          <a href={`/stories/${order.publishedSlug}`} target="_blank" rel="noreferrer">
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="outline"
+                          className="rounded-full font-bold"
+                        >
+                          <a
+                            href={`/stories/${order.publishedSlug}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
                             <ExternalLink className="ms-1 h-4 w-4" /> فتح في المكتبة
                           </a>
                         </Button>
                       )}
                       <Button
-                        size="sm" variant="outline"
+                        size="sm"
+                        variant="outline"
                         className="rounded-full font-bold text-destructive"
                         disabled={unpublishMutation.isPending}
                         onClick={() => unpublishMutation.mutate()}
@@ -935,11 +1133,13 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
                 ) : (
                   <div className="mt-3 space-y-3">
                     <p className="text-xs text-muted-foreground">
-                      ستُنشر النسخة الكاملة لـ{order.childName} (الاسم + الصور المولّدة) في تصنيف القالب الأصلي.
+                      ستُنشر النسخة الكاملة لـ{order.childName} (الاسم + الصور المولّدة) في تصنيف
+                      القالب الأصلي.
                     </p>
                     <label className="flex items-start gap-2 text-sm font-semibold">
                       <input
-                        type="checkbox" checked={consent}
+                        type="checkbox"
+                        checked={consent}
                         onChange={(e) => setConsent(e.target.checked)}
                         className="mt-1 h-4 w-4 accent-primary"
                       />
@@ -947,15 +1147,22 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
                     </label>
                     <Button
                       className="rounded-full bg-primary font-bold text-primary-foreground hover:bg-primary/90"
-                      disabled={!consent || publishMutation.isPending || order.donePages < order.totalPages}
+                      disabled={
+                        !consent || publishMutation.isPending || order.donePages < order.totalPages
+                      }
                       onClick={() => publishMutation.mutate()}
                     >
-                      {publishMutation.isPending ? <Loader2 className="ms-1 h-4 w-4 animate-spin" /> : <Globe className="ms-1 h-4 w-4" />}
+                      {publishMutation.isPending ? (
+                        <Loader2 className="ms-1 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Globe className="ms-1 h-4 w-4" />
+                      )}
                       نشر في المكتبة
                     </Button>
                     {order.donePages < order.totalPages && (
                       <p className="text-xs text-amber-700">
-                        اكتمل {order.donePages}/{order.totalPages} صفحة فقط — أكمل التوليد قبل النشر.
+                        اكتمل {order.donePages}/{order.totalPages} صفحة فقط — أكمل التوليد قبل
+                        النشر.
                       </p>
                     )}
                   </div>

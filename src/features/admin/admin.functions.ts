@@ -2,7 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { STORY_STYLE_PROMPT, STYLE_NEGATIVE, ageStylePrompt, bakedTitlePrompt } from "@/features/ai/storyStyle";
+import {
+  STORY_STYLE_PROMPT,
+  STYLE_NEGATIVE,
+  ageStylePrompt,
+  bakedTitlePrompt,
+} from "@/features/ai/storyStyle";
 import { parsePages, personalize, type StoryPage } from "@/features/ai/storyTypes";
 
 type AuthedContext = {
@@ -132,7 +137,9 @@ export const adminListOrders = createServerFn({ method: "POST" })
 
     const { data: orders, error } = await supabaseAdmin
       .from("orders")
-      .select("*, story_templates!template_id(id, title, slug, pages, language, content_type), published_template:story_templates!published_template_id(slug)")
+      .select(
+        "*, story_templates!template_id(id, title, slug, pages, language, content_type), published_template:story_templates!published_template_id(slug)",
+      )
       .order("created_at", { ascending: false });
     if (error) throw new Error("تعذر تحميل الطلبات");
 
@@ -173,8 +180,13 @@ export const adminListOrders = createServerFn({ method: "POST" })
           adminNotes: o.admin_notes,
           createdAt: o.created_at,
           storyTitle: o.story_templates?.title ?? "قصة محذوفة",
-          language: ((o.language as string | null) ?? (o.story_templates as { language?: string } | null)?.language ?? "ar") as "ar" | "en" | "bilingual",
-          contentType: (((o.story_templates as { content_type?: string } | null)?.content_type) === "book" ? "book" : "story") as "story" | "book",
+          language: ((o.language as string | null) ??
+            (o.story_templates as { language?: string } | null)?.language ??
+            "ar") as "ar" | "en" | "bilingual",
+          contentType: ((o.story_templates as { content_type?: string } | null)?.content_type ===
+          "book"
+            ? "book"
+            : "story") as "story" | "book",
           templateId: o.template_id,
           photoMode: (o.photo_mode as "cartoon" | "real" | null) ?? "cartoon",
           heroCharacter: (o.hero_character as string | null) ?? null,
@@ -183,12 +195,14 @@ export const adminListOrders = createServerFn({ method: "POST" })
           totalPages,
           donePages,
           publishedToLibraryAt: (o.published_to_library_at as string | null) ?? null,
-          publishedSlug: ((o.published_template as { slug?: string } | null)?.slug) ?? null,
+          publishedSlug: (o.published_template as { slug?: string } | null)?.slug ?? null,
           giftedByName: (o.gifted_by_name as string | null) ?? null,
           giftedByRelation: (o.gifted_by_relation as string | null) ?? null,
           publishConsent: !!(o.publish_consent as boolean | null),
           isCustomRequest: !!(o as { is_custom_request?: boolean }).is_custom_request,
-          customBrief: ((o as { custom_brief?: string | null }).custom_brief ?? null) as string | null,
+          customBrief: ((o as { custom_brief?: string | null }).custom_brief ?? null) as
+            | string
+            | null,
         };
       }),
     );
@@ -203,17 +217,43 @@ export const adminVerifyPayment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context as unknown as AuthedContext);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
+    const { data: order, error } = await supabaseAdmin
       .from("orders")
       .update({
         payment_status: "verified",
         payment_verified_by: context.userId,
         payment_verified_at: new Date().toISOString(),
+        // للطلبات المرسَلة بإيصال (Vodafone Cash)، paid_at كان يُضبط عند رفع
+        // الإيصال لا عند التأكيد الفعلي — ما يجعل تقرير "إيرادات اليوم" في
+        // /admin/health (يُصفّي على paid_at) يُفوّت طلبات أُكِّدت اليوم لكن
+        // رُفع إيصالها يوماً سابقاً. نضبطها هنا لتطابق سلوك Kashier/الطلبات
+        // المعتمدة مباشرة من الأدمن (paid_at = لحظة التأكيد الفعلية دائماً).
+        paid_at: new Date().toISOString(),
         payment_rejection_reason: null,
         status: "approved",
       })
-      .eq("id", data.orderId);
+      .eq("id", data.orderId)
+      .select("user_id")
+      .single();
     if (error) throw new Error("تعذر تأكيد الدفع");
+
+    // مكافأة الإحالة (إن وُجدت) بعد أول طلب مؤكَّد — لا تُفشل تأكيد الدفع لو حدث خطأ هنا
+    try {
+      const { rewardReferralAfterFirstVerifiedOrder } =
+        await import("@/features/referrals/referrals.functions");
+      await rewardReferralAfterFirstVerifiedOrder(order.user_id);
+    } catch (e) {
+      console.error("rewardReferralAfterFirstVerifiedOrder failed", e);
+    }
+
+    const { logAdminAction } = await import("@/lib/audit/logAdminAction.server");
+    await logAdminAction({
+      actorId: context.userId,
+      action: "verify_payment",
+      targetType: "order",
+      targetId: data.orderId,
+    });
+
     return { ok: true };
   });
 
@@ -237,6 +277,16 @@ export const adminRejectPayment = createServerFn({ method: "POST" })
       })
       .eq("id", data.orderId);
     if (error) throw new Error("تعذر رفض الدفع");
+
+    const { logAdminAction } = await import("@/lib/audit/logAdminAction.server");
+    await logAdminAction({
+      actorId: context.userId,
+      action: "reject_payment",
+      targetType: "order",
+      targetId: data.orderId,
+      metadata: { reason: data.reason },
+    });
+
     return { ok: true };
   });
 
@@ -280,10 +330,7 @@ export const adminUpdateOrderPreferences = createServerFn({ method: "POST" })
     if (data.language) patch.language = data.language;
     if (data.photoMode) patch.photo_mode = data.photoMode;
     if (Object.keys(patch).length === 0) return { ok: true };
-    const { error } = await supabaseAdmin
-      .from("orders")
-      .update(patch)
-      .eq("id", data.orderId);
+    const { error } = await supabaseAdmin.from("orders").update(patch).eq("id", data.orderId);
     if (error) throw new Error("تعذر تحديث تفضيلات الطلب");
     return { ok: true };
   });
@@ -316,7 +363,8 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
     if (data.notes !== undefined) patch.notes = data.notes?.trim() || null;
     if (data.adminNotes !== undefined) patch.admin_notes = data.adminNotes?.trim() || null;
     if (data.giftedByName !== undefined) patch.gifted_by_name = data.giftedByName?.trim() || null;
-    if (data.giftedByRelation !== undefined) patch.gifted_by_relation = data.giftedByRelation?.trim() || null;
+    if (data.giftedByRelation !== undefined)
+      patch.gifted_by_relation = data.giftedByRelation?.trim() || null;
     if (data.priceEgp !== undefined) patch.price_egp = data.priceEgp;
     if (Object.keys(patch).length === 0) return { ok: true };
     const { error } = await supabaseAdmin
@@ -358,11 +406,11 @@ export const adminDeleteOrder = createServerFn({ method: "POST" })
     if (error) throw new Error("تعذر حذف الطلب");
 
     const removals: Array<{ bucket: string; path: string }> = [];
-    if (order?.child_photo_path) removals.push({ bucket: "child-photos", path: order.child_photo_path });
-    if (order?.receipt_path) removals.push({ bucket: "payment-receipts", path: order.receipt_path });
-    await Promise.all(
-      removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])),
-    );
+    if (order?.child_photo_path)
+      removals.push({ bucket: "child-photos", path: order.child_photo_path });
+    if (order?.receipt_path)
+      removals.push({ bucket: "payment-receipts", path: order.receipt_path });
+    await Promise.all(removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])));
     return { ok: true };
   });
 
@@ -390,10 +438,7 @@ export const updateMyOrderPreferences = createServerFn({ method: "POST" })
     if (data.language) patch.language = data.language;
     if (data.photoMode) patch.photo_mode = data.photoMode;
     if (Object.keys(patch).length === 0) return { ok: true };
-    const { error } = await supabaseAdmin
-      .from("orders")
-      .update(patch)
-      .eq("id", data.orderId);
+    const { error } = await supabaseAdmin.from("orders").update(patch).eq("id", data.orderId);
     if (error) throw new Error("تعذر تحديث تفضيلاتك");
     return { ok: true };
   });
@@ -470,7 +515,8 @@ export const updateMyOrder = createServerFn({ method: "POST" })
       .eq("id", data.orderId)
       .single();
     const isCustom = Boolean(
-      (orderTpl as { story_templates?: { is_custom?: boolean } } | null)?.story_templates?.is_custom,
+      (orderTpl as { story_templates?: { is_custom?: boolean } } | null)?.story_templates
+        ?.is_custom,
     );
     const { pricePerPages, PRINT_COPY_PRICE_EGP } = await import("@/features/cart/pricing");
     const base = pricePerPages(data.pagesCount, isCustom);
@@ -512,15 +558,21 @@ export const updateMyOrder = createServerFn({ method: "POST" })
 
     // نظافة: نحذف الملفات القديمة لو تم استبدالها
     const removals: Array<{ bucket: string; path: string }> = [];
-    if (data.newChildPhotoPath && existing.child_photo_path && existing.child_photo_path !== data.newChildPhotoPath) {
+    if (
+      data.newChildPhotoPath &&
+      existing.child_photo_path &&
+      existing.child_photo_path !== data.newChildPhotoPath
+    ) {
       removals.push({ bucket: "child-photos", path: existing.child_photo_path });
     }
-    if (data.newReceiptPath && existing.receipt_path && existing.receipt_path !== data.newReceiptPath) {
+    if (
+      data.newReceiptPath &&
+      existing.receipt_path &&
+      existing.receipt_path !== data.newReceiptPath
+    ) {
       removals.push({ bucket: "payment-receipts", path: existing.receipt_path });
     }
-    await Promise.all(
-      removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])),
-    );
+    await Promise.all(removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])));
 
     return { ok: true };
   });
@@ -534,10 +586,7 @@ export const deleteMyOrder = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const existing = await assertOrderEditable(supabaseAdmin, data.orderId, context.userId);
-    const { error } = await supabaseAdmin
-      .from("orders")
-      .delete()
-      .eq("id", data.orderId);
+    const { error } = await supabaseAdmin.from("orders").delete().eq("id", data.orderId);
     if (error) throw new Error("تعذر حذف الطلب");
     // نظافة ملفات
     const removals: Array<{ bucket: string; path: string }> = [];
@@ -545,9 +594,7 @@ export const deleteMyOrder = createServerFn({ method: "POST" })
       removals.push({ bucket: "child-photos", path: existing.child_photo_path });
     if (existing.receipt_path)
       removals.push({ bucket: "payment-receipts", path: existing.receipt_path });
-    await Promise.all(
-      removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])),
-    );
+    await Promise.all(removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])));
     return { ok: true };
   });
 
@@ -650,7 +697,6 @@ async function ensureTemplateMatchesOrderPages(
   return merged;
 }
 
-
 /**
  * توليد صفحة قصة مخصصة: يحول صورة الطفل الحقيقية إلى بطل كرتوني ثلاثي الأبعاد
  * داخل مشهد الصفحة — بالنمط المعتمد Children's Cartoon Style 3D.
@@ -714,9 +760,10 @@ export const adminGeneratePage = createServerFn({ method: "POST" })
       .createSignedUrl(refFile, 600);
     const refUrl = signedRef?.signedUrl ?? null;
 
-    const faceBlock = photoMode === "real"
-      ? `Keep the child's REAL face from PHOTO (image #1) unchanged — same exact facial features, skin, eyes, hair — and composite it naturally onto a 3D animated cartoon body and environment (Superman / Tom & Jerry style: real face on cartoon scene). The face stays photoreal; everything else is fully 3D cartoon.`
-      : `Transform the real child from the attached PHOTO (image #1) into an adorable 3D cartoon hero ${heroLabel} character. Keep the child's face clearly recognizable (same hair color and style, eye color, skin tone, facial features) but rendered as a beautiful enhanced 3D cartoon character like a Pixar movie star, with body proportions, outfit and overall maturity matching the child's real age.`;
+    const faceBlock =
+      photoMode === "real"
+        ? `Keep the child's REAL face from PHOTO (image #1) unchanged — same exact facial features, skin, eyes, hair — and composite it naturally onto a 3D animated cartoon body and environment (Superman / Tom & Jerry style: real face on cartoon scene). The face stays photoreal; everything else is fully 3D cartoon.`
+        : `Transform the real child from the attached PHOTO (image #1) into an adorable 3D cartoon hero ${heroLabel} character. Keep the child's face clearly recognizable (same hair color and style, eye color, skin tone, facial features) but rendered as a beautiful enhanced 3D cartoon character like a Pixar movie star, with body proportions, outfit and overall maturity matching the child's real age.`;
 
     const heroBlock = heroCharacter
       ? `\nThe child is dressed and styled as ${heroCharacter} (costume, colors, signature accessories) — keep the child's own face; ${heroCharacter} provides only the outfit/theme inspiration.`
@@ -731,7 +778,8 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
 
     const imagePath = `${data.orderId}/page-${data.pageNumber}.png`;
     const providerErrors: string[] = [];
-    const replicateKey = process.env.REPLICATE_API_KEY || process.env.LOVABLE_CONNECTOR_REPLICATE_API_KEY;
+    const replicateKey =
+      process.env.REPLICATE_API_KEY || process.env.LOVABLE_CONNECTOR_REPLICATE_API_KEY;
 
     if (page.image_path && replicateKey && key) {
       const { data: signedTemplateScene } = await supabaseAdmin.storage
@@ -811,12 +859,8 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
         const mime = photoRes.headers.get("content-type") || "image/png";
 
         const parts: Array<
-          | { text: string }
-          | { inline_data: { mime_type: string; data: string } }
-        > = [
-          { text: prompt },
-          { inline_data: { mime_type: mime, data: photoB64 } },
-        ];
+          { text: string } | { inline_data: { mime_type: string; data: string } }
+        > = [{ text: prompt }, { inline_data: { mime_type: mime, data: photoB64 } }];
         if (refUrl) {
           try {
             const refRes = await fetch(refUrl);
@@ -842,7 +886,9 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
         if (geminiRes.ok) {
           const gj = (await geminiRes.json()) as {
             candidates?: {
-              content?: { parts?: { inline_data?: { data?: string }; inlineData?: { data?: string } }[] };
+              content?: {
+                parts?: { inline_data?: { data?: string }; inlineData?: { data?: string } }[];
+              };
             }[];
           };
           const respParts = gj.candidates?.[0]?.content?.parts ?? [];
@@ -869,8 +915,7 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
     if (!base64 && key) {
       providerUsed = "lovable";
       const lovableContent: Array<
-        | { type: "text"; text: string }
-        | { type: "image_url"; image_url: { url: string } }
+        { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }
       > = [
         { type: "text", text: prompt },
         { type: "image_url", image_url: { url: signedPhoto.signedUrl } },
@@ -942,7 +987,6 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
       }
     }
 
-
     // (تمت ترقية Gemini إلى المزود الأساسي في الأعلى)
 
     // Fallback 3: Stability AI (Stable Diffusion 3) — text-to-image
@@ -956,17 +1000,14 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
         form.append("aspect_ratio", "1:1");
         form.append("model", "sd3.5-large");
 
-        const stabRes = await fetch(
-          "https://api.stability.ai/v2beta/stable-image/generate/sd3",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
-              Accept: "image/*",
-            },
-            body: form,
+        const stabRes = await fetch("https://api.stability.ai/v2beta/stable-image/generate/sd3", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
+            Accept: "image/*",
           },
-        );
+          body: form,
+        });
 
         if (stabRes.ok) {
           const buf = Buffer.from(await stabRes.arrayBuffer());
@@ -993,16 +1034,13 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
           "Content-Type": "application/json",
         };
 
-        const createRes = await fetch(
-          `${GW}/models/black-forest-labs/flux-schnell/predictions`,
-          {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              input: { prompt, aspect_ratio: "1:1", output_format: "png", num_outputs: 1 },
-            }),
-          },
-        );
+        const createRes = await fetch(`${GW}/models/black-forest-labs/flux-schnell/predictions`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            input: { prompt, aspect_ratio: "1:1", output_format: "png", num_outputs: 1 },
+          }),
+        });
 
         if (!createRes.ok) {
           const body = await createRes.text().catch(() => "");
@@ -1061,7 +1099,9 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
     }
 
     let bytes = Buffer.from(base64, "base64");
-    console.log(`[generate-page] provider=${providerUsed} order=${data.orderId} page=${data.pageNumber}`);
+    console.log(
+      `[generate-page] provider=${providerUsed} order=${data.orderId} page=${data.pageNumber}`,
+    );
 
     const { error: uploadErr } = await supabaseAdmin.storage
       .from("story-pages")
@@ -1185,16 +1225,20 @@ export const adminGetUsageStats = createServerFn({ method: "POST" })
 
     const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [{ count: imagesAll }, { count: images30d }, { count: ordersAll }, { count: templatesAll }] =
-      await Promise.all([
-        supabaseAdmin.from("generated_pages").select("id", { count: "exact", head: true }),
-        supabaseAdmin
-          .from("generated_pages")
-          .select("id", { count: "exact", head: true })
-          .gte("created_at", since30d),
-        supabaseAdmin.from("orders").select("id", { count: "exact", head: true }),
-        supabaseAdmin.from("story_templates").select("id", { count: "exact", head: true }),
-      ]);
+    const [
+      { count: imagesAll },
+      { count: images30d },
+      { count: ordersAll },
+      { count: templatesAll },
+    ] = await Promise.all([
+      supabaseAdmin.from("generated_pages").select("id", { count: "exact", head: true }),
+      supabaseAdmin
+        .from("generated_pages")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", since30d),
+      supabaseAdmin.from("orders").select("id", { count: "exact", head: true }),
+      supabaseAdmin.from("story_templates").select("id", { count: "exact", head: true }),
+    ]);
 
     const totalImages = imagesAll ?? 0;
     const imagesLast30d = images30d ?? 0;
@@ -1223,11 +1267,9 @@ export const adminGetUsageStats = createServerFn({ method: "POST" })
     };
   });
 
-
 // ============================================================
 // إدارة القوالب من لوحة التحكم — قراءة، تعديل، ورفع/توليد الصور
 // ============================================================
-
 
 export const adminListTemplates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -1236,7 +1278,9 @@ export const adminListTemplates = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("story_templates")
-      .select("id, slug, title, summary, category, age_range, content_type, language, is_published, is_custom, approved_at, admin_approved_at, cover_url, pages, created_at")
+      .select(
+        "id, slug, title, summary, category, age_range, content_type, language, is_published, is_custom, approved_at, admin_approved_at, cover_url, pages, created_at",
+      )
       .order("created_at", { ascending: false });
     if (error) throw new Error("تعذر تحميل القوالب");
     return (data ?? []).map((t) => ({
@@ -1442,11 +1486,18 @@ Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
         );
         if (gRes.ok) {
           const gj = (await gRes.json()) as {
-            candidates?: { content?: { parts?: { inline_data?: { data?: string }; inlineData?: { data?: string } }[] } }[];
+            candidates?: {
+              content?: {
+                parts?: { inline_data?: { data?: string }; inlineData?: { data?: string } }[];
+              };
+            }[];
           };
           for (const p of gj.candidates?.[0]?.content?.parts ?? []) {
             const d = p.inline_data?.data ?? p.inlineData?.data;
-            if (d) { base64 = d; break; }
+            if (d) {
+              base64 = d;
+              break;
+            }
           }
         } else {
           console.warn("Gemini regen tpl failed", gRes.status, await gRes.text().catch(() => ""));
@@ -1478,7 +1529,8 @@ Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
       }
     }
 
-    if (!base64) throw new Error("تعذر توليد الصورة من Gemini ولا Lovable AI — تحقق من المفاتيح/الرصيد");
+    if (!base64)
+      throw new Error("تعذر توليد الصورة من Gemini ولا Lovable AI — تحقق من المفاتيح/الرصيد");
     const bytes = Buffer.from(base64, "base64");
 
     const imagePath = `templates/${data.templateId}/page-${data.pageNumber}.png`;
@@ -1568,8 +1620,12 @@ ${data.instruction ? `تعليمات إضافية: ${data.instruction}` : ""}`;
     if (!res.ok) throw new Error("تعذر توليد النص");
     const j = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     const raw = j.choices?.[0]?.message?.content ?? "";
-    const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
-    const s = cleaned.indexOf("{"), e = cleaned.lastIndexOf("}");
+    const cleaned = raw
+      .replace(/```json/gi, "")
+      .replace(/```/g, "")
+      .trim();
+    const s = cleaned.indexOf("{"),
+      e = cleaned.lastIndexOf("}");
     if (s < 0 || e < 0) throw new Error("الرد غير صالح");
     const parsed = JSON.parse(cleaned.slice(s, e + 1)) as Record<string, string>;
 
@@ -1646,7 +1702,6 @@ export const adminDeleteTemplate = createServerFn({ method: "POST" })
     if (error) throw new Error("تعذر حذف القالب");
     return { ok: true };
   });
-
 
 const PublishOrderInput = z.object({ orderId: z.string().uuid() });
 
@@ -1783,7 +1838,8 @@ export const adminUnpublishOrderStory = createServerFn({ method: "POST" })
       .select("published_template_id")
       .eq("id", data.orderId)
       .single();
-    const publishedId = (order as { published_template_id: string | null } | null)?.published_template_id;
+    const publishedId = (order as { published_template_id: string | null } | null)
+      ?.published_template_id;
     if (publishedId) {
       await supabaseAdmin.from("story_templates").delete().eq("id", publishedId);
     }

@@ -29,7 +29,11 @@ function ChildDetailPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
-  const { data: child, isLoading } = useQuery({
+  const {
+    data: child,
+    isLoading,
+    error: childError,
+  } = useQuery({
     queryKey: ["child", id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -40,6 +44,7 @@ function ChildDetailPage() {
       if (error) throw error;
       return data;
     },
+    retry: false,
   });
 
   const { data: history } = useQuery({
@@ -69,6 +74,27 @@ function ChildDetailPage() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "تعذّر الحذف"),
   });
+
+  if (childError) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <div className="container mx-auto max-w-2xl px-4 py-20">
+          <EmptyState
+            icon={<BookOpen className="h-7 w-7" />}
+            title="لم نجد ملف هذا الطفل"
+            description="ربما تم حذفه، أو أن الرابط غير صحيح."
+            action={
+              <Button asChild className="rounded-full font-bold">
+                <Link to="/my-children">العودة لملفات أطفالي</Link>
+              </Button>
+            }
+          />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (isLoading || !child) {
     return (
