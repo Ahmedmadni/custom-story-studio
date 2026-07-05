@@ -127,21 +127,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "https://storage.googleapis.com/gpt-engineer-file-uploads/sHg6QnS04TcmbXVlhYYOOD3JhZB2/social-images/social-1782076247789-ChatGPT_Image_Jun_22,_2026,_12_10_40_AM.webp",
       },
-    ],
-    links: [
-      { rel: "icon", type: "image/png", href: "/favicon.png" },
-      { rel: "stylesheet", href: appCss },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&family=Alexandria:wght@400;600;700;800&family=Kufam:wght@400;700;900&display=swap",
-      },
-    ],
-    scripts: [
-      {
-        attrs: { type: "application/ld+json" },
-        children: JSON.stringify({
+        "script:ld+json": {
           "@context": "https://schema.org",
           "@type": "Organization",
           name: "Kidzy — كيدزي",
@@ -154,16 +141,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
             areaServed: "EG",
             availableLanguage: ["ar", "en"],
           },
-        }),
+        },
       },
       {
-        attrs: { type: "application/ld+json" },
-        children: JSON.stringify({
+        "script:ld+json": {
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: "Kidzy — كيدزي",
           url: SITE_URL,
-        }),
+        },
+      },
+    ],
+    links: [
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "stylesheet", href: appCss },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&family=Alexandria:wght@400;600;700;800&family=Kufam:wght@400;700;900&display=swap",
       },
     ],
   }),

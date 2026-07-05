@@ -133,6 +133,7 @@ const SECTIONS: HelpSection[] = [
 
 export const Route = createFileRoute("/help")({
   head: () => ({
+    links: [{ rel: "canonical", href: `${SITE_URL}/help` }],
     meta: [
       { title: "مركز المساعدة — كيدزي" },
       {
@@ -140,12 +141,8 @@ export const Route = createFileRoute("/help")({
         content:
           "إجابات لأكثر أسئلة أهالي كيدزي شيوعاً: كيف تعمل المنصة، التسليم، الدفع، الاسترجاع، وأكثر.",
       },
-    ],
-    links: [{ rel: "canonical", href: `${SITE_URL}/help` }],
-    scripts: [
       {
-        attrs: { type: "application/ld+json" },
-        children: JSON.stringify({
+        "script:ld+json": {
           "@context": "https://schema.org",
           "@type": "FAQPage",
           mainEntity: SECTIONS.flatMap((s) =>
@@ -155,7 +152,7 @@ export const Route = createFileRoute("/help")({
               acceptedAnswer: { "@type": "Answer", text: i.a },
             })),
           ),
-        }),
+        },
       },
     ],
   }),

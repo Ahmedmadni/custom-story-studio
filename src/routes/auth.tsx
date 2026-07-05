@@ -62,6 +62,14 @@ const FEATURES = [
   { icon: Wand2, label: "رسوم كرتونية 3D", cls: "bg-candy/25 text-foreground" },
 ];
 
+/** رسائل Supabase الخام لأخطاء الشبكة (fetch فشل قبل وصول أي رد) تصل بالإنجليزية دائماً */
+function friendlyAuthError(message: string): string {
+  if (/failed to fetch|network|load failed/i.test(message)) {
+    return "تعذر الاتصال بالخادم، تحقق من اتصالك بالإنترنت وحاول مرة أخرى";
+  }
+  return message;
+}
+
 function AuthPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -80,7 +88,9 @@ function AuthPage() {
     setBusy(false);
     if (error) {
       toast.error(
-        error.message.includes("Invalid login") ? "بيانات الدخول غير صحيحة" : error.message,
+        error.message.includes("Invalid login")
+          ? "بيانات الدخول غير صحيحة"
+          : friendlyAuthError(error.message),
       );
     } else {
       toast.success("أهلاً بعودتك! 🎉");
@@ -103,7 +113,7 @@ function AuthPage() {
       toast.error(
         error.message.includes("already registered")
           ? "هذا البريد مسجل بالفعل، جرب تسجيل الدخول"
-          : error.message,
+          : friendlyAuthError(error.message),
       );
     } else {
       toast.success("تم إنشاء الحساب! تفقد بريدك لتأكيد التسجيل 📧");
@@ -132,8 +142,8 @@ function AuthPage() {
           </span>
           <h1 className="mt-4 font-display text-4xl font-extrabold text-primary">كيدزي</h1>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-            منصة تحوّل طفلك إلى بطل قصصه وكتبه التعليمية المصوّرة — بأسلوب كرتوني ثلاثي
-            الأبعاد، جاهزة للتحميل والمشاركة.
+            منصة تحوّل طفلك إلى بطل قصصه وكتبه التعليمية المصوّرة — بأسلوب كرتوني ثلاثي الأبعاد،
+            جاهزة للتحميل والمشاركة.
           </p>
 
           {/* مزايا سريعة */}

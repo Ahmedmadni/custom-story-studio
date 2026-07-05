@@ -24,16 +24,25 @@ export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async () => {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data: templates } = await supabaseAdmin
-          .from("story_templates")
-          .select("slug, updated_at")
-          .eq("is_published", true);
+        // لا نُسقط خريطة الموقع كاملة لو فشل جلب القصص (خطأ اتصال بقاعدة
+        // البيانات، مثلاً) — نُعيد الصفحات الثابتة على الأقل بدل استجابة 500
+        // لمحركات البحث.
+        let templates: Array<{ slug: string; updated_at: string | null }> = [];
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data } = await supabaseAdmin
+            .from("story_templates")
+            .select("slug, updated_at")
+            .eq("is_published", true);
+          templates = data ?? [];
+        } catch (error) {
+          console.error("[sitemap] failed to load published story templates", error);
+        }
 
         const staticUrls = STATIC_PATHS.map(
           (p) => `<url><loc>${xmlEscape(`${SITE_URL}/${p}`)}</loc></url>`,
         );
-        const storyUrls = (templates ?? []).map(
+        const storyUrls = templates.map(
           (t) =>
             `<url><loc>${xmlEscape(`${SITE_URL}/stories/${t.slug}`)}</loc><lastmod>${new Date(
               t.updated_at as string,
