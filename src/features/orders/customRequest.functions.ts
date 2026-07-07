@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { pricePerPages } from "@/features/cart/pricing";
 
 const CustomRequestInput = z.object({
+  childId: z.string().uuid().nullable().optional(),
   childName: z.string().trim().min(1).max(40),
   childNameEn: z.string().trim().max(40).nullable().optional(),
   childAge: z.number().int().min(1).max(14),
@@ -50,6 +51,7 @@ export const submitCustomStoryRequest = createServerFn({ method: "POST" })
         template_id: null,
         is_custom_request: true,
         custom_brief: brief,
+        child_id: data.childId ?? null,
         child_name: data.childName,
         child_name_en: data.childNameEn?.trim() || null,
         child_age: data.childAge,
