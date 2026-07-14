@@ -8,6 +8,7 @@ import { CardShimmer } from "@/components/CardShimmer";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorBlock } from "@/components/ErrorBlock";
 import { FilterChips } from "@/components/FilterChips";
+import { OccasionStrip } from "@/components/OccasionStrip";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
