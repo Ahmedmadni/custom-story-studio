@@ -144,9 +144,12 @@ function StoriesPage() {
           </div>
         )}
 
+        {!occasionKey && <OccasionStrip />}
+
         <div className="mt-6">
           <FilterChips options={[...CATEGORIES]} value={category} onChange={setCategory} />
         </div>
+
 
         {isError ? (
           <ErrorBlock className="mt-10" title="تعذّر تحميل القصص" onRetry={() => void refetch()} />
