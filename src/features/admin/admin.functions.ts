@@ -5,9 +5,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   STORY_STYLE_PROMPT,
   STYLE_NEGATIVE,
+  SHARIA_IMAGE_RULE,
   ageStylePrompt,
   bakedTitlePrompt,
 } from "@/features/ai/storyStyle";
+
 import { parsePages, personalize, type StoryPage } from "@/features/ai/storyTypes";
 
 type AuthedContext = {
