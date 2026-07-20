@@ -435,7 +435,9 @@ export const generatePageImage = createServerFn({ method: "POST" })
       : "";
     const titlePart = page.image_title_en ? `\n${bakedTitlePrompt(page.image_title_en)}` : "";
     const prompt = `${STORY_STYLE_PROMPT}
+${SHARIA_IMAGE_RULE}
 ${LANDSCAPE_COMPOSITION_RULE}
+
 ${WIDE_FRAMING_RULE}
 ${CONSISTENCY_RULE}${agePart}${photoPart}${titlePart}
 Children's storybook page illustration that literally depicts this exact written scene so the image feels like part of the text: ${page.scene}.
