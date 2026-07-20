@@ -14,11 +14,14 @@ import {
   WIDE_FRAMING_RULE,
   CONSISTENCY_RULE,
   QUALITY_RULE,
+  SHARIA_IMAGE_RULE,
+  SHARIA_TEXT_RULE,
   ageStylePrompt,
   bakedTitlePrompt,
   photoModePrompt,
   gifterDedicationPrompt,
 } from "@/features/ai/storyStyle";
+
 
 import { parsePages, type StoryPage } from "@/features/ai/storyTypes";
 
@@ -114,10 +117,12 @@ function buildSystemPrompt(
 - scene يجب أن يصور حرفياً ما يحدث في نص نفس الصفحة بنفس المكان والفعل والشخصيات، ويذكر "the hero child" دائماً.`;
 
   if (contentType === "story") {
-    return `أنت كاتب قصص أطفال محترف متخصص في القصص النبيلة والقيم.
+    return `أنت كاتب قصص أطفال محترف متخصص في القصص النبيلة والقيم الإسلامية.
+${SHARIA_TEXT_RULE}
 اكتب قصة أطفال من ${pageCount} صفحات بالضبط.
 قواعد صارمة:
 - ${langRule(language)}
+
 - استخدم {child} ككلمة بديلة لاسم بطل القصة في كل النصوص (لا تكتب الاسم الحقيقي).
 ${pageRules}
 - learning_goals: 2-3 أهداف قصيرة لما سيتعلمه الطفل (القيمة، السلوك).
@@ -163,8 +168,10 @@ ${jsonShape(language)}`;
     richSceneByCategory[bookMeta?.category ?? ""] ??
     "Each scene must be visually rich and educational, packed with multiple clearly-labeled elements.";
 
-  return `أنت مؤلف كتب أطفال تعليمية محترف، تحوّل أي موضوع إلى رحلة ممتعة وتدرّجية ذات قيمة تعليمية حقيقية.
+  return `أنت مؤلف كتب أطفال تعليمية محترف ملتزم بالقيم الإسلامية، تحوّل أي موضوع إلى رحلة ممتعة وتدرّجية ذات قيمة تعليمية حقيقية.
+${SHARIA_TEXT_RULE}
 اكتب كتاباً تعليمياً للأطفال من ${pageCount} صفحات بالضبط حول الموضوع المطلوب.
+
 قواعد صارمة:
 - ${catLine}
 - ${levelLine}
@@ -428,7 +435,9 @@ export const generatePageImage = createServerFn({ method: "POST" })
       : "";
     const titlePart = page.image_title_en ? `\n${bakedTitlePrompt(page.image_title_en)}` : "";
     const prompt = `${STORY_STYLE_PROMPT}
+${SHARIA_IMAGE_RULE}
 ${LANDSCAPE_COMPOSITION_RULE}
+
 ${WIDE_FRAMING_RULE}
 ${CONSISTENCY_RULE}${agePart}${photoPart}${titlePart}
 Children's storybook page illustration that literally depicts this exact written scene so the image feels like part of the text: ${page.scene}.

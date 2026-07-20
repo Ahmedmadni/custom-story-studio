@@ -5,6 +5,11 @@
 export const STORY_STYLE_PROMPT =
   "TOP-TIER cinematic 3D animated movie style — the EXACT visual quality and feel of major theatrical animated features like Disney/Pixar 'Monsters University' and 'Monsters Inc', DreamWorks 'The Good Dinosaur', Pixar 'Up' and 'Toy Story 4', Warner Bros 'Tom & Jerry' 2021 3D movie, Illumination 'Despicable Me': big-budget feature-film 3D animation rendering, NOT toy/figurine/stock-3D look. Mandatory: dramatic theatrical lighting with strong key light + warm rim light + soft bounce light, deep rich painterly background with real depth of field and atmospheric haze, vibrant saturated film-grade color grading, ultra-glossy expressive huge cartoon eyes with catchlights, soft rounded exaggerated cartoon features, polished subsurface-scattering skin, fluffy strand-level hair, detailed fabric micro-texture on clothes, subtle film grain, story-book theatrical poster energy. Reject: stiff plastic doll look, flat lighting, generic stock 3D, AI-generic kid avatar look, low-detail toy renders.";
 
+/** قاعدة إلزامية: التزام الشريعة الإسلامية في كل صورة تُولَّد. */
+export const SHARIA_IMAGE_RULE =
+  "STRICT ISLAMIC (SHARIA) COMPLIANCE — MANDATORY on every image: modest, fully-covered clothing for all human characters (long sleeves, long pants or long dresses, no tight/revealing/see-through outfits, no swimwear, no shorts above the knee, no bare shoulders/chests/midriffs); women and girls appearing older than young child must wear a modest headscarf (hijab); NO pigs, dogs inside homes, alcohol, wine, bars, nightclubs, gambling, music instruments shown prominently, tattoos, crosses, churches, temples, idols, statues of worship, magic/wizardry/witchcraft symbols, pentagrams, zodiac/astrology, Halloween, Christmas, or any non-Islamic religious symbols/holidays; NO romantic contact between non-mahram characters (no kissing, no dating, no hugging between unrelated adult male/female); NO scary demons, devils, ghosts, or occult imagery; NO nudity, no partial nudity, no suggestive poses; keep atmosphere wholesome, family-friendly, and aligned with Islamic values. Preferred positive imagery when relevant: mosques, crescent moon, Islamic geometric patterns, prayer scenes, family gatherings, nature, kindness, learning.";
+
+
 /** نسبة أبعاد إلزامية أفقية لكل الصور — مطابقة لتصميم PDF المستطيل */
 export const LANDSCAPE_COMPOSITION_RULE =
   "MANDATORY OUTPUT FORMAT: a single wide cinematic LANDSCAPE image, 16:9 aspect ratio (1920×1080), like a Disney/Pixar movie still or a wide storybook spread. Do NOT output a square or portrait image. Compose horizontally with rich left-to-right scene depth.";
@@ -22,7 +27,12 @@ export const QUALITY_RULE =
   "Masterpiece quality, sharp focus, crisp details, perfect anatomy, no compression artifacts, no blur, no extra limbs, no warped faces.";
 
 export const STYLE_NEGATIVE =
-  "no watermark, no logos, no signatures, no random gibberish text";
+  "no watermark, no logos, no signatures, no random gibberish text, no nudity, no revealing clothing, no alcohol, no pigs, no crosses, no churches, no idols, no statues of worship, no magic/wizardry symbols, no pentagrams, no zodiac, no Halloween, no Christmas, no non-Islamic religious symbols, no romantic contact between non-mahram, no scary demons or occult imagery";
+
+/** قاعدة إلزامية: القصص والنصوص يجب أن تلتزم بالشريعة الإسلامية وتحمل معنى ديني/قيمي إسلامي سامٍ. */
+export const SHARIA_TEXT_RULE =
+  "قاعدة إلزامية عليا (لا تُخالَف أبداً): كل النصوص يجب أن تلتزم التزاماً كاملاً بالشريعة الإسلامية شكلاً ومضموناً، وأن تحمل معنى دينياً وأخلاقياً إسلامياً سامياً. مطلوب: غرس قيمة إسلامية واضحة في كل قصة (الصدق، الأمانة، بر الوالدين، صلة الرحم، الرحمة، العدل، الصبر، الشكر، حب الله ورسوله ﷺ، الصلاة، الذكر، حب القرآن، احترام الكبير، الرفق بالحيوان، إتقان العمل، طلب العلم، حسن الخلق). يمكن ذكر: الصلاة، المسجد، القرآن، الأذان، الصيام، رمضان، العيد، بسم الله، الحمد لله، السلام عليكم، الذكر، الدعاء، الأنبياء والصحابة بأدب واحترام. ممنوع منعاً باتاً: أي إشارة إلى السحر أو الجن المخيف أو التنجيم أو الأبراج أو الحظ أو تحضير الأرواح أو الخرافات، أو الموسيقى والرقص والحفلات الماجنة، أو الخمر والقمار والخنزير، أو الأعياد غير الإسلامية (الكريسماس، الهالوين، عيد الحب…)، أو رموز الأديان الأخرى (الصليب، الكنيسة، المعابد، الأصنام)، أو العلاقات العاطفية بين غير المحارم، أو أي كلام يخالف العقيدة الإسلامية. الملابس المذكورة في النص يجب أن تكون محتشمة دائماً، والبنات/الأمهات ترتدين الحجاب. اجعل خاتمة كل قصة تدعو صراحةً إلى قيمة إسلامية أو دعاء قصير مناسب للأطفال.";
+
 
 /** عمر الطفل → أسلوب بصري متناسب (قاعدة إلزامية). */
 export function ageStylePrompt(age?: string | number | null): string {
