@@ -14,14 +14,14 @@ import {
   Wand2,
 } from "lucide-react";
 
-import heroImg from "@/assets/kidzy-hero.png";
-import iconAi from "@/assets/icon-ai.png";
-import iconBooks from "@/assets/icon-books.png";
-import iconGames from "@/assets/icon-games.png";
-import iconPuzzles from "@/assets/icon-puzzles.png";
-import mascotMonster from "@/assets/mascot-monster.png";
-import mascotChick from "@/assets/mascot-chick.png";
-import aiLaptop from "@/assets/ai-laptop.png";
+import heroImg from "@/assets/kidzy-hero.webp";
+import iconAi from "@/assets/icon-ai.webp";
+import iconBooks from "@/assets/icon-books.webp";
+import iconGames from "@/assets/icon-games.webp";
+import iconPuzzles from "@/assets/icon-puzzles.webp";
+import mascotMonster from "@/assets/mascot-monster.webp";
+import mascotChick from "@/assets/mascot-chick.webp";
+import aiLaptop from "@/assets/ai-laptop.webp";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { OccasionStrip } from "@/components/OccasionStrip";
