@@ -27,6 +27,7 @@ export function StoryCard({ story }: { story: StoryCardData }) {
           src={coverUrlOrDefault(story.cover_url)}
           alt={`غلاف قصة ${story.title}`}
           loading="lazy"
+          decoding="async"
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
         {story.category && (
