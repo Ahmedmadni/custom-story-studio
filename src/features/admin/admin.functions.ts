@@ -1470,8 +1470,10 @@ export const adminRegenerateTemplatePageImage = createServerFn({ method: "POST" 
     const titleP = page.image_title_en ? `\n${bakedTitlePrompt(page.image_title_en)}` : "";
     const ageP = page.scene.includes("Age styling") ? "" : `\n${ageStylePrompt(tpl.age_range)}.`;
     const prompt = `${STORY_STYLE_PROMPT}.${ageP}${titleP}
+${SHARIA_IMAGE_RULE}
 Children's storybook page illustration that literally depicts this exact scene: ${page.scene}.
 Square composition, rich storytelling details, ${STYLE_NEGATIVE}.`;
+
 
     let base64: string | null = null;
 
