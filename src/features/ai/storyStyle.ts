@@ -27,7 +27,12 @@ export const QUALITY_RULE =
   "Masterpiece quality, sharp focus, crisp details, perfect anatomy, no compression artifacts, no blur, no extra limbs, no warped faces.";
 
 export const STYLE_NEGATIVE =
-  "no watermark, no logos, no signatures, no random gibberish text";
+  "no watermark, no logos, no signatures, no random gibberish text, no nudity, no revealing clothing, no alcohol, no pigs, no crosses, no churches, no idols, no statues of worship, no magic/wizardry symbols, no pentagrams, no zodiac, no Halloween, no Christmas, no non-Islamic religious symbols, no romantic contact between non-mahram, no scary demons or occult imagery";
+
+/** قاعدة إلزامية: القصص والنصوص يجب أن تلتزم بالشريعة الإسلامية وتحمل معنى ديني/قيمي إسلامي سامٍ. */
+export const SHARIA_TEXT_RULE =
+  "قاعدة إلزامية عليا (لا تُخالَف أبداً): كل النصوص يجب أن تلتزم التزاماً كاملاً بالشريعة الإسلامية شكلاً ومضموناً، وأن تحمل معنى دينياً وأخلاقياً إسلامياً سامياً. مطلوب: غرس قيمة إسلامية واضحة في كل قصة (الصدق، الأمانة، بر الوالدين، صلة الرحم، الرحمة، العدل، الصبر، الشكر، حب الله ورسوله ﷺ، الصلاة، الذكر، حب القرآن، احترام الكبير، الرفق بالحيوان، إتقان العمل، طلب العلم، حسن الخلق). يمكن ذكر: الصلاة، المسجد، القرآن، الأذان، الصيام، رمضان، العيد، بسم الله، الحمد لله، السلام عليكم، الذكر، الدعاء، الأنبياء والصحابة بأدب واحترام. ممنوع منعاً باتاً: أي إشارة إلى السحر أو الجن المخيف أو التنجيم أو الأبراج أو الحظ أو تحضير الأرواح أو الخرافات، أو الموسيقى والرقص والحفلات الماجنة، أو الخمر والقمار والخنزير، أو الأعياد غير الإسلامية (الكريسماس، الهالوين، عيد الحب…)، أو رموز الأديان الأخرى (الصليب، الكنيسة، المعابد، الأصنام)، أو العلاقات العاطفية بين غير المحارم، أو أي كلام يخالف العقيدة الإسلامية. الملابس المذكورة في النص يجب أن تكون محتشمة دائماً، والبنات/الأمهات ترتدين الحجاب. اجعل خاتمة كل قصة تدعو صراحةً إلى قيمة إسلامية أو دعاء قصير مناسب للأطفال.";
+
 
 /** عمر الطفل → أسلوب بصري متناسب (قاعدة إلزامية). */
 export function ageStylePrompt(age?: string | number | null): string {
