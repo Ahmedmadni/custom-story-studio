@@ -14,11 +14,14 @@ import {
   WIDE_FRAMING_RULE,
   CONSISTENCY_RULE,
   QUALITY_RULE,
+  SHARIA_IMAGE_RULE,
+  SHARIA_TEXT_RULE,
   ageStylePrompt,
   bakedTitlePrompt,
   photoModePrompt,
   gifterDedicationPrompt,
 } from "@/features/ai/storyStyle";
+
 
 import { parsePages, type StoryPage } from "@/features/ai/storyTypes";
 
