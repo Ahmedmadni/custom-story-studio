@@ -772,6 +772,8 @@ export const adminGeneratePage = createServerFn({ method: "POST" })
       : "";
 
     const prompt = `${STORY_STYLE_PROMPT}.${agePart}
+${SHARIA_IMAGE_RULE}
+
 The hero is a ${heroLabel} child (${pronoun}). ${isGirl ? "Render her as an adorable little girl character with feminine styling appropriate for her age." : "Render him as an adorable little boy character with masculine styling appropriate for his age."}
 ${refUrl ? `REFERENCE CHARACTER (image #2): use the cartoon ${heroLabel} in image #2 as the canonical visual style for the hero — same 3D cartoon aesthetic, body proportions, outfit vibe and overall mood. This is the "official" ${heroLabel} character of the platform.` : ""}
 ${faceBlock}${heroBlock}
