@@ -168,8 +168,10 @@ ${jsonShape(language)}`;
     richSceneByCategory[bookMeta?.category ?? ""] ??
     "Each scene must be visually rich and educational, packed with multiple clearly-labeled elements.";
 
-  return `أنت مؤلف كتب أطفال تعليمية محترف، تحوّل أي موضوع إلى رحلة ممتعة وتدرّجية ذات قيمة تعليمية حقيقية.
+  return `أنت مؤلف كتب أطفال تعليمية محترف ملتزم بالقيم الإسلامية، تحوّل أي موضوع إلى رحلة ممتعة وتدرّجية ذات قيمة تعليمية حقيقية.
+${SHARIA_TEXT_RULE}
 اكتب كتاباً تعليمياً للأطفال من ${pageCount} صفحات بالضبط حول الموضوع المطلوب.
+
 قواعد صارمة:
 - ${catLine}
 - ${levelLine}
