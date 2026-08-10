@@ -77,6 +77,9 @@ function StoryViewer() {
   const pages = story.pages;
   const page = pages[current];
   const isBilingual = story.language === "bilingual";
+  const hasEnglish =
+    story.language === "en" || pages.some((p) => Boolean(p.text_en)) || isBilingual;
+  const showEnglish = hasEnglish && lang === "en";
   const isUserApproved = !!story.approvedAt;
   const isAdminApproved = !!story.adminApprovedAt;
 
