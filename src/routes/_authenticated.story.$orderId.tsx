@@ -130,7 +130,20 @@ function StoryViewer() {
             </span>
           </div>
           <div className="bg-card p-6">
-            {isBilingual ? (
+            {hasEnglish && (
+              <div className="mb-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={toggleLang}
+                  title={t("story.langHint")}
+                  className="inline-flex items-center gap-1.5 rounded-full border-2 border-border px-3 py-1.5 text-xs font-extrabold transition-colors hover:bg-secondary"
+                >
+                  <Languages className="h-4 w-4" />
+                  {t("story.showEnglish")}
+                </button>
+              </div>
+            )}
+            {isBilingual && lang === "ar" ? (
               <div className="grid gap-4 md:grid-cols-2">
                 <div dir="rtl" className="text-center md:border-e-2 md:border-secondary md:pe-4">
                   {page?.title_ar && (
@@ -154,14 +167,18 @@ function StoryViewer() {
                 </div>
               </div>
             ) : (
-              <div className="text-center">
-                {page?.title && (
+              <div className="text-center" dir={showEnglish ? "ltr" : "rtl"}>
+                {(showEnglish ? page?.title_en ?? page?.title : page?.title_ar ?? page?.title) && (
                   <h2 className="font-display text-2xl font-extrabold text-primary">
-                    {page.title}
+                    {showEnglish
+                      ? page?.title_en ?? page?.title
+                      : page?.title_ar ?? page?.title}
                   </h2>
                 )}
                 <p className="mt-2 font-display text-xl font-semibold leading-relaxed md:text-2xl">
-                  {page?.text}
+                  {showEnglish
+                    ? page?.text_en ?? page?.text
+                    : page?.text_ar ?? page?.text}
                 </p>
               </div>
             )}
