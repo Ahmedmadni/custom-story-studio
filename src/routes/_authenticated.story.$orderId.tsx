@@ -32,6 +32,7 @@ function StoryViewer() {
   const fetchStory = useServerFn(getMyStory);
   const consentFn = useServerFn(setPublishConsent);
   const qc = useQueryClient();
+  const { lang, toggleLang, t } = useLanguage();
   const [current, setCurrent] = useState(0);
 
   const { data: story, isLoading } = useQuery({
