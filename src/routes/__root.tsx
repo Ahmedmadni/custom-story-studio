@@ -17,6 +17,7 @@ import { OfflineBanner } from "@/components/OfflineBanner";
 import { OnboardingWizard } from "@/features/onboarding/OnboardingWizard";
 import { ReferralCapture } from "@/features/referrals/ReferralCapture";
 import { AuthProvider } from "@/hooks/useAuth";
+import { LanguageProvider } from "@/hooks/useLanguage";
 import { Toaster } from "@/components/ui/sonner";
 import { SITE_URL } from "@/lib/siteUrl";
 import { ADMIN_WHATSAPP } from "@/features/orders/whatsapp";
@@ -193,15 +194,17 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <CartProvider>
-          <OfflineBanner />
-          <ReferralCapture />
-          <OnboardingWizard />
-          <ErrorBoundary>
-            <Outlet />
-          </ErrorBoundary>
-          <Toaster richColors position="top-center" />
-        </CartProvider>
+        <LanguageProvider>
+          <CartProvider>
+            <OfflineBanner />
+            <ReferralCapture />
+            <OnboardingWizard />
+            <ErrorBoundary>
+              <Outlet />
+            </ErrorBoundary>
+            <Toaster richColors position="top-center" />
+          </CartProvider>
+        </LanguageProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

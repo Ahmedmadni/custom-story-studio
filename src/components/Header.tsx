@@ -4,6 +4,7 @@ import {
   Award,
   Gift,
   Heart,
+  Languages,
   LogOut,
   Menu,
   Shield,
@@ -17,18 +18,35 @@ import { useState } from "react";
 import kidzyLogo from "@/assets/kidzy-logo.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { useCart } from "@/features/cart/CartContext";
 import { supabase } from "@/integrations/supabase/client";
 import { levelFor } from "@/features/rewards/levels";
 
 const baseNavLinks = [
-  { to: "/", label: "الرئيسية" },
-  { to: "/stories", label: "القصص" },
-  { to: "/books", label: "كتب" },
-  { to: "/games", label: "ألعاب" },
-  { to: "/puzzles", label: "ألغاز" },
+  { to: "/", key: "nav.home" },
+  { to: "/stories", key: "nav.stories" },
+  { to: "/books", key: "nav.books" },
+  { to: "/games", key: "nav.games" },
+  { to: "/puzzles", key: "nav.puzzles" },
 ];
-const adminOnlyLinks = [{ to: "/create", label: "أنشئ قصة" }];
+const adminOnlyLinks = [{ to: "/create", key: "nav.create" }];
+
+function LanguageToggle({ className = "" }: { className?: string }) {
+  const { t, toggleLang } = useLanguage();
+  return (
+    <button
+      type="button"
+      onClick={toggleLang}
+      aria-label={t("lang.toggleAria")}
+      title={t("lang.toggleAria")}
+      className={`inline-flex items-center gap-1.5 rounded-full border-2 border-border px-3 py-1.5 text-xs font-extrabold transition-colors hover:bg-secondary ${className}`}
+    >
+      <Languages className="h-4 w-4" />
+      <span>{t("lang.toggle")}</span>
+    </button>
+  );
+}
 
 function LevelBadge() {
   const { user } = useAuth();
@@ -64,17 +82,19 @@ function LevelBadge() {
 export function Header() {
   const { user, isAdmin, signOut } = useAuth();
   const { count } = useCart();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const navLinks = isAdmin ? [...baseNavLinks, ...adminOnlyLinks] : baseNavLinks;
 
   const userLinks = [
-    { to: "/my-children", label: "أطفالي", icon: Users },
-    { to: "/my-orders", label: "طلباتي", icon: ShoppingCart },
-    { to: "/favorites", label: "المفضلة", icon: Heart },
-    { to: "/rewards", label: "مكافآتي", icon: Award },
-    { to: "/referrals", label: "ادعُ صديقاً", icon: Gift },
+    { to: "/my-children", key: "nav.children", icon: Users },
+    { to: "/my-orders", key: "nav.orders", icon: ShoppingCart },
+    { to: "/favorites", key: "nav.favorites", icon: Heart },
+    { to: "/rewards", key: "nav.rewards", icon: Award },
+    { to: "/referrals", key: "nav.referrals", icon: Gift },
   ] as const;
+
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-card/80 backdrop-blur-xl no-print">
@@ -91,7 +111,7 @@ export function Header() {
               className="rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
               activeProps={{ className: "bg-secondary" }}
             >
-              {l.label}
+              {t(l.key)}
             </Link>
           ))}
           {user &&
@@ -102,7 +122,7 @@ export function Header() {
                 className="rounded-full px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
                 activeProps={{ className: "bg-secondary" }}
               >
-                {l.label}
+                {t(l.key)}
               </Link>
             ))}
           {isAdmin && (
@@ -111,19 +131,20 @@ export function Header() {
               className="flex items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold text-accent transition-colors hover:bg-secondary"
             >
               <Shield className="h-4 w-4" />
-              لوحة التحكم
+              {t("nav.admin")}
             </Link>
           )}
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <LanguageToggle />
           <LevelBadge />
           <Link
             to="/cart"
             className="relative inline-flex items-center gap-1 rounded-full bg-secondary px-4 py-2 text-sm font-bold transition-colors hover:bg-secondary/80"
           >
             <ShoppingCart className="h-4 w-4" />
-            السلة
+            {t("nav.cart")}
             {count > 0 && (
               <span className="ms-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-extrabold text-primary-foreground">
                 {count}
@@ -138,7 +159,7 @@ export function Header() {
               onClick={() => void signOut()}
             >
               <LogOut className="ms-1 h-4 w-4" />
-              خروج
+              {t("auth.signOutShort")}
             </Button>
           ) : (
             <Button
@@ -147,12 +168,13 @@ export function Header() {
               onClick={() => void navigate({ to: "/auth" })}
             >
               <Sparkles className="ms-1 h-4 w-4" />
-              تسجيل الدخول
+              {t("auth.signIn")}
             </Button>
           )}
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
+          <LanguageToggle className="px-2 py-1" />
           <Link
             to="/cart"
             className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-secondary"
@@ -166,7 +188,7 @@ export function Header() {
           </Link>
           <button
             onClick={() => setOpen(!open)}
-            aria-label="القائمة"
+            aria-label={t("nav.menu")}
             className="inline-flex h-9 w-9 items-center justify-center"
           >
             {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -184,7 +206,7 @@ export function Header() {
                 onClick={() => setOpen(false)}
                 className="rounded-xl px-4 py-3 font-semibold hover:bg-secondary"
               >
-                {l.label}
+                {t(l.key)}
               </Link>
             ))}
             {user &&
@@ -196,7 +218,7 @@ export function Header() {
                   className="flex items-center gap-2 rounded-xl px-4 py-3 font-semibold hover:bg-secondary"
                 >
                   <l.icon className="h-4 w-4" />
-                  {l.label}
+                  {t(l.key)}
                 </Link>
               ))}
             {isAdmin && (
@@ -205,7 +227,7 @@ export function Header() {
                 onClick={() => setOpen(false)}
                 className="rounded-xl px-4 py-3 font-semibold text-accent hover:bg-secondary"
               >
-                لوحة التحكم
+                {t("nav.admin")}
               </Link>
             )}
             {user ? (
@@ -217,7 +239,7 @@ export function Header() {
                   void signOut();
                 }}
               >
-                تسجيل الخروج
+                {t("auth.signOut")}
               </Button>
             ) : (
               <Button
@@ -227,7 +249,7 @@ export function Header() {
                   void navigate({ to: "/auth" });
                 }}
               >
-                تسجيل الدخول
+                {t("auth.signIn")}
               </Button>
             )}
           </div>

@@ -5,6 +5,7 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  Languages,
   Loader2,
   Share2,
   Sparkles,
@@ -17,6 +18,7 @@ import { Header } from "@/components/Header";
 import { PdfActions } from "@/features/pdf/PdfActions";
 import { Button } from "@/components/ui/button";
 import { getMyStory, setPublishConsent } from "@/features/orders/story.functions";
+import { useLanguage } from "@/hooks/useLanguage";
 
 export const Route = createFileRoute("/_authenticated/story/$orderId")({
   head: () => ({
@@ -30,6 +32,7 @@ function StoryViewer() {
   const fetchStory = useServerFn(getMyStory);
   const consentFn = useServerFn(setPublishConsent);
   const qc = useQueryClient();
+  const { lang, toggleLang, t } = useLanguage();
   const [current, setCurrent] = useState(0);
 
   const { data: story, isLoading } = useQuery({
@@ -74,6 +77,9 @@ function StoryViewer() {
   const pages = story.pages;
   const page = pages[current];
   const isBilingual = story.language === "bilingual";
+  const hasEnglish =
+    story.language === "en" || pages.some((p) => Boolean(p.text_en)) || isBilingual;
+  const showEnglish = hasEnglish && lang === "en";
   const isUserApproved = !!story.approvedAt;
   const isAdminApproved = !!story.adminApprovedAt;
 
@@ -130,7 +136,20 @@ function StoryViewer() {
             </span>
           </div>
           <div className="bg-card p-6">
-            {isBilingual ? (
+            {hasEnglish && (
+              <div className="mb-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={toggleLang}
+                  title={t("story.langHint")}
+                  className="inline-flex items-center gap-1.5 rounded-full border-2 border-border px-3 py-1.5 text-xs font-extrabold transition-colors hover:bg-secondary"
+                >
+                  <Languages className="h-4 w-4" />
+                  {t("story.showEnglish")}
+                </button>
+              </div>
+            )}
+            {isBilingual && lang === "ar" ? (
               <div className="grid gap-4 md:grid-cols-2">
                 <div dir="rtl" className="text-center md:border-e-2 md:border-secondary md:pe-4">
                   {page?.title_ar && (
@@ -154,14 +173,18 @@ function StoryViewer() {
                 </div>
               </div>
             ) : (
-              <div className="text-center">
-                {page?.title && (
+              <div className="text-center" dir={showEnglish ? "ltr" : "rtl"}>
+                {(showEnglish ? page?.title_en ?? page?.title : page?.title_ar ?? page?.title) && (
                   <h2 className="font-display text-2xl font-extrabold text-primary">
-                    {page.title}
+                    {showEnglish
+                      ? page?.title_en ?? page?.title
+                      : page?.title_ar ?? page?.title}
                   </h2>
                 )}
                 <p className="mt-2 font-display text-xl font-semibold leading-relaxed md:text-2xl">
-                  {page?.text}
+                  {showEnglish
+                    ? page?.text_en ?? page?.text
+                    : page?.text_ar ?? page?.text}
                 </p>
               </div>
             )}
