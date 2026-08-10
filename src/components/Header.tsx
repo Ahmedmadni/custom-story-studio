@@ -174,6 +174,7 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
+          <LanguageToggle className="px-2 py-1" />
           <Link
             to="/cart"
             className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-secondary"
