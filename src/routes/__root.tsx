@@ -17,6 +17,7 @@ import { OfflineBanner } from "@/components/OfflineBanner";
 import { OnboardingWizard } from "@/features/onboarding/OnboardingWizard";
 import { ReferralCapture } from "@/features/referrals/ReferralCapture";
 import { AuthProvider } from "@/hooks/useAuth";
+import { LanguageProvider } from "@/hooks/useLanguage";
 import { Toaster } from "@/components/ui/sonner";
 import { SITE_URL } from "@/lib/siteUrl";
 import { ADMIN_WHATSAPP } from "@/features/orders/whatsapp";
