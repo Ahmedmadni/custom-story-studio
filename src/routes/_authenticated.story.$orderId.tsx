@@ -5,6 +5,7 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  Languages,
   Loader2,
   Share2,
   Sparkles,
