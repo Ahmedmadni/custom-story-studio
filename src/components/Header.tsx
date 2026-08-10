@@ -4,6 +4,7 @@ import {
   Award,
   Gift,
   Heart,
+  Languages,
   LogOut,
   Menu,
   Shield,
@@ -17,18 +18,35 @@ import { useState } from "react";
 import kidzyLogo from "@/assets/kidzy-logo.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { useCart } from "@/features/cart/CartContext";
 import { supabase } from "@/integrations/supabase/client";
 import { levelFor } from "@/features/rewards/levels";
 
 const baseNavLinks = [
-  { to: "/", label: "الرئيسية" },
-  { to: "/stories", label: "القصص" },
-  { to: "/books", label: "كتب" },
-  { to: "/games", label: "ألعاب" },
-  { to: "/puzzles", label: "ألغاز" },
+  { to: "/", key: "nav.home" },
+  { to: "/stories", key: "nav.stories" },
+  { to: "/books", key: "nav.books" },
+  { to: "/games", key: "nav.games" },
+  { to: "/puzzles", key: "nav.puzzles" },
 ];
-const adminOnlyLinks = [{ to: "/create", label: "أنشئ قصة" }];
+const adminOnlyLinks = [{ to: "/create", key: "nav.create" }];
+
+function LanguageToggle({ className = "" }: { className?: string }) {
+  const { t, toggleLang } = useLanguage();
+  return (
+    <button
+      type="button"
+      onClick={toggleLang}
+      aria-label={t("lang.toggleAria")}
+      title={t("lang.toggleAria")}
+      className={`inline-flex items-center gap-1.5 rounded-full border-2 border-border px-3 py-1.5 text-xs font-extrabold transition-colors hover:bg-secondary ${className}`}
+    >
+      <Languages className="h-4 w-4" />
+      <span>{t("lang.toggle")}</span>
+    </button>
+  );
+}
 
 function LevelBadge() {
   const { user } = useAuth();
