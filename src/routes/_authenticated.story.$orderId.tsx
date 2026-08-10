@@ -18,6 +18,7 @@ import { Header } from "@/components/Header";
 import { PdfActions } from "@/features/pdf/PdfActions";
 import { Button } from "@/components/ui/button";
 import { getMyStory, setPublishConsent } from "@/features/orders/story.functions";
+import { useLanguage } from "@/hooks/useLanguage";
 
 export const Route = createFileRoute("/_authenticated/story/$orderId")({
   head: () => ({
