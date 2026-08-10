@@ -137,6 +137,7 @@ export function Header() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <LanguageToggle />
           <LevelBadge />
           <Link
             to="/cart"
