@@ -65,6 +65,23 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     el.dir = lang === "ar" ? "rtl" : "ltr";
   }, [lang]);
 
+  // ترجمة كل نصوص الصفحة تلقائيًا عند اختيار الإنجليزية
+  useEffect(() => {
+    if (lang !== "en") return;
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+    void import("@/lib/domTranslate").then(({ startDomTranslation }) =>
+      startDomTranslation().then((stop) => {
+        if (cancelled) stop();
+        else cleanup = stop;
+      }),
+    );
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+  }, [lang]);
+
   const setLang = useCallback((l: UiLang) => {
     setLangState(l);
     try {
