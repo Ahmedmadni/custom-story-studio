@@ -82,17 +82,19 @@ function LevelBadge() {
 export function Header() {
   const { user, isAdmin, signOut } = useAuth();
   const { count } = useCart();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const navLinks = isAdmin ? [...baseNavLinks, ...adminOnlyLinks] : baseNavLinks;
 
   const userLinks = [
-    { to: "/my-children", label: "أطفالي", icon: Users },
-    { to: "/my-orders", label: "طلباتي", icon: ShoppingCart },
-    { to: "/favorites", label: "المفضلة", icon: Heart },
-    { to: "/rewards", label: "مكافآتي", icon: Award },
-    { to: "/referrals", label: "ادعُ صديقاً", icon: Gift },
+    { to: "/my-children", key: "nav.children", icon: Users },
+    { to: "/my-orders", key: "nav.orders", icon: ShoppingCart },
+    { to: "/favorites", key: "nav.favorites", icon: Heart },
+    { to: "/rewards", key: "nav.rewards", icon: Award },
+    { to: "/referrals", key: "nav.referrals", icon: Gift },
   ] as const;
+
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-card/80 backdrop-blur-xl no-print">
