@@ -194,15 +194,17 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <CartProvider>
-          <OfflineBanner />
-          <ReferralCapture />
-          <OnboardingWizard />
-          <ErrorBoundary>
-            <Outlet />
-          </ErrorBoundary>
-          <Toaster richColors position="top-center" />
-        </CartProvider>
+        <LanguageProvider>
+          <CartProvider>
+            <OfflineBanner />
+            <ReferralCapture />
+            <OnboardingWizard />
+            <ErrorBoundary>
+              <Outlet />
+            </ErrorBoundary>
+            <Toaster richColors position="top-center" />
+          </CartProvider>
+        </LanguageProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
