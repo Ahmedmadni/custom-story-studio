@@ -13,9 +13,18 @@ const INLINE_TAGS = new Set(["SPAN", "B", "STRONG", "EM", "I", "U", "SMALL", "BR
 
 const ATTRS = ["placeholder", "title", "aria-label", "alt", "value"] as const;
 
+/** تحويل الأرقام العربية-الهندية إلى أرقام لاتينية */
+function latinDigits(value: string): string {
+  return value.replace(AR_DIGITS, (d) =>
+    String(
+      d.charCodeAt(0) >= 0x06f0 ? d.charCodeAt(0) - 0x06f0 : d.charCodeAt(0) - 0x0660,
+    ),
+  );
+}
+
 /** إزالة التشكيل والتطويل وتوحيد الألف/الياء/التاء المربوطة وتقليص المسافات */
 function normalize(value: string): string {
-  return value
+  return latinDigits(value)
     .replace(/[\u064B-\u0652\u0670\u0640]/g, "")
     .replace(/[أإآٱ]/g, "ا")
     .replace(/ى/g, "ي")
@@ -25,14 +34,6 @@ function normalize(value: string): string {
     .trim();
 }
 
-/** تحويل الأرقام العربية-الهندية إلى أرقام لاتينية */
-function latinDigits(value: string): string {
-  return value.replace(AR_DIGITS, (d) =>
-    String(
-      d.charCodeAt(0) >= 0x06f0 ? d.charCodeAt(0) - 0x06f0 : d.charCodeAt(0) - 0x0660,
-    ),
-  );
-}
 
 export async function startDomTranslation(): Promise<Cleanup> {
   const { AR_EN } = await import("./i18nDict");
