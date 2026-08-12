@@ -141,6 +141,8 @@ export async function startDomTranslation(): Promise<Cleanup> {
     attributeFilter: [...ATTRS],
   };
 
+  let sweepTimer: ReturnType<typeof setTimeout> | undefined;
+
   const observer = new MutationObserver((records) => {
     observer.disconnect();
     for (const record of records) {
@@ -151,11 +153,21 @@ export async function startDomTranslation(): Promise<Cleanup> {
       }
     }
     observer.observe(document.body, config);
+
+    // كنس شامل مؤجَّل يلتقط أي تغييرات حدثت أثناء فصل المراقب
+    if (sweepTimer) clearTimeout(sweepTimer);
+    sweepTimer = setTimeout(() => {
+      observer.disconnect();
+      run();
+      observer.observe(document.body, config);
+    }, 250);
   });
 
   observer.observe(document.body, config);
 
   return () => {
+    if (sweepTimer) clearTimeout(sweepTimer);
+
     observer.disconnect();
     originalHtml.forEach((html, el) => {
       if (el.isConnected) el.innerHTML = html;
