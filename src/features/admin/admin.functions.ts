@@ -7,7 +7,11 @@ import {
   STYLE_NEGATIVE,
   SHARIA_IMAGE_RULE,
   ageStylePrompt,
+  aspectRatioFor,
   bakedTitlePrompt,
+  compositionRule,
+  openaiSizeFor,
+
 } from "@/features/ai/storyStyle";
 
 import { parsePages, personalize, type StoryPage } from "@/features/ai/storyTypes";
