@@ -14,7 +14,7 @@ export const getMyStory = createServerFn({ method: "POST" })
     const { data: order, error } = await context.supabase
       .from("orders")
       .select(
-        "id, child_name, child_name_en, status, template_id, gifted_by_name, gifted_by_relation, publish_consent, published_to_library_at, story_templates!template_id(id, title, moral, pages, language, content_type, approved_at, admin_approved_at)",
+        "id, child_name, child_name_en, status, template_id, aspect_ratio, gifted_by_name, gifted_by_relation, publish_consent, published_to_library_at, story_templates!template_id(id, title, moral, pages, language, content_type, approved_at, admin_approved_at)",
       )
       .eq("id", data.orderId)
       .single();
@@ -86,6 +86,10 @@ export const getMyStory = createServerFn({ method: "POST" })
       moral: tpl?.moral ?? null,
       language: (tpl?.language ?? "ar") as "ar" | "en" | "bilingual",
       contentType: (tpl?.content_type ?? "story") as "story" | "book",
+      aspectRatio: ((order as { aspect_ratio?: string | null }).aspect_ratio ?? "16:9") as
+        | "1:1"
+        | "16:9"
+        | "9:16",
       approvedAt: tpl?.approved_at ?? null,
       adminApprovedAt: tpl?.admin_approved_at ?? null,
       gifterName: (order as { gifted_by_name?: string | null }).gifted_by_name ?? null,

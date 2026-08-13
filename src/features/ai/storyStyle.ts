@@ -9,6 +9,20 @@ export const STORY_STYLE_PROMPT =
 export const LANDSCAPE_COMPOSITION_RULE =
   "MANDATORY OUTPUT FORMAT: a single wide cinematic LANDSCAPE image, 16:9 aspect ratio (1920×1080), like a Disney/Pixar movie still or a wide storybook spread. Do NOT output a square or portrait image. Compose horizontally with rich left-to-right scene depth.";
 
+/**
+ * نسبة أبعاد إلزامية حسب اختيار العميل عند طلب القصة (مربع/أفقي/عمودي) —
+ * تُستخدم في توليد صفحات الطلب الفعلية بحيث تطابق الصورة أبعاد PDF النهائي.
+ */
+export function aspectRatioCompositionRule(ratio: "1:1" | "16:9" | "9:16"): string {
+  if (ratio === "1:1") {
+    return "MANDATORY OUTPUT FORMAT: a single SQUARE image, 1:1 aspect ratio (1080×1080), like a classic storybook page. Do NOT output a landscape or portrait image. Compose with balanced centered depth.";
+  }
+  if (ratio === "9:16") {
+    return "MANDATORY OUTPUT FORMAT: a single tall cinematic PORTRAIT image, 9:16 aspect ratio (1080×1920), like a mobile story/reel frame. Do NOT output a landscape or square image. Compose vertically with rich top-to-bottom scene depth.";
+  }
+  return LANDSCAPE_COMPOSITION_RULE;
+}
+
 /** إطار واسع — الطفل لا يستحوذ على المشهد، يظهر بحجم متوسط مع خلفية وشخصيات وأجواء واضحة */
 export const WIDE_FRAMING_RULE =
   "CAMERA & FRAMING (very important): use a WIDE / MEDIUM-WIDE shot, NOT a close-up. The hero child must occupy at most 25-30% of the frame height and never fill the page. Show the child from full body or knees-up, with plenty of empty space, background environment, props, and supporting characters clearly visible around them. The scene, setting, and other characters must read as the main subject just as much as the child. Absolutely no close-up portraits, no head-and-shoulders crops, no face filling the frame.";

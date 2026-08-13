@@ -209,6 +209,7 @@ function StoryViewer() {
             moral={story.moral}
             language={story.language}
             contentType={story.contentType}
+            aspectRatio={story.aspectRatio}
             templateId={story.templateId ?? undefined}
             gifterName={story.gifterName}
             gifterRelation={story.gifterRelation}

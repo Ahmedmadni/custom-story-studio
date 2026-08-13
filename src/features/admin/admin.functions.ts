@@ -6,6 +6,7 @@ import {
   STORY_STYLE_PROMPT,
   STYLE_NEGATIVE,
   ageStylePrompt,
+  aspectRatioCompositionRule,
   bakedTitlePrompt,
 } from "@/features/ai/storyStyle";
 import { parsePages, personalize, type StoryPage } from "@/features/ai/storyTypes";
@@ -188,6 +189,10 @@ export const adminListOrders = createServerFn({ method: "POST" })
             ? "book"
             : "story") as "story" | "book",
           templateId: o.template_id,
+          aspectRatio: ((o as { aspect_ratio?: string | null }).aspect_ratio ?? "16:9") as
+            | "1:1"
+            | "16:9"
+            | "9:16",
           photoMode: (o.photo_mode as "cartoon" | "real" | null) ?? "cartoon",
           heroCharacter: (o.hero_character as string | null) ?? null,
           photoUrl,
@@ -752,6 +757,10 @@ export const adminGeneratePage = createServerFn({ method: "POST" })
     const pronoun = isGirl ? "she/her" : "he/him";
     const photoMode = ((order.photo_mode as string | null) ?? "cartoon") as "cartoon" | "real";
     const heroCharacter = (order.hero_character as string | null)?.trim() || null;
+    const aspectRatio = ((order as { aspect_ratio?: string | null }).aspect_ratio ?? "16:9") as
+      | "1:1"
+      | "16:9"
+      | "9:16";
 
     // جلب الصورة المرجعية للجنس (ولد/بنت) — تستخدم كـ "نموذج للشخصية" يتعلم منه الذكاء الاصطناعي شكل البطل المعتمد
     const refFile = isGirl ? "girl.jpg" : "boy.png";
@@ -774,7 +783,9 @@ The hero is a ${heroLabel} child (${pronoun}). ${isGirl ? "Render her as an ador
 ${refUrl ? `REFERENCE CHARACTER (image #2): use the cartoon ${heroLabel} in image #2 as the canonical visual style for the hero — same 3D cartoon aesthetic, body proportions, outfit vibe and overall mood. This is the "official" ${heroLabel} character of the platform.` : ""}
 ${faceBlock}${heroBlock}
 Scene to illustrate: ${page.scene}.
-The ${heroLabel} child is the main hero of the scene. Square children's storybook illustration, ${STYLE_NEGATIVE}.`;
+The ${heroLabel} child is the main hero of the scene.
+${aspectRatioCompositionRule(aspectRatio)}
+${STYLE_NEGATIVE}.`;
 
     const imagePath = `${data.orderId}/page-${data.pageNumber}.png`;
     const providerErrors: string[] = [];
@@ -812,7 +823,7 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
             order_id: data.orderId,
             page_number: data.pageNumber,
             image_path: imagePath,
-            page_text: personalize(page.text, order.child_name),
+            page_text: personalize(page.text ?? page.text_ar ?? page.text_en, order.child_name),
           });
           if (insertErr) throw new Error("تعذر تسجيل الصفحة");
 
@@ -963,7 +974,10 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
         const form = new FormData();
         form.append("model", "gpt-image-1");
         form.append("prompt", prompt);
-        form.append("size", "1024x1024");
+        form.append(
+          "size",
+          aspectRatio === "16:9" ? "1536x1024" : aspectRatio === "9:16" ? "1024x1536" : "1024x1024",
+        );
         form.append("n", "1");
         form.append("image", photoBlob, "child.png");
 
@@ -997,7 +1011,7 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
         const form = new FormData();
         form.append("prompt", prompt);
         form.append("output_format", "png");
-        form.append("aspect_ratio", "1:1");
+        form.append("aspect_ratio", aspectRatio);
         form.append("model", "sd3.5-large");
 
         const stabRes = await fetch("https://api.stability.ai/v2beta/stable-image/generate/sd3", {
@@ -1038,7 +1052,7 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
           method: "POST",
           headers,
           body: JSON.stringify({
-            input: { prompt, aspect_ratio: "1:1", output_format: "png", num_outputs: 1 },
+            input: { prompt, aspect_ratio: aspectRatio, output_format: "png", num_outputs: 1 },
           }),
         });
 
@@ -1150,7 +1164,7 @@ The ${heroLabel} child is the main hero of the scene. Square children's storyboo
       order_id: data.orderId,
       page_number: data.pageNumber,
       image_path: imagePath,
-      page_text: personalize(page.text, order.child_name),
+      page_text: personalize(page.text ?? page.text_ar ?? page.text_en, order.child_name),
     });
     if (insertErr) throw new Error("تعذر تسجيل الصفحة");
 

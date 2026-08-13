@@ -30,12 +30,42 @@ export function parsePages(pages: unknown): StoryPage[] {
 
 export type Gender = "boy" | "girl";
 
+/** أبعاد صور القصة والطباعة — تتحكم في توليد الصور وحجم صفحات PDF معاً */
+export type AspectRatio = "1:1" | "16:9" | "9:16";
+
+export const ASPECT_RATIO_OPTIONS: {
+  value: AspectRatio;
+  label: string;
+  emoji: string;
+  hint: string;
+}[] = [
+  {
+    value: "16:9",
+    label: "أفقي عريض",
+    emoji: "🖥️",
+    hint: "مناسب للطباعة الكلاسيكية وقراءة الكتاب على الشاشات الكبيرة (افتراضي)",
+  },
+  {
+    value: "1:1",
+    label: "مربع",
+    emoji: "⬛",
+    hint: "تنسيق مربع كلاسيكي لكتاب القصة",
+  },
+  {
+    value: "9:16",
+    label: "عمودي (موبايل/ستوري)",
+    emoji: "📱",
+    hint: "مناسب للمشاهدة على الموبايل ومشاركة صفحات القصة كستوري",
+  },
+];
+
 export const GENDER_OPTIONS: { value: Gender; label: string; emoji: string; hint: string }[] = [
   { value: "boy", label: "ولد", emoji: "👦", hint: "نصوص بصيغة المذكر — هو، شجاع، بطل…" },
   { value: "girl", label: "بنت", emoji: "👧", hint: "نصوص بصيغة المؤنث — هي، شجاعة، بطلة…" },
 ];
 
-export function personalize(text: string, childName: string): string {
+export function personalize(text: string | null | undefined, childName: string): string {
+  if (!text) return "";
   return text.replaceAll("{child}", childName);
 }
 

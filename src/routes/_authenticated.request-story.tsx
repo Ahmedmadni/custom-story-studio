@@ -24,9 +24,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ChildPicker, type ChildPickerProfile } from "@/features/children/ChildPicker";
 import {
+  ASPECT_RATIO_OPTIONS,
   CONTENT_TYPE_OPTIONS,
   GENDER_OPTIONS,
   LANGUAGE_OPTIONS,
+  type AspectRatio,
   type Gender,
   type LanguageMode,
 } from "@/features/ai/storyTypes";
@@ -73,6 +75,7 @@ function RequestStoryPage() {
   const [contentType, setContentType] = useState<"story" | "book">("story");
   const [bookCategory, setBookCategory] = useState<BookCategoryValue | "">("");
   const [pagesCount, setPagesCount] = useState<10 | 16>(10);
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("16:9");
 
   // الفكرة
   const [topic, setTopic] = useState("");
@@ -156,6 +159,7 @@ function RequestStoryPage() {
           childAge: Number(age),
           gender,
           language,
+          aspectRatio,
           contentType,
           bookCategory: contentType === "book" ? bookCategory || null : null,
           pagesCount,
@@ -333,6 +337,32 @@ function RequestStoryPage() {
                     >
                       <span className="font-display text-lg font-bold">{l.label}</span>
                       <p className="mt-1 text-xs text-muted-foreground">{l.hint}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label className="font-bold">أبعاد الصور والطباعة</Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  تُستخدم هذه الأبعاد في توليد صور القصة وفي ملف PDF النهائي معاً.
+                </p>
+                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                  {ASPECT_RATIO_OPTIONS.map((r) => (
+                    <button
+                      key={r.value}
+                      type="button"
+                      onClick={() => setAspectRatio(r.value)}
+                      className={`rounded-2xl border-2 p-4 text-start transition-colors ${
+                        aspectRatio === r.value
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 font-display text-lg font-bold">
+                        <span className="text-xl">{r.emoji}</span>
+                        {r.label} ({r.value})
+                      </span>
+                      <p className="mt-1 text-xs text-muted-foreground">{r.hint}</p>
                     </button>
                   ))}
                 </div>
@@ -552,6 +582,11 @@ function RequestStoryPage() {
                   </p>
                   <p>
                     📄 <b>الصفحات:</b> {pagesCount} صفحة
+                  </p>
+                  <p>
+                    🖼️ <b>الأبعاد:</b>{" "}
+                    {ASPECT_RATIO_OPTIONS.find((r) => r.value === aspectRatio)?.label} (
+                    {aspectRatio})
                   </p>
                   <p>
                     📸 <b>الصورة:</b>{" "}

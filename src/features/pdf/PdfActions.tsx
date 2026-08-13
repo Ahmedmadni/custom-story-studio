@@ -14,6 +14,7 @@ interface PdfActionsProps {
   moral?: string | null;
   language: "ar" | "en" | "bilingual";
   contentType?: "story" | "book";
+  aspectRatio?: "1:1" | "16:9" | "9:16";
   pages: PdfStoryPage[];
   /** templateId يُرسل للخادم لإثبات اعتماد المحتوى قبل الحفظ */
   templateId?: string;
@@ -40,6 +41,7 @@ export function PdfActions({
   moral,
   language,
   contentType = "story",
+  aspectRatio,
   pages,
   templateId,
   gifterName,
@@ -58,6 +60,7 @@ export function PdfActions({
     title,
     childName,
     language,
+    aspectRatio,
     gifterName,
     gifterRelation,
     ...pages.map((p) => [p.n, p.imageUrl ?? ""]),
@@ -75,6 +78,7 @@ export function PdfActions({
       moral,
       language,
       contentType,
+      aspectRatio,
       pages,
       gifterName,
       gifterRelation,
