@@ -80,6 +80,7 @@ type AdminOrder = {
   storyTitle: string;
   language: "ar" | "en" | "bilingual";
   contentType: "story" | "book";
+  aspectRatio: "1:1" | "16:9" | "9:16";
   templateId: string | null;
   photoMode: "cartoon" | "real";
   heroCharacter: string | null;
@@ -716,6 +717,7 @@ function OrderDialog({ order, onClose }: { order: AdminOrder; onClose: () => voi
         childName: order.childName,
         language: order.language,
         contentType: order.contentType,
+        aspectRatio: order.aspectRatio,
         pages: pdfPages,
         onProgress: (done, total) => setPdfProgress({ done, total }),
       });

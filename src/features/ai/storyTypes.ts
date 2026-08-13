@@ -35,7 +35,8 @@ export const GENDER_OPTIONS: { value: Gender; label: string; emoji: string; hint
   { value: "girl", label: "بنت", emoji: "👧", hint: "نصوص بصيغة المؤنث — هي، شجاعة، بطلة…" },
 ];
 
-export function personalize(text: string, childName: string): string {
+export function personalize(text: string | null | undefined, childName: string): string {
+  if (!text) return "";
   return text.replaceAll("{child}", childName);
 }
 
