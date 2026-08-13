@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import photoModeRealImg from "@/assets/photo-mode-real.jpg";
 import photoModeCartoonImg from "@/assets/photo-mode-cartoon.jpg";
 import { optimizeImage } from "@/lib/imageOptimize";
+import { OrientationPicker, type StoryOrientationValue } from "@/features/orders/OrientationPicker";
 
 export const Route = createFileRoute("/_authenticated/order/$templateId")({
   head: () => ({
@@ -68,6 +69,7 @@ function OrderPage() {
   const [submitting, setSubmitting] = useState(false);
   const [language, setLanguage] = useState<LanguageMode>("ar");
   const [photoMode, setPhotoMode] = useState<PhotoMode>("cartoon");
+  const [orientation, setOrientation] = useState<StoryOrientationValue>("landscape");
   const [heroCharacter, setHeroCharacter] = useState("");
   const [heroQuery, setHeroQuery] = useState("");
   const [heroCat, setHeroCat] = useState<"الكل" | HeroOption["category"]>("الكل");
@@ -148,6 +150,7 @@ function OrderPage() {
         child_photo_path: path,
         language,
         photo_mode: photoMode,
+        orientation,
         hero_character: heroCharacter.trim() || null,
         notes: combinedNotes,
         gifted_by_name: gifterName.trim() || null,
@@ -284,6 +287,8 @@ function OrderPage() {
               ))}
             </div>
           </div>
+
+          <OrientationPicker value={orientation} onChange={setOrientation} />
 
           {/* نمط وجه الطفل */}
           <div>
