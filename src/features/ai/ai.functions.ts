@@ -10,7 +10,7 @@ import {
 import {
   STORY_STYLE_PROMPT,
   STYLE_NEGATIVE,
-  LANDSCAPE_COMPOSITION_RULE,
+  compositionRule,
   WIDE_FRAMING_RULE,
   CONSISTENCY_RULE,
   QUALITY_RULE,
@@ -362,6 +362,7 @@ const PageImageInput = z.object({
   pageNumber: z.number().int().min(1).max(20),
   childPhotoPath: z.string().trim().max(300).optional(),
   photoMode: z.enum(["cartoon", "real"]).optional(),
+  orientation: z.enum(["landscape", "portrait"]).optional(),
 });
 
 async function ensureOwnerOrAdmin(
@@ -436,7 +437,7 @@ export const generatePageImage = createServerFn({ method: "POST" })
     const titlePart = page.image_title_en ? `\n${bakedTitlePrompt(page.image_title_en)}` : "";
     const prompt = `${STORY_STYLE_PROMPT}
 ${SHARIA_IMAGE_RULE}
-${LANDSCAPE_COMPOSITION_RULE}
+${compositionRule(data.orientation)}
 
 ${WIDE_FRAMING_RULE}
 ${CONSISTENCY_RULE}${agePart}${photoPart}${titlePart}
