@@ -6,6 +6,7 @@
  */
 
 import kidzyLogo from "@/assets/kidzy-logo.png.asset.json";
+import type { AspectRatio } from "@/features/ai/storyStyle";
 
 export interface PdfStoryPage {
   n: number;
@@ -18,8 +19,6 @@ export interface PdfStoryPage {
   imageUrl?: string | null;
 }
 
-export type StoryOrientation = "landscape" | "portrait";
-
 export interface StoryPdfInput {
   title: string;
   childName?: string | null;
@@ -27,37 +26,36 @@ export interface StoryPdfInput {
   language: "ar" | "en" | "bilingual";
   contentType?: "story" | "book";
   pages: PdfStoryPage[];
-  /** اتجاه الصفحة: أفقي (افتراضي) أو عمودي */
-  orientation?: StoryOrientation;
+  /** نسبة أبعاد الصفحة: أفقي 16:9 (افتراضي)، عمودي 9:16، أو مربع 1:1 */
+  aspectRatio?: AspectRatio;
   gifterName?: string | null;
   gifterRelation?: string | null;
   onProgress?: (done: number, total: number) => void;
 }
 
+interface PageDims {
+  w: number;
+  h: number;
+  mmW: number;
+  mmH: number;
+  orientation: "landscape" | "portrait";
+}
 
 /**
- * أبعاد الصفحة حسب الاتجاه المختار:
- * أفقي 1920×1080 (16:9) — عمودي 1080×1920 (9:16)
+ * أبعاد الصفحة/الورقة حسب نسبة الأبعاد المختارة — الصور المولّدة وملف الـPDF
+ * يستخدمان نفس النسبة دائماً. دالة نقية بلا حالة مشتركة بين الاستدعاءات
+ * (بديل الحالة القابلة للتعديل السابقة PAGE_W/PAGE_H المشتركة على مستوى الوحدة).
  */
-let PAGE_W = 1920;
-let PAGE_H = 1080;
-let PAGE_MM_W = 297;
-let PAGE_MM_H = 167;
-let PDF_ORIENT: "landscape" | "portrait" = "landscape";
-
-function applyOrientation(orientation: StoryOrientation) {
-  PDF_ORIENT = orientation === "portrait" ? "portrait" : "landscape";
-  if (PDF_ORIENT === "portrait") {
-    PAGE_W = 1080;
-    PAGE_H = 1920;
-    PAGE_MM_W = 167;
-    PAGE_MM_H = 297;
-  } else {
-    PAGE_W = 1920;
-    PAGE_H = 1080;
-    PAGE_MM_W = 297;
-    PAGE_MM_H = 167;
+function dimsFor(aspectRatio: AspectRatio | undefined): PageDims {
+  if (aspectRatio === "1:1") {
+    return { w: 1080, h: 1080, mmW: 210, mmH: 210, orientation: "portrait" };
   }
+  if (aspectRatio === "9:16") {
+    return { w: 1080, h: 1920, mmW: 167, mmH: 297, orientation: "portrait" };
+  }
+  // 16:9 (افتراضي): صفحة عريضة 1920×1080 — أبعاد ورقية A4 landscape ≈ 297×210،
+  // نستخدم 297×167 لتتطابق مع 16:9 تماماً
+  return { w: 1920, h: 1080, mmW: 297, mmH: 167, orientation: "landscape" };
 }
 
 const SITE_URL = "kidzy.life";
@@ -83,9 +81,9 @@ async function toDataUrl(url: string): Promise<string | null> {
   }
 }
 
-function pageShell(dir: "rtl" | "ltr"): HTMLDivElement {
+function pageShell(dir: "rtl" | "ltr", dims: PageDims): HTMLDivElement {
   const e = document.createElement("div");
-  e.style.cssText = `width:${PAGE_W}px;height:${PAGE_H}px;font-family:${FONT};color:#fff;position:relative;overflow:hidden;background:${FALLBACK_BG};box-sizing:border-box;`;
+  e.style.cssText = `width:${dims.w}px;height:${dims.h}px;font-family:${FONT};color:#fff;position:relative;overflow:hidden;background:${FALLBACK_BG};box-sizing:border-box;`;
   e.dir = dir;
   return e;
 }
@@ -135,9 +133,14 @@ function brandBadge(logoData: string | null, position: "top-right" | "bottom-lef
   return wrap;
 }
 
-function buildCover(input: StoryPdfInput, coverImg: string | null, logoData: string | null): HTMLDivElement {
+function buildCover(
+  input: StoryPdfInput,
+  coverImg: string | null,
+  logoData: string | null,
+  dims: PageDims,
+): HTMLDivElement {
   const ar = input.language !== "en";
-  const el = pageShell(ar ? "rtl" : "ltr");
+  const el = pageShell(ar ? "rtl" : "ltr", dims);
   backgroundImage(el, coverImg);
   el.appendChild(gradientOverlay(60));
 
@@ -192,9 +195,10 @@ function buildContentPage(
   childName: string | null | undefined,
   language: "ar" | "en" | "bilingual",
   logoData: string | null,
+  dims: PageDims,
 ): HTMLDivElement {
   const ar = language !== "en";
-  const el = pageShell(ar ? "rtl" : "ltr");
+  const el = pageShell(ar ? "rtl" : "ltr", dims);
   backgroundImage(el, imgData);
   el.appendChild(gradientOverlay(language === "bilingual" ? 60 : 48));
 
@@ -268,8 +272,8 @@ function buildContentPage(
 }
 
 /** صفحة الغلاف الخلفي الثابتة — بيانات الموقع والشعار */
-function buildBackCover(logoData: string | null): HTMLDivElement {
-  const el = pageShell("rtl");
+function buildBackCover(logoData: string | null, dims: PageDims): HTMLDivElement {
+  const el = pageShell("rtl", dims);
   el.style.background =
     "linear-gradient(135deg,#6C4DFF 0%,#9B7CFF 45%,#FFD86B 100%)";
 
@@ -323,7 +327,7 @@ function buildBackCover(logoData: string | null): HTMLDivElement {
 }
 
 export async function generateStoryPdf(input: StoryPdfInput): Promise<Blob> {
-  applyOrientation(input.orientation ?? "landscape");
+  const dims = dimsFor(input.aspectRatio);
   const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
     import("jspdf"),
     import("html2canvas-pro"),
@@ -347,13 +351,13 @@ export async function generateStoryPdf(input: StoryPdfInput): Promise<Blob> {
   for (const [n, data] of pageImageEntries) if (data) imgMap.set(n, data);
 
   const host = document.createElement("div");
-  host.style.cssText = `position:fixed;left:-20000px;top:0;width:${PAGE_W}px;pointer-events:none;`;
+  host.style.cssText = `position:fixed;left:-20000px;top:0;width:${dims.w}px;pointer-events:none;`;
   document.body.appendChild(host);
 
   const pdf = new jsPDF({
     unit: "mm",
-    format: [PAGE_MM_W, PAGE_MM_H],
-    orientation: PDF_ORIENT,
+    format: [dims.mmW, dims.mmH],
+    orientation: dims.orientation,
     compress: true,
   });
 
@@ -367,8 +371,8 @@ export async function generateStoryPdf(input: StoryPdfInput): Promise<Blob> {
       useCORS: true,
     });
     const data = canvas.toDataURL("image/jpeg", 0.92);
-    if (!first) pdf.addPage([PAGE_MM_W, PAGE_MM_H], PDF_ORIENT);
-    pdf.addImage(data, "JPEG", 0, 0, PAGE_MM_W, PAGE_MM_H);
+    if (!first) pdf.addPage([dims.mmW, dims.mmH], dims.orientation);
+    pdf.addImage(data, "JPEG", 0, 0, dims.mmW, dims.mmH);
     host.removeChild(el);
     tick();
   };
@@ -376,7 +380,7 @@ export async function generateStoryPdf(input: StoryPdfInput): Promise<Blob> {
   try {
     const firstImg = input.pages.find((p) => imgMap.has(p.n));
     await snap(
-      buildCover(input, firstImg ? (imgMap.get(firstImg.n) ?? null) : null, logoData),
+      buildCover(input, firstImg ? (imgMap.get(firstImg.n) ?? null) : null, logoData, dims),
       true,
     );
 
@@ -388,12 +392,13 @@ export async function generateStoryPdf(input: StoryPdfInput): Promise<Blob> {
           input.childName,
           input.language,
           logoData,
+          dims,
         ),
         false,
       );
     }
 
-    await snap(buildBackCover(logoData), false);
+    await snap(buildBackCover(logoData, dims), false);
   } finally {
     document.body.removeChild(host);
   }

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { pricePerPages } from "@/features/cart/pricing";
+import { orientationFromAspectRatio } from "@/features/ai/storyStyle";
 
 const CustomRequestInput = z.object({
   childName: z.string().trim().min(1).max(40),
@@ -16,7 +17,7 @@ const CustomRequestInput = z.object({
   bookCategory: z.string().trim().max(60).nullable().optional(),
   whatsapp: z.string().trim().min(8).max(20),
   photoMode: z.enum(["cartoon", "real"]).default("real"),
-  orientation: z.enum(["landscape", "portrait"]).default("landscape"),
+  aspectRatio: z.enum(["1:1", "16:9", "9:16"]).default("16:9"),
   childPhotoPath: z.string().min(1).nullable().optional(),
   gifterName: z.string().trim().max(60).nullable().optional(),
   gifterRelation: z.string().trim().max(40).nullable().optional(),
@@ -59,7 +60,8 @@ export const submitCustomStoryRequest = createServerFn({ method: "POST" })
         whatsapp: data.whatsapp,
         child_photo_path: data.childPhotoPath ?? null,
         photo_mode: data.photoMode,
-        orientation: data.orientation,
+        aspect_ratio: data.aspectRatio,
+        orientation: orientationFromAspectRatio(data.aspectRatio),
         pages_count: data.pagesCount,
         price_egp: price,
         receipt_path: data.receiptPath,

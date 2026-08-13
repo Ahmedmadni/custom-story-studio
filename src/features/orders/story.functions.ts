@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { parsePages, personalize } from "@/features/ai/storyTypes";
+import { resolveOrderAspectRatio } from "@/features/ai/storyStyle";
 
 const OrderIdInput = z.object({ orderId: z.string().uuid() });
 
@@ -14,7 +15,7 @@ export const getMyStory = createServerFn({ method: "POST" })
     const { data: order, error } = await context.supabase
       .from("orders")
       .select(
-        "id, child_name, child_name_en, status, template_id, orientation, gifted_by_name, gifted_by_relation, publish_consent, published_to_library_at, story_templates!template_id(id, title, moral, pages, language, content_type, approved_at, admin_approved_at)",
+        "id, child_name, child_name_en, status, template_id, aspect_ratio, orientation, gifted_by_name, gifted_by_relation, publish_consent, published_to_library_at, story_templates!template_id(id, title, moral, pages, language, content_type, approved_at, admin_approved_at)",
       )
       .eq("id", data.orderId)
       .single();
@@ -88,10 +89,9 @@ export const getMyStory = createServerFn({ method: "POST" })
       contentType: (tpl?.content_type ?? "story") as "story" | "book",
       approvedAt: tpl?.approved_at ?? null,
       adminApprovedAt: tpl?.admin_approved_at ?? null,
-      orientation: (((order as { orientation?: string | null }).orientation ?? "landscape") ===
-      "portrait"
-        ? "portrait"
-        : "landscape") as "landscape" | "portrait",
+      aspectRatio: resolveOrderAspectRatio(
+        order as { aspect_ratio?: string | null; orientation?: string | null },
+      ),
       gifterName: (order as { gifted_by_name?: string | null }).gifted_by_name ?? null,
       gifterRelation: (order as { gifted_by_relation?: string | null }).gifted_by_relation ?? null,
       publishConsent: !!(order as { publish_consent?: boolean }).publish_consent,

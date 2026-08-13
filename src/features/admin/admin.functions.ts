@@ -7,11 +7,10 @@ import {
   STYLE_NEGATIVE,
   SHARIA_IMAGE_RULE,
   ageStylePrompt,
-  aspectRatioFor,
   bakedTitlePrompt,
   compositionRule,
   openaiSizeFor,
-
+  resolveOrderAspectRatio,
 } from "@/features/ai/storyStyle";
 
 import { parsePages, personalize, type StoryPage } from "@/features/ai/storyTypes";
@@ -194,6 +193,9 @@ export const adminListOrders = createServerFn({ method: "POST" })
             ? "book"
             : "story") as "story" | "book",
           templateId: o.template_id,
+          aspectRatio: resolveOrderAspectRatio(
+            o as { aspect_ratio?: string | null; orientation?: string | null },
+          ),
           photoMode: (o.photo_mode as "cartoon" | "real" | null) ?? "cartoon",
           heroCharacter: (o.hero_character as string | null) ?? null,
           photoUrl,
@@ -757,10 +759,9 @@ export const adminGeneratePage = createServerFn({ method: "POST" })
     const heroLabel = isGirl ? "girl" : "boy";
     const pronoun = isGirl ? "she/her" : "he/him";
     const photoMode = ((order.photo_mode as string | null) ?? "cartoon") as "cartoon" | "real";
-    const orderOrientation =
-      ((order as { orientation?: string | null }).orientation ?? "landscape") === "portrait"
-        ? "portrait"
-        : "landscape";
+    const orderAspectRatio = resolveOrderAspectRatio(
+      order as { aspect_ratio?: string | null; orientation?: string | null },
+    );
     const heroCharacter = (order.hero_character as string | null)?.trim() || null;
 
     // جلب الصورة المرجعية للجنس (ولد/بنت) — تستخدم كـ "نموذج للشخصية" يتعلم منه الذكاء الاصطناعي شكل البطل المعتمد
@@ -787,7 +788,7 @@ ${refUrl ? `REFERENCE CHARACTER (image #2): use the cartoon ${heroLabel} in imag
 ${faceBlock}${heroBlock}
 Scene to illustrate: ${page.scene}.
 The ${heroLabel} child is the main hero of the scene.
-${compositionRule(orderOrientation)}
+${compositionRule(orderAspectRatio)}
 Children's storybook illustration, ${STYLE_NEGATIVE}.`;
 
     const imagePath = `${data.orderId}/page-${data.pageNumber}.png`;
@@ -826,7 +827,7 @@ Children's storybook illustration, ${STYLE_NEGATIVE}.`;
             order_id: data.orderId,
             page_number: data.pageNumber,
             image_path: imagePath,
-            page_text: personalize(page.text, order.child_name),
+            page_text: personalize(page.text ?? page.text_ar ?? page.text_en, order.child_name),
           });
           if (insertErr) throw new Error("تعذر تسجيل الصفحة");
 
@@ -977,7 +978,7 @@ Children's storybook illustration, ${STYLE_NEGATIVE}.`;
         const form = new FormData();
         form.append("model", "gpt-image-1");
         form.append("prompt", prompt);
-        form.append("size", openaiSizeFor(orderOrientation));
+        form.append("size", openaiSizeFor(orderAspectRatio));
         form.append("n", "1");
         form.append("image", photoBlob, "child.png");
 
@@ -1011,7 +1012,7 @@ Children's storybook illustration, ${STYLE_NEGATIVE}.`;
         const form = new FormData();
         form.append("prompt", prompt);
         form.append("output_format", "png");
-        form.append("aspect_ratio", aspectRatioFor(orderOrientation));
+        form.append("aspect_ratio", orderAspectRatio);
         form.append("model", "sd3.5-large");
 
         const stabRes = await fetch("https://api.stability.ai/v2beta/stable-image/generate/sd3", {
@@ -1054,7 +1055,7 @@ Children's storybook illustration, ${STYLE_NEGATIVE}.`;
           body: JSON.stringify({
             input: {
               prompt,
-              aspect_ratio: aspectRatioFor(orderOrientation),
+              aspect_ratio: orderAspectRatio,
               output_format: "png",
               num_outputs: 1,
             },
@@ -1169,7 +1170,7 @@ Children's storybook illustration, ${STYLE_NEGATIVE}.`;
       order_id: data.orderId,
       page_number: data.pageNumber,
       image_path: imagePath,
-      page_text: personalize(page.text, order.child_name),
+      page_text: personalize(page.text ?? page.text_ar ?? page.text_en, order.child_name),
     });
     if (insertErr) throw new Error("تعذر تسجيل الصفحة");
 

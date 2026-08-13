@@ -9,9 +9,11 @@ export const STORY_STYLE_PROMPT =
 export const SHARIA_IMAGE_RULE =
   "STRICT ISLAMIC (SHARIA) COMPLIANCE — MANDATORY on every image: modest, fully-covered clothing for all human characters (long sleeves, long pants or long dresses, no tight/revealing/see-through outfits, no swimwear, no shorts above the knee, no bare shoulders/chests/midriffs); women and girls appearing older than young child must wear a modest headscarf (hijab); NO pigs, dogs inside homes, alcohol, wine, bars, nightclubs, gambling, music instruments shown prominently, tattoos, crosses, churches, temples, idols, statues of worship, magic/wizardry/witchcraft symbols, pentagrams, zodiac/astrology, Halloween, Christmas, or any non-Islamic religious symbols/holidays; NO romantic contact between non-mahram characters (no kissing, no dating, no hugging between unrelated adult male/female); NO scary demons, devils, ghosts, or occult imagery; NO nudity, no partial nudity, no suggestive poses; keep atmosphere wholesome, family-friendly, and aligned with Islamic values. Preferred positive imagery when relevant: mosques, crescent moon, Islamic geometric patterns, prayer scenes, family gatherings, nature, kindness, learning.";
 
-
-/** اتجاه صفحات القصة: أفقي (16:9) أو عمودي (9:16) */
+/** اتجاه صفحات القصة: أفقي (16:9) أو عمودي (9:16) — يُستخدم في معالج إنشاء القوالب (create.tsx) وطلب قالب من المكتبة (order.$templateId.tsx)، مستقل عن نسبة أبعاد الطلب. */
 export type StoryOrientation = "landscape" | "portrait";
+
+/** نسبة أبعاد الطلب الموحّدة — المصدر الوحيد المعتمد لصور/طباعة كل طلب عميل. */
+export type AspectRatio = "1:1" | "16:9" | "9:16";
 
 /** نسبة أبعاد إلزامية أفقية لكل الصور — مطابقة لتصميم PDF المستطيل */
 export const LANDSCAPE_COMPOSITION_RULE =
@@ -21,23 +23,73 @@ export const LANDSCAPE_COMPOSITION_RULE =
 export const PORTRAIT_COMPOSITION_RULE =
   "MANDATORY OUTPUT FORMAT: a single tall cinematic PORTRAIT image, 9:16 aspect ratio (1080×1920), like a vertical children's book page or an animated movie poster. Do NOT output a square or landscape image. Compose vertically with rich top-to-bottom scene depth (sky/ceiling above, ground/foreground below).";
 
-/** قاعدة الاتجاه المناسبة حسب اختيار العميل */
-export function compositionRule(orientation?: StoryOrientation | string | null): string {
-  return orientation === "portrait" ? PORTRAIT_COMPOSITION_RULE : LANDSCAPE_COMPOSITION_RULE;
+/** نسبة أبعاد إلزامية مربعة — تنسيق كلاسيكي لكتاب القصة */
+export const SQUARE_COMPOSITION_RULE =
+  "MANDATORY OUTPUT FORMAT: a single SQUARE image, 1:1 aspect ratio (1080×1080), like a classic storybook page. Do NOT output a landscape or portrait image. Compose with balanced centered depth.";
+
+/**
+ * يطبّع أي قيمة اتجاه/نسبة أبعاد — قديمة (landscape/portrait) أو جديدة
+ * (1:1/16:9/9:16) — إلى نسبة الأبعاد الثلاثية الموحّدة. نقطة التطبيع
+ * الوحيدة التي تعتمد عليها compositionRule/aspectRatioFor/openaiSizeFor،
+ * حتى لا يوجد أكثر من مصدر حقيقة لتفسير هذه القيم.
+ */
+export function normalizeAspectRatio(
+  value?: AspectRatio | StoryOrientation | string | null,
+): AspectRatio {
+  if (value === "1:1" || value === "16:9" || value === "9:16") return value;
+  if (value === "portrait") return "9:16";
+  return "16:9";
 }
 
-/** نسبة الأبعاد بصيغة مزودي الصور */
-export function aspectRatioFor(orientation?: StoryOrientation | string | null): "16:9" | "9:16" {
-  return orientation === "portrait" ? "9:16" : "16:9";
+/** قاعدة التركيب المناسبة حسب نسبة الأبعاد (أو الاتجاه القديم) */
+export function compositionRule(value?: AspectRatio | StoryOrientation | string | null): string {
+  const ratio = normalizeAspectRatio(value);
+  if (ratio === "1:1") return SQUARE_COMPOSITION_RULE;
+  if (ratio === "9:16") return PORTRAIT_COMPOSITION_RULE;
+  return LANDSCAPE_COMPOSITION_RULE;
 }
 
-/** مقاس OpenAI images حسب الاتجاه */
+/** نسبة الأبعاد بصيغة مزودي الصور (Stability/Replicate) */
+export function aspectRatioFor(
+  value?: AspectRatio | StoryOrientation | string | null,
+): AspectRatio {
+  return normalizeAspectRatio(value);
+}
+
+/** مقاس OpenAI images حسب نسبة الأبعاد */
 export function openaiSizeFor(
-  orientation?: StoryOrientation | string | null,
-): "1024x1536" | "1536x1024" {
-  return orientation === "portrait" ? "1024x1536" : "1536x1024";
+  value?: AspectRatio | StoryOrientation | string | null,
+): "1024x1024" | "1024x1536" | "1536x1024" {
+  const ratio = normalizeAspectRatio(value);
+  if (ratio === "1:1") return "1024x1024";
+  if (ratio === "9:16") return "1024x1536";
+  return "1536x1024";
 }
 
+/** يشتق قيمة orientation القديمة من نسبة الأبعاد — للحفاظ على توافق أي كود قديم ما زال يقرأ orders.orientation مباشرة */
+export function orientationFromAspectRatio(ratio: AspectRatio): StoryOrientation {
+  return ratio === "9:16" ? "portrait" : "landscape";
+}
+
+/**
+ * المُحلِّل الوحيد المعتمد لنسبة أبعاد أي طلب: يُفضّل orders.aspect_ratio
+ * (المصدر الجديد) إن وُجد، وإلا يشتقها من orders.orientation القديم —
+ * حتى لا يتعارض عمودان مستقلان لنفس المعنى. يُستخدم في كل مسار توليد
+ * صور/PDF مرتبط بطلب عميل فعلي.
+ */
+export function resolveOrderAspectRatio(order: {
+  aspect_ratio?: string | null;
+  orientation?: string | null;
+}): AspectRatio {
+  if (
+    order.aspect_ratio === "1:1" ||
+    order.aspect_ratio === "16:9" ||
+    order.aspect_ratio === "9:16"
+  ) {
+    return order.aspect_ratio;
+  }
+  return order.orientation === "portrait" ? "9:16" : "16:9";
+}
 
 /** إطار واسع — الطفل لا يستحوذ على المشهد، يظهر بحجم متوسط مع خلفية وشخصيات وأجواء واضحة */
 export const WIDE_FRAMING_RULE =

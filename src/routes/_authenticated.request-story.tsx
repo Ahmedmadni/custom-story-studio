@@ -30,7 +30,8 @@ import {
   type LanguageMode,
 } from "@/features/ai/storyTypes";
 import { BOOK_CATEGORIES, type BookCategoryValue } from "@/features/library/bookCategories";
-import { OrientationPicker, type StoryOrientationValue } from "@/features/orders/OrientationPicker";
+import { AspectRatioPicker } from "@/features/orders/AspectRatioPicker";
+import type { AspectRatio } from "@/features/ai/storyStyle";
 import { CUSTOM_PRICES } from "@/features/cart/pricing";
 import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
 import { submitCustomStoryRequest } from "@/features/orders/customRequest.functions";
@@ -86,7 +87,7 @@ function RequestStoryPage() {
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoMode, setPhotoMode] = useState<"cartoon" | "real">("real");
-  const [orientation, setOrientation] = useState<StoryOrientationValue>("landscape");
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("16:9");
   const [whatsapp, setWhatsapp] = useState("");
   const [gifterName, setGifterName] = useState("");
   const [gifterRelation, setGifterRelation] = useState("");
@@ -167,7 +168,7 @@ function RequestStoryPage() {
           topic: topic.trim(),
           whatsapp: whatsapp.trim(),
           photoMode,
-          orientation,
+          aspectRatio,
           childPhotoPath,
           gifterName: gifterName.trim() || null,
           gifterRelation: gifterRelation.trim() || null,
@@ -355,7 +356,7 @@ function RequestStoryPage() {
               </div>
 
               <div className="mt-6">
-                <OrientationPicker value={orientation} onChange={setOrientation} />
+                <AspectRatioPicker value={aspectRatio} onChange={setAspectRatio} />
               </div>
             </div>
           )}
@@ -437,7 +438,7 @@ function RequestStoryPage() {
                   <p>🌍 <b>اللغة:</b> {LANGUAGE_OPTIONS.find((l) => l.value === language)?.label}</p>
                   <p>📚 <b>النوع:</b> {contentType === "story" ? "قصة مصورة" : `كتاب تعليمي — ${BOOK_CATEGORIES.find((c) => c.value === bookCategory)?.label ?? ""}`}</p>
                   <p>📄 <b>الصفحات:</b> {pagesCount} صفحة</p>
-                  <p>🖼️ <b>اتجاه الصفحة:</b> {orientation === "portrait" ? "عمودي (طولي)" : "أفقي (عريض)"}</p>
+                  <p>🖼️ <b>أبعاد الصور والطباعة:</b> {aspectRatio}</p>
                   <p>📸 <b>الصورة:</b> {photo ? (photoMode === "real" ? "وجه حقيقي" : "كرتونية") : "بدون"}</p>
                   {gifterName && <p>💝 <b>إهداء من:</b> {gifterRelation} {gifterName}</p>}
                 </div>

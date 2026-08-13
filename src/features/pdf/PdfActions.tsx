@@ -5,7 +5,8 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { saveStoryPdf } from "@/features/pdf/pdf.functions";
-import type { PdfStoryPage, StoryOrientation } from "@/features/pdf/storyPdf";
+import type { PdfStoryPage } from "@/features/pdf/storyPdf";
+import { normalizeAspectRatio, type AspectRatio, type StoryOrientation } from "@/features/ai/storyStyle";
 import { shareWaLink } from "@/features/orders/whatsapp";
 
 interface PdfActionsProps {
@@ -15,7 +16,9 @@ interface PdfActionsProps {
   language: "ar" | "en" | "bilingual";
   contentType?: "story" | "book";
   pages: PdfStoryPage[];
-  /** اتجاه صفحات الملف: أفقي (افتراضي) أو عمودي */
+  /** نسبة أبعاد الملف: أفقي 16:9 (افتراضي)، عمودي 9:16، أو مربع 1:1 */
+  aspectRatio?: AspectRatio;
+  /** توافقي: اتجاه الصفحة القديم (يُستخدم في معالج الإنشاء create.tsx) — يُطبَّع داخلياً إذا لم يُمرَّر aspectRatio */
   orientation?: StoryOrientation;
   /** templateId يُرسل للخادم لإثبات اعتماد المحتوى قبل الحفظ */
   templateId?: string;
@@ -43,7 +46,8 @@ export function PdfActions({
   language,
   contentType = "story",
   pages,
-  orientation = "landscape",
+  aspectRatio,
+  orientation,
   templateId,
   gifterName,
   gifterRelation,
@@ -57,9 +61,12 @@ export function PdfActions({
   const cacheRef = useRef<{ sig: string; blob: Blob } | null>(null);
   const savedSigRef = useRef<string | null>(null);
 
+  // aspectRatio هو المصدر الأساسي؛ orientation القديم يُطبَّع فقط عند غيابه (توافقي مع create.tsx)
+  const resolvedAspectRatio = aspectRatio ?? normalizeAspectRatio(orientation);
+
   const sig = JSON.stringify([
     title,
-    orientation,
+    resolvedAspectRatio,
     childName,
     language,
     gifterName,
@@ -80,7 +87,7 @@ export function PdfActions({
       language,
       contentType,
       pages,
-      orientation,
+      aspectRatio: resolvedAspectRatio,
       gifterName,
       gifterRelation,
       onProgress: (done, total) => setProgress({ done, total }),
