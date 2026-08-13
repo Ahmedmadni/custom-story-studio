@@ -420,6 +420,7 @@ export type Database = {
           kashier_transaction_id: string | null
           language: string
           notes: string | null
+          orientation: string
           pages_count: number
           paid_at: string | null
           payment_provider: string
@@ -464,6 +465,7 @@ export type Database = {
           kashier_transaction_id?: string | null
           language?: string
           notes?: string | null
+          orientation?: string
           pages_count?: number
           paid_at?: string | null
           payment_provider?: string
@@ -508,6 +510,7 @@ export type Database = {
           kashier_transaction_id?: string | null
           language?: string
           notes?: string | null
+          orientation?: string
           pages_count?: number
           paid_at?: string | null
           payment_provider?: string
