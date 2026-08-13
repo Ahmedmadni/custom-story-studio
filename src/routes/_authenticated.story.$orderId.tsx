@@ -232,6 +232,7 @@ function StoryViewer() {
             moral={story.moral}
             language={story.language}
             contentType={story.contentType}
+            orientation={story.orientation}
             templateId={story.templateId ?? undefined}
             gifterName={story.gifterName}
             gifterRelation={story.gifterRelation}
