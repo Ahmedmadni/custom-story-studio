@@ -18,6 +18,8 @@ export interface PdfStoryPage {
   imageUrl?: string | null;
 }
 
+export type StoryOrientation = "landscape" | "portrait";
+
 export interface StoryPdfInput {
   title: string;
   childName?: string | null;
@@ -25,18 +27,38 @@ export interface StoryPdfInput {
   language: "ar" | "en" | "bilingual";
   contentType?: "story" | "book";
   pages: PdfStoryPage[];
+  /** اتجاه الصفحة: أفقي (افتراضي) أو عمودي */
+  orientation?: StoryOrientation;
   gifterName?: string | null;
   gifterRelation?: string | null;
   onProgress?: (done: number, total: number) => void;
 }
 
 
-// صفحة عريضة 1920×1080 (16:9) — تتطابق مع نسبة الصور المولّدة
-const PAGE_W = 1920;
-const PAGE_H = 1080;
-// أبعاد ورقية: A4 landscape ≈ 297×210، نستخدم 297×167 لتتطابق مع 16:9 تماماً
-const PAGE_MM_W = 297;
-const PAGE_MM_H = 167;
+/**
+ * أبعاد الصفحة حسب الاتجاه المختار:
+ * أفقي 1920×1080 (16:9) — عمودي 1080×1920 (9:16)
+ */
+let PAGE_W = 1920;
+let PAGE_H = 1080;
+let PAGE_MM_W = 297;
+let PAGE_MM_H = 167;
+let PDF_ORIENT: "landscape" | "portrait" = "landscape";
+
+function applyOrientation(orientation: StoryOrientation) {
+  PDF_ORIENT = orientation === "portrait" ? "portrait" : "landscape";
+  if (PDF_ORIENT === "portrait") {
+    PAGE_W = 1080;
+    PAGE_H = 1920;
+    PAGE_MM_W = 167;
+    PAGE_MM_H = 297;
+  } else {
+    PAGE_W = 1920;
+    PAGE_H = 1080;
+    PAGE_MM_W = 297;
+    PAGE_MM_H = 167;
+  }
+}
 
 const SITE_URL = "kidzy.life";
 const SITE_FULL = "https://kidzy.life";
@@ -127,7 +149,7 @@ function buildCover(input: StoryPdfInput, coverImg: string | null, logoData: str
 
   const brand = document.createElement("div");
   brand.style.cssText = `font-size:24px;font-weight:800;letter-spacing:3px;color:#FFD86B;text-shadow:0 2px 10px rgba(0,0,0,0.7);margin-bottom:18px;`;
-  brand.textContent = "✨ منصة كيدزي ✨";
+  brand.textContent = "✨ KIDZY • kidzy.life ✨";
   box.appendChild(brand);
 
   const h1 = document.createElement("h1");
@@ -263,7 +285,7 @@ function buildBackCover(logoData: string | null): HTMLDivElement {
 
   const thanks = document.createElement("div");
   thanks.style.cssText = `font-size:42px;font-weight:900;color:#fff;text-shadow:0 4px 18px rgba(0,0,0,0.4);margin-bottom:14px;max-width:1500px;line-height:1.4;`;
-  thanks.textContent = "شكراً لاختياركم منصة كيدزي";
+  thanks.textContent = "شكراً لاختياركم Kidzy";
   center.appendChild(thanks);
 
   const tag = document.createElement("div");
@@ -301,6 +323,7 @@ function buildBackCover(logoData: string | null): HTMLDivElement {
 }
 
 export async function generateStoryPdf(input: StoryPdfInput): Promise<Blob> {
+  applyOrientation(input.orientation ?? "landscape");
   const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
     import("jspdf"),
     import("html2canvas-pro"),
@@ -330,7 +353,7 @@ export async function generateStoryPdf(input: StoryPdfInput): Promise<Blob> {
   const pdf = new jsPDF({
     unit: "mm",
     format: [PAGE_MM_W, PAGE_MM_H],
-    orientation: "landscape",
+    orientation: PDF_ORIENT,
     compress: true,
   });
 
@@ -344,7 +367,7 @@ export async function generateStoryPdf(input: StoryPdfInput): Promise<Blob> {
       useCORS: true,
     });
     const data = canvas.toDataURL("image/jpeg", 0.92);
-    if (!first) pdf.addPage([PAGE_MM_W, PAGE_MM_H], "landscape");
+    if (!first) pdf.addPage([PAGE_MM_W, PAGE_MM_H], PDF_ORIENT);
     pdf.addImage(data, "JPEG", 0, 0, PAGE_MM_W, PAGE_MM_H);
     host.removeChild(el);
     tick();

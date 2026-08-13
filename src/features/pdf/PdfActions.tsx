@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { saveStoryPdf } from "@/features/pdf/pdf.functions";
-import type { PdfStoryPage } from "@/features/pdf/storyPdf";
+import type { PdfStoryPage, StoryOrientation } from "@/features/pdf/storyPdf";
 import { shareWaLink } from "@/features/orders/whatsapp";
 
 interface PdfActionsProps {
@@ -15,6 +15,8 @@ interface PdfActionsProps {
   language: "ar" | "en" | "bilingual";
   contentType?: "story" | "book";
   pages: PdfStoryPage[];
+  /** اتجاه صفحات الملف: أفقي (افتراضي) أو عمودي */
+  orientation?: StoryOrientation;
   /** templateId يُرسل للخادم لإثبات اعتماد المحتوى قبل الحفظ */
   templateId?: string;
   gifterName?: string | null;
@@ -41,6 +43,7 @@ export function PdfActions({
   language,
   contentType = "story",
   pages,
+  orientation = "landscape",
   templateId,
   gifterName,
   gifterRelation,
@@ -56,6 +59,7 @@ export function PdfActions({
 
   const sig = JSON.stringify([
     title,
+    orientation,
     childName,
     language,
     gifterName,
@@ -76,6 +80,7 @@ export function PdfActions({
       language,
       contentType,
       pages,
+      orientation,
       gifterName,
       gifterRelation,
       onProgress: (done, total) => setProgress({ done, total }),

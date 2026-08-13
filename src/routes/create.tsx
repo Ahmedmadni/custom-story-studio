@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { PdfActions } from "@/features/pdf/PdfActions";
+import { OrientationPicker, type StoryOrientationValue } from "@/features/orders/OrientationPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,6 +103,7 @@ interface DraftPayload {
   language?: LanguageMode;
   whatsapp?: string;
   photoMode?: "cartoon" | "real";
+  orientation?: StoryOrientationValue;
   contentType?: "story" | "book";
   topic?: string;
   bookCategory?: BookCategoryValue;
@@ -131,6 +133,7 @@ function CreateWizard() {
   const [whatsapp, setWhatsapp] = useState("");
   const [contentType, setContentType] = useState<"story" | "book">("story");
   const [pagesCount, setPagesCount] = useState<10 | 16>(10);
+  const [orientation, setOrientation] = useState<StoryOrientationValue>("landscape");
   const [topic, setTopic] = useState("");
   // Book-specific
   const [bookCategory, setBookCategory] = useState<BookCategoryValue | "">("");
@@ -189,6 +192,7 @@ function CreateWizard() {
             setLanguage(p.language ?? "");
             setWhatsapp(p.whatsapp ?? "");
             setPhotoMode(p.photoMode ?? "real");
+            setOrientation(p.orientation ?? "landscape");
             setContentType(p.contentType ?? "story");
             setTopic(p.topic ?? "");
             setBookCategory(p.bookCategory ?? "");
@@ -219,6 +223,7 @@ function CreateWizard() {
       language: language || undefined,
       whatsapp,
       photoMode,
+      orientation,
       contentType,
       topic,
       bookCategory: bookCategory || undefined,
@@ -265,6 +270,7 @@ function CreateWizard() {
               pageNumber: p.n,
               childPhotoPath: res.photoPath ?? undefined,
               photoMode: res.photoPath ? photoMode : undefined,
+              orientation,
             },
           });
           if (r.imageUrl) {
@@ -335,6 +341,7 @@ function CreateWizard() {
             child_photo_path: path,
             language: (language || "ar") as LanguageMode,
             photo_mode: photoMode,
+            orientation,
             pages_count: contentType === "story" ? pagesCount : 10,
             price_egp:
               contentType === "story" ? (pagesCount === 10 ? 200 : 250) : 200,
@@ -486,6 +493,7 @@ function CreateWizard() {
           pageNumber: n,
           childPhotoPath: result.photoPath ?? undefined,
           photoMode: result.photoPath ? photoMode : undefined,
+          orientation,
         },
       });
       if (r.imageUrl) {
@@ -932,6 +940,7 @@ function CreateWizard() {
                           ))}
                         </div>
                       </div>
+                      <OrientationPicker value={orientation} onChange={setOrientation} />
                     </div>
                   ) : (
                     <div className="mt-5 space-y-5">
@@ -1407,6 +1416,7 @@ function CreateWizard() {
                   result={result}
                   childName={childName.trim()}
                   pdfPages={pdfPages}
+                  orientation={orientation}
                   personalize={personalize}
                   reset={reset}
                 />
@@ -1468,11 +1478,12 @@ interface Step7Props {
   };
   childName: string;
   pdfPages: PdfStoryPage[];
+  orientation: StoryOrientationValue;
   personalize: (t: string) => string;
   reset: () => void;
 }
 
-function Step7Approval({ result, childName, pdfPages, personalize, reset }: Step7Props) {
+function Step7Approval({ result, childName, pdfPages, orientation, personalize, reset }: Step7Props) {
   const approvalFn = useServerFn(getTemplateApproval);
   const { data, refetch, isFetching } = useQuery({
     queryKey: ["template-approval", result.id],
@@ -1509,6 +1520,7 @@ function Step7Approval({ result, childName, pdfPages, personalize, reset }: Step
               language={result.language as LanguageMode}
               contentType={result.contentType as "story" | "book"}
               templateId={result.id}
+              orientation={orientation}
               pages={pdfPages}
             />
           </div>
