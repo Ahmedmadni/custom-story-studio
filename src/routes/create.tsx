@@ -1416,6 +1416,7 @@ function CreateWizard() {
                   result={result}
                   childName={childName.trim()}
                   pdfPages={pdfPages}
+                  orientation={orientation}
                   personalize={personalize}
                   reset={reset}
                 />
@@ -1477,11 +1478,12 @@ interface Step7Props {
   };
   childName: string;
   pdfPages: PdfStoryPage[];
+  orientation: StoryOrientationValue;
   personalize: (t: string) => string;
   reset: () => void;
 }
 
-function Step7Approval({ result, childName, pdfPages, personalize, reset }: Step7Props) {
+function Step7Approval({ result, childName, pdfPages, orientation, personalize, reset }: Step7Props) {
   const approvalFn = useServerFn(getTemplateApproval);
   const { data, refetch, isFetching } = useQuery({
     queryKey: ["template-approval", result.id],
