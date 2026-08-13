@@ -10,9 +10,34 @@ export const SHARIA_IMAGE_RULE =
   "STRICT ISLAMIC (SHARIA) COMPLIANCE — MANDATORY on every image: modest, fully-covered clothing for all human characters (long sleeves, long pants or long dresses, no tight/revealing/see-through outfits, no swimwear, no shorts above the knee, no bare shoulders/chests/midriffs); women and girls appearing older than young child must wear a modest headscarf (hijab); NO pigs, dogs inside homes, alcohol, wine, bars, nightclubs, gambling, music instruments shown prominently, tattoos, crosses, churches, temples, idols, statues of worship, magic/wizardry/witchcraft symbols, pentagrams, zodiac/astrology, Halloween, Christmas, or any non-Islamic religious symbols/holidays; NO romantic contact between non-mahram characters (no kissing, no dating, no hugging between unrelated adult male/female); NO scary demons, devils, ghosts, or occult imagery; NO nudity, no partial nudity, no suggestive poses; keep atmosphere wholesome, family-friendly, and aligned with Islamic values. Preferred positive imagery when relevant: mosques, crescent moon, Islamic geometric patterns, prayer scenes, family gatherings, nature, kindness, learning.";
 
 
+/** اتجاه صفحات القصة: أفقي (16:9) أو عمودي (9:16) */
+export type StoryOrientation = "landscape" | "portrait";
+
 /** نسبة أبعاد إلزامية أفقية لكل الصور — مطابقة لتصميم PDF المستطيل */
 export const LANDSCAPE_COMPOSITION_RULE =
   "MANDATORY OUTPUT FORMAT: a single wide cinematic LANDSCAPE image, 16:9 aspect ratio (1920×1080), like a Disney/Pixar movie still or a wide storybook spread. Do NOT output a square or portrait image. Compose horizontally with rich left-to-right scene depth.";
+
+/** نسبة أبعاد إلزامية عمودية — لصفحات الكتاب الطولية (بورتريه) */
+export const PORTRAIT_COMPOSITION_RULE =
+  "MANDATORY OUTPUT FORMAT: a single tall cinematic PORTRAIT image, 9:16 aspect ratio (1080×1920), like a vertical children's book page or an animated movie poster. Do NOT output a square or landscape image. Compose vertically with rich top-to-bottom scene depth (sky/ceiling above, ground/foreground below).";
+
+/** قاعدة الاتجاه المناسبة حسب اختيار العميل */
+export function compositionRule(orientation?: StoryOrientation | string | null): string {
+  return orientation === "portrait" ? PORTRAIT_COMPOSITION_RULE : LANDSCAPE_COMPOSITION_RULE;
+}
+
+/** نسبة الأبعاد بصيغة مزودي الصور */
+export function aspectRatioFor(orientation?: StoryOrientation | string | null): "16:9" | "9:16" {
+  return orientation === "portrait" ? "9:16" : "16:9";
+}
+
+/** مقاس OpenAI images حسب الاتجاه */
+export function openaiSizeFor(
+  orientation?: StoryOrientation | string | null,
+): "1024x1536" | "1536x1024" {
+  return orientation === "portrait" ? "1024x1536" : "1536x1024";
+}
+
 
 /** إطار واسع — الطفل لا يستحوذ على المشهد، يظهر بحجم متوسط مع خلفية وشخصيات وأجواء واضحة */
 export const WIDE_FRAMING_RULE =
