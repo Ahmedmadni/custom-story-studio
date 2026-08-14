@@ -399,7 +399,6 @@ export type Database = {
       orders: {
         Row: {
           admin_notes: string | null
-          aspect_ratio: string | null
           child_age: number | null
           child_id: string | null
           child_name: string
@@ -445,7 +444,6 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
-          aspect_ratio?: string | null
           child_age?: number | null
           child_id?: string | null
           child_name: string
@@ -491,7 +489,6 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
-          aspect_ratio?: string | null
           child_age?: number | null
           child_id?: string | null
           child_name?: string
