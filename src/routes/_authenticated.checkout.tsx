@@ -34,6 +34,8 @@ import { ADMIN_WHATSAPP, isValidEgyptianMobile } from "@/features/orders/whatsap
 import { ComingSoonPaymentDialog } from "@/features/payments/ComingSoonPaymentDialog";
 import { ComingSoonPrintCard } from "@/components/ComingSoonPrintCard";
 import { ChildPicker, type ChildPickerProfile } from "@/features/children/ChildPicker";
+import { AspectRatioPicker } from "@/features/orders/AspectRatioPicker";
+import type { AspectRatio } from "@/features/ai/storyStyle";
 
 export const Route = createFileRoute("/_authenticated/checkout")({
   head: () => ({
@@ -58,6 +60,7 @@ type ItemDraft = {
   preview: string | null;
   language: LanguageMode;
   photoMode: PhotoMode;
+  aspectRatio: AspectRatio;
   publishConsent: boolean;
   pagesCount: 10 | 16;
   gifterName: string;
@@ -102,6 +105,7 @@ function CheckoutPage() {
           preview: null,
           language: "ar" as LanguageMode,
           photoMode: "cartoon" as PhotoMode,
+          aspectRatio: "16:9" as AspectRatio,
           publishConsent: false,
           pagesCount: 10 as 10 | 16,
           gifterName: "",
@@ -224,6 +228,7 @@ function CheckoutPage() {
           childNameEn: d.childNameEn.trim() || null,
           language: d.language,
           photoMode: d.photoMode,
+          aspectRatio: d.aspectRatio,
           publishConsent: d.publishConsent,
           pagesCount: d.pagesCount,
           gifterName: d.gifterName.trim() || null,
@@ -499,6 +504,13 @@ function CheckoutPage() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                <div className="mt-4">
+                  <AspectRatioPicker
+                    value={d.aspectRatio}
+                    onChange={(v) => updateDraft(item.templateId, { aspectRatio: v })}
+                  />
                 </div>
 
                 {/* إهداء القصة — اسم الأب/الأم/مقدم الطلب */}

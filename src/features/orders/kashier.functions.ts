@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { pricePerPages, PRINT_COPY_PRICE_EGP } from "@/features/cart/pricing";
+import { orientationFromAspectRatio } from "@/features/ai/storyStyle";
 
 /**
  * Kashier Hosted Payment Page integration.
@@ -23,6 +24,7 @@ const ItemInput = z.object({
   notes: z.string().max(500).nullable().optional(),
   language: z.enum(["ar", "en", "bilingual"]).default("ar"),
   photoMode: z.enum(["cartoon", "real"]).default("cartoon"),
+  aspectRatio: z.enum(["1:1", "16:9", "9:16"]).default("16:9"),
   publishConsent: z.boolean().default(false),
   pagesCount: z.union([z.literal(10), z.literal(16)]).default(10),
   gifterName: z.string().trim().max(60).nullable().optional(),
@@ -87,6 +89,8 @@ export const createKashierCheckout = createServerFn({ method: "POST" })
         price_egp: base + printExtra,
         language: it.language,
         photo_mode: it.photoMode,
+        aspect_ratio: it.aspectRatio,
+        orientation: orientationFromAspectRatio(it.aspectRatio),
         publish_consent: it.publishConsent,
         pages_count: it.pagesCount,
         print_copy: data.printCopy,
