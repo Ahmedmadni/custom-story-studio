@@ -9,7 +9,15 @@ const ItemInput = z.object({
   childId: z.string().uuid().nullable().optional(),
   childName: z.string().trim().min(1).max(40),
   childNameEn: z.string().trim().max(40).nullable().optional(),
-  childAge: z.number().int().min(1).max(14).nullable().optional(),
+  childAge: z.preprocess(
+    (v) => {
+      if (v === null || v === undefined || v === "") return null;
+      const n = Number(v);
+      if (!Number.isFinite(n) || n < 1) return null;
+      return Math.min(14, Math.trunc(n));
+    },
+    z.number().int().min(1).max(14).nullable(),
+  ).optional(),
   gender: z.enum(["boy", "girl"]).default("boy"),
   childPhotoPath: z.string().min(1),
   notes: z.string().max(500).nullable().optional(),
