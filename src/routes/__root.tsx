@@ -128,6 +128,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "https://storage.googleapis.com/gpt-engineer-file-uploads/sHg6QnS04TcmbXVlhYYOOD3JhZB2/social-images/social-1782076247789-ChatGPT_Image_Jun_22,_2026,_12_10_40_AM.webp",
       },
+      {
+        name: "google-site-verification",
+        content: "EQqdonrw9dVkOuccX38m6e0IfP-_VNP4bUj6JOHEgEU",
+      },
     ],
     links: [
       { rel: "icon", type: "image/png", href: "/favicon.png" },
