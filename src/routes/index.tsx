@@ -130,11 +130,7 @@ function Index() {
 
         <div className="container mx-auto grid items-center gap-10 px-4 pt-10 pb-16 md:grid-cols-2 md:gap-16 md:pt-16 md:pb-24">
           <div className="text-center md:text-start">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-bold text-primary">
-              <Sparkles className="h-4 w-4" />
-              منصة Kidzy للقصص المصوّرة الذكية
-            </span>
-            <h1 className="mt-5 font-display text-4xl font-extrabold leading-[1.15] tracking-tight text-foreground md:text-6xl">
+            <h1 className="font-display text-4xl font-extrabold leading-[1.15] tracking-tight text-foreground md:text-6xl">
               عالم من القصص
               <br />
               <span className="bg-gradient-to-l from-primary to-candy bg-clip-text text-transparent">
