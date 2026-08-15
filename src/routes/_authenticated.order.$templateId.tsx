@@ -19,7 +19,8 @@ import { cn } from "@/lib/utils";
 import photoModeRealImg from "@/assets/photo-mode-real.jpg";
 import photoModeCartoonImg from "@/assets/photo-mode-cartoon.jpg";
 import { optimizeImage } from "@/lib/imageOptimize";
-import { OrientationPicker, type StoryOrientationValue } from "@/features/orders/OrientationPicker";
+import { AspectRatioPicker } from "@/features/orders/AspectRatioPicker";
+import { orientationFromAspectRatio, type AspectRatio } from "@/features/ai/storyStyle";
 
 export const Route = createFileRoute("/_authenticated/order/$templateId")({
   head: () => ({
@@ -69,7 +70,7 @@ function OrderPage() {
   const [submitting, setSubmitting] = useState(false);
   const [language, setLanguage] = useState<LanguageMode>("ar");
   const [photoMode, setPhotoMode] = useState<PhotoMode>("cartoon");
-  const [orientation, setOrientation] = useState<StoryOrientationValue>("landscape");
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("16:9");
   const [heroCharacter, setHeroCharacter] = useState("");
   const [heroQuery, setHeroQuery] = useState("");
   const [heroCat, setHeroCat] = useState<"الكل" | HeroOption["category"]>("الكل");
@@ -150,7 +151,8 @@ function OrderPage() {
         child_photo_path: path,
         language,
         photo_mode: photoMode,
-        orientation,
+        aspect_ratio: aspectRatio,
+        orientation: orientationFromAspectRatio(aspectRatio),
         hero_character: heroCharacter.trim() || null,
         notes: combinedNotes,
         gifted_by_name: gifterName.trim() || null,
@@ -288,7 +290,7 @@ function OrderPage() {
             </div>
           </div>
 
-          <OrientationPicker value={orientation} onChange={setOrientation} />
+          <AspectRatioPicker value={aspectRatio} onChange={setAspectRatio} />
 
           {/* نمط وجه الطفل */}
           <div>
