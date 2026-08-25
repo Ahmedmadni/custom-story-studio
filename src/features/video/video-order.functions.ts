@@ -141,18 +141,22 @@ export const submitVideoOrder = createServerFn({ method: "POST" })
       throw new Error("صورة الطفل غير موجودة أو لا تخص هذا الحساب");
     }
 
+    // Generated RPC arg types mark every parameter non-nullable; the SQL function
+    // accepts NULL for the optional child fields.
+    const rpcArgs = {
+      _user_id: context.userId,
+      _template_id: data.templateId,
+      _child_id: data.childId ?? null,
+      _child_name: data.childName,
+      _child_age: data.childAge ?? null,
+      _child_gender: data.childGender,
+      _child_photo_path: data.childPhotoPath,
+      _language: data.language,
+      _aspect_ratio: data.aspectRatio,
+    } as unknown as Parameters<typeof supabaseAdmin.rpc<"create_video_order_and_project">>[1];
+
     const { data: created, error } = await supabaseAdmin
-      .rpc("create_video_order_and_project", {
-        _user_id: context.userId,
-        _template_id: data.templateId,
-        _child_id: data.childId ?? null,
-        _child_name: data.childName,
-        _child_age: data.childAge ?? null,
-        _child_gender: data.childGender,
-        _child_photo_path: data.childPhotoPath,
-        _language: data.language,
-        _aspect_ratio: data.aspectRatio,
-      })
+      .rpc("create_video_order_and_project", rpcArgs)
       .single();
     if (error || !created) {
       console.error("submitVideoOrder RPC error", error);
