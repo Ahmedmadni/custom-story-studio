@@ -29,9 +29,13 @@ export type ChildPickerProfile = {
 export function ChildPicker({
   selectedId,
   onSelect,
+  title = "اختر بطل القصة",
+  selectedMessage = "✨ سيصبح طفلك بطل هذه القصة",
 }: {
   selectedId: string | null;
   onSelect: (child: ChildPickerProfile | null) => void;
+  title?: string;
+  selectedMessage?: string;
 }) {
   const { user } = useAuth();
   const { data, isLoading } = useQuery({
@@ -72,7 +76,7 @@ export function ChildPicker({
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          <p className="font-display text-base font-extrabold">اختر بطل القصة</p>
+          <p className="font-display text-base font-extrabold">{title}</p>
         </div>
         <Button asChild size="sm" variant="ghost" className="rounded-full text-xs">
           <Link to="/children/create">
@@ -123,7 +127,9 @@ export function ChildPicker({
                       <p className="truncate font-bold">{c.name}</p>
                       {isSel && <Check className="h-4 w-4 text-primary" />}
                     </div>
-                    <p className={`bg-gradient-to-r ${lvl.color} bg-clip-text text-xs font-bold text-transparent`}>
+                    <p
+                      className={`bg-gradient-to-r ${lvl.color} bg-clip-text text-xs font-bold text-transparent`}
+                    >
                       {lvl.emoji} مستوى {c.level}
                     </p>
                     <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -138,7 +144,7 @@ export function ChildPicker({
           </div>
           {selectedId && (
             <div className="mt-3 rounded-xl bg-primary/10 p-3 text-center text-sm font-bold text-primary">
-              ✨ سيصبح طفلك بطل هذه القصة
+              {selectedMessage}
             </div>
           )}
         </>

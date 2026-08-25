@@ -76,3 +76,40 @@ export type VideoSceneStatus = z.infer<typeof videoSceneStatusSchema>;
 export type VideoLanguage = z.infer<typeof videoLanguageSchema>;
 
 export const MAX_VIDEO_DURATION_MS = 60_000;
+
+export const videoOrderInputSchema = z
+  .object({
+    templateId: z.string().uuid(),
+    childId: z.string().uuid().nullable().optional(),
+    childName: z.string().trim().min(1).max(40),
+    childAge: z.number().int().min(1).max(14).nullable().optional(),
+    childGender: z.enum(["boy", "girl"]),
+    childPhotoPath: z.string().trim().min(38).max(500),
+    language: videoLanguageSchema,
+    aspectRatio: videoAspectRatioSchema,
+  })
+  .strict();
+
+export type VideoOrderInput = z.infer<typeof videoOrderInputSchema>;
+
+export const CUSTOMER_VIDEO_STATUS_KEYS = [
+  "awaiting_payment",
+  "in_production",
+  "ready",
+  "delivered",
+  "cancelled",
+] as const;
+
+export type CustomerVideoStatusKey = (typeof CUSTOMER_VIDEO_STATUS_KEYS)[number];
+
+export type CustomerVideoOrderDto = {
+  id: string;
+  templateTitle: string;
+  childName: string;
+  createdAt: string;
+  expectedDeliveryAt: string | null;
+  deliveryStatus: VideoDeliveryStatus;
+  status: CustomerVideoStatusKey;
+  statusLabel: string;
+  finalDeliveryAvailable: boolean;
+};

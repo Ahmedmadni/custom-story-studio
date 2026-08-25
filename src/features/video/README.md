@@ -1,7 +1,7 @@
 # Kidzy Video foundation
 
-This folder currently contains data contracts and the disabled-by-default feature flag only.
-It intentionally contains no customer workflow, admin workspace, provider, worker, or payment code.
+This folder contains the disabled-by-default customer order foundation. It intentionally contains
+no admin production workspace, provider, worker, payment execution, or generation code.
 
 ## Feature flag
 
@@ -24,11 +24,15 @@ remain mandatory.
 - Per-row scene and render durations are capped at 60,000ms in SQL. The sum of sibling scene
   durations cannot be enforced safely with a `CHECK`; the future admin/server composition command
   must validate the aggregate in the same transaction before queueing composition/final render.
-- Generated Supabase types must be regenerated from the applied migration. Do not add handwritten
-  table shapes or permanent unsafe casts in the meantime. After Lovable applies
-  `20260823000000_kidzy_video_foundation.sql`, run:
+- The checked-in Supabase type artifact includes the deployed foundation schema. After Lovable
+  applies a new video migration, regenerate the complete artifact from the project rather than
+  introducing local casts:
 
   ```bash
   supabase gen types typescript --project-id uhvzhbiqywmpvbmalyph \
     > src/integrations/supabase/types.ts
   ```
+
+- Phase 2 adds `20260824000000_create_video_order_rpc.sql`. Its service-role-only RPC performs the
+  video order and linked project inserts in one database transaction. Apply that migration before
+  enabling the flag, then regenerate the types again with the same command.
