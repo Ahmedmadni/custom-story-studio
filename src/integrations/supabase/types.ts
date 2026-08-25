@@ -1377,6 +1377,23 @@ export type Database = {
         Args: { _order_id: string }
         Returns: undefined
       }
+      create_video_order_and_project: {
+        Args: {
+          _aspect_ratio: string
+          _child_age: number
+          _child_gender: string
+          _child_id: string
+          _child_name: string
+          _child_photo_path: string
+          _language: string
+          _template_id: string
+          _user_id: string
+        }
+        Returns: {
+          created_at: string
+          video_order_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
