@@ -13,7 +13,8 @@ export const SHARIA_IMAGE_RULE =
 export type StoryOrientation = "landscape" | "portrait";
 
 /** نسبة أبعاد الطلب الموحّدة — المصدر الوحيد المعتمد لصور/طباعة كل طلب عميل. */
-export type AspectRatio = "1:1" | "16:9" | "9:16";
+export const ASPECT_RATIOS = ["1:1", "16:9", "9:16"] as const;
+export type AspectRatio = (typeof ASPECT_RATIOS)[number];
 
 /** نسبة أبعاد إلزامية أفقية لكل الصور — مطابقة لتصميم PDF المستطيل */
 export const LANDSCAPE_COMPOSITION_RULE =
@@ -110,13 +111,9 @@ export const STYLE_NEGATIVE =
 export const SHARIA_TEXT_RULE =
   "قاعدة إلزامية عليا (لا تُخالَف أبداً): كل النصوص يجب أن تلتزم التزاماً كاملاً بالشريعة الإسلامية شكلاً ومضموناً، وأن تحمل معنى دينياً وأخلاقياً إسلامياً سامياً. مطلوب: غرس قيمة إسلامية واضحة في كل قصة (الصدق، الأمانة، بر الوالدين، صلة الرحم، الرحمة، العدل، الصبر، الشكر، حب الله ورسوله ﷺ، الصلاة، الذكر، حب القرآن، احترام الكبير، الرفق بالحيوان، إتقان العمل، طلب العلم، حسن الخلق). يمكن ذكر: الصلاة، المسجد، القرآن، الأذان، الصيام، رمضان، العيد، بسم الله، الحمد لله، السلام عليكم، الذكر، الدعاء، الأنبياء والصحابة بأدب واحترام. ممنوع منعاً باتاً: أي إشارة إلى السحر أو الجن المخيف أو التنجيم أو الأبراج أو الحظ أو تحضير الأرواح أو الخرافات، أو الموسيقى والرقص والحفلات الماجنة، أو الخمر والقمار والخنزير، أو الأعياد غير الإسلامية (الكريسماس، الهالوين، عيد الحب…)، أو رموز الأديان الأخرى (الصليب، الكنيسة، المعابد، الأصنام)، أو العلاقات العاطفية بين غير المحارم، أو أي كلام يخالف العقيدة الإسلامية. الملابس المذكورة في النص يجب أن تكون محتشمة دائماً، والبنات/الأمهات ترتدين الحجاب. اجعل خاتمة كل قصة تدعو صراحةً إلى قيمة إسلامية أو دعاء قصير مناسب للأطفال.";
 
-
 /** عمر الطفل → أسلوب بصري متناسب (قاعدة إلزامية). */
 export function ageStylePrompt(age?: string | number | null): string {
-  const n =
-    typeof age === "number"
-      ? age
-      : parseInt(String(age ?? "").match(/\d+/)?.[0] ?? "", 10);
+  const n = typeof age === "number" ? age : parseInt(String(age ?? "").match(/\d+/)?.[0] ?? "", 10);
 
   if (Number.isNaN(n) || n <= 0) {
     return "Age styling (child 4-8 years): a cheerful young child hero with playful rounded kid proportions, simple comfy colorful outfit, bright imaginative scene";
@@ -166,8 +163,10 @@ export function gifterDedicationPrompt(
  * النصوص العربية تُضاف لاحقاً كـoverlay فوق الصورة.
  */
 export function bakedTitlePrompt(title?: string | null): string {
-  const clean = (title ?? "").trim().replace(/[^a-zA-Z0-9 &!?'-]/g, "").slice(0, 28);
+  const clean = (title ?? "")
+    .trim()
+    .replace(/[^a-zA-Z0-9 &!?'-]/g, "")
+    .slice(0, 28);
   if (!clean) return "";
   return `Bake this exact short English title text into the top of the image as a polished movie-poster style logotype (clear, perfectly readable, no spelling errors, no extra letters): "${clean}". The title text must be inside the image, integrated into the artwork like a children's movie poster.`;
 }
-
