@@ -1416,7 +1416,6 @@ export type Database = {
         | "bedtime"
         | "family"
         | "adventure"
-    }
       template_product_type: "illustrated_story" | "personalized_video";
       video_delivery_status: "pending" | "delivered";
       video_job_status: "queued" | "running" | "succeeded" | "failed" | "dead_letter";
