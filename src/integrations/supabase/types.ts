@@ -867,454 +867,42 @@ export type Database = {
       }
       template_product_offerings: {
         Row: {
-          created_at: string;
-          id: string;
-          is_enabled: boolean;
-          price_egp: number | null;
-          product_type: Database["public"]["Enums"]["template_product_type"];
-          template_id: string;
-          updated_at: string;
-        };
+          created_at: string
+          id: string
+          is_enabled: boolean
+          price_egp: number | null
+          product_type: Database["public"]["Enums"]["template_product_type"]
+          template_id: string
+          updated_at: string
+        }
         Insert: {
-          created_at?: string;
-          id?: string;
-          is_enabled?: boolean;
-          price_egp?: number | null;
-          product_type: Database["public"]["Enums"]["template_product_type"];
-          template_id: string;
-          updated_at?: string;
-        };
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          price_egp?: number | null
+          product_type: Database["public"]["Enums"]["template_product_type"]
+          template_id: string
+          updated_at?: string
+        }
         Update: {
-          created_at?: string;
-          id?: string;
-          is_enabled?: boolean;
-          price_egp?: number | null;
-          product_type?: Database["public"]["Enums"]["template_product_type"];
-          template_id?: string;
-          updated_at?: string;
-        };
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          price_egp?: number | null
+          product_type?: Database["public"]["Enums"]["template_product_type"]
+          template_id?: string
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "template_product_offerings_template_id_fkey";
-            columns: ["template_id"];
-            isOneToOne: false;
-            referencedRelation: "story_templates";
-            referencedColumns: ["id"];
+            foreignKeyName: "template_product_offerings_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "story_templates"
+            referencedColumns: ["id"]
           },
-        ];
-      };
-      video_jobs: {
-        Row: {
-          attempt_count: number;
-          created_at: string;
-          finished_at: string | null;
-          id: string;
-          idempotency_key: string;
-          job_type: Database["public"]["Enums"]["video_job_type"];
-          last_error: string | null;
-          next_retry_at: string | null;
-          project_id: string;
-          provider: string;
-          provider_job_id: string | null;
-          request_meta: Json;
-          response_meta: Json;
-          scene_id: string | null;
-          started_at: string | null;
-          status: Database["public"]["Enums"]["video_job_status"];
-          updated_at: string;
-        };
-        Insert: {
-          attempt_count?: number;
-          created_at?: string;
-          finished_at?: string | null;
-          id?: string;
-          idempotency_key: string;
-          job_type: Database["public"]["Enums"]["video_job_type"];
-          last_error?: string | null;
-          next_retry_at?: string | null;
-          project_id: string;
-          provider: string;
-          provider_job_id?: string | null;
-          request_meta?: Json;
-          response_meta?: Json;
-          scene_id?: string | null;
-          started_at?: string | null;
-          status?: Database["public"]["Enums"]["video_job_status"];
-          updated_at?: string;
-        };
-        Update: {
-          attempt_count?: number;
-          created_at?: string;
-          finished_at?: string | null;
-          id?: string;
-          idempotency_key?: string;
-          job_type?: Database["public"]["Enums"]["video_job_type"];
-          last_error?: string | null;
-          next_retry_at?: string | null;
-          project_id?: string;
-          provider?: string;
-          provider_job_id?: string | null;
-          request_meta?: Json;
-          response_meta?: Json;
-          scene_id?: string | null;
-          started_at?: string | null;
-          status?: Database["public"]["Enums"]["video_job_status"];
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "video_jobs_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "video_projects";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "video_jobs_scene_project_fkey";
-            columns: ["scene_id", "project_id"];
-            isOneToOne: false;
-            referencedRelation: "video_scenes";
-            referencedColumns: ["id", "project_id"];
-          },
-        ];
-      };
-      video_orders: {
-        Row: {
-          child_id: string | null;
-          child_input_snapshot: Json;
-          coupon_code: string | null;
-          coupon_id: string | null;
-          created_at: string;
-          delivered_at: string | null;
-          delivery_status: Database["public"]["Enums"]["video_delivery_status"];
-          discount_egp: number;
-          expected_delivery_at: string | null;
-          id: string;
-          order_options_snapshot: Json;
-          paid_at: string | null;
-          payment_status: Database["public"]["Enums"]["video_payment_status"];
-          price_egp: number;
-          source_template_id: string | null;
-          status: Database["public"]["Enums"]["video_order_status"];
-          updated_at: string;
-          user_id: string;
-        };
-        Insert: {
-          child_id?: string | null;
-          child_input_snapshot: Json;
-          coupon_code?: string | null;
-          coupon_id?: string | null;
-          created_at?: string;
-          delivered_at?: string | null;
-          delivery_status?: Database["public"]["Enums"]["video_delivery_status"];
-          discount_egp?: number;
-          expected_delivery_at?: string | null;
-          id?: string;
-          order_options_snapshot?: Json;
-          paid_at?: string | null;
-          payment_status?: Database["public"]["Enums"]["video_payment_status"];
-          price_egp: number;
-          source_template_id?: string | null;
-          status?: Database["public"]["Enums"]["video_order_status"];
-          updated_at?: string;
-          user_id: string;
-        };
-        Update: {
-          child_id?: string | null;
-          child_input_snapshot?: Json;
-          coupon_code?: string | null;
-          coupon_id?: string | null;
-          created_at?: string;
-          delivered_at?: string | null;
-          delivery_status?: Database["public"]["Enums"]["video_delivery_status"];
-          discount_egp?: number;
-          expected_delivery_at?: string | null;
-          id?: string;
-          order_options_snapshot?: Json;
-          paid_at?: string | null;
-          payment_status?: Database["public"]["Enums"]["video_payment_status"];
-          price_egp?: number;
-          source_template_id?: string | null;
-          status?: Database["public"]["Enums"]["video_order_status"];
-          updated_at?: string;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "video_orders_child_id_fkey";
-            columns: ["child_id"];
-            isOneToOne: false;
-            referencedRelation: "child_profiles";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "video_orders_coupon_id_fkey";
-            columns: ["coupon_id"];
-            isOneToOne: false;
-            referencedRelation: "coupons";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "video_orders_source_template_id_fkey";
-            columns: ["source_template_id"];
-            isOneToOne: false;
-            referencedRelation: "story_templates";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      video_projects: {
-        Row: {
-          aspect_ratio: string;
-          child_id: string | null;
-          child_snapshot: Json;
-          created_at: string;
-          failure_code: string | null;
-          failure_message: string | null;
-          id: string;
-          image_approved_at: string | null;
-          image_approved_by: string | null;
-          language: string;
-          production_completed_at: string | null;
-          production_stage: Database["public"]["Enums"]["video_production_stage"] | null;
-          production_started_at: string | null;
-          quality_approved_at: string | null;
-          quality_approved_by: string | null;
-          reference_image_meta: Json;
-          reference_image_path: string | null;
-          reference_image_prompt: string | null;
-          script: Json | null;
-          script_approved_at: string | null;
-          script_approved_by: string | null;
-          source_order_id: string | null;
-          source_snapshot: Json;
-          source_template_id: string | null;
-          status: Database["public"]["Enums"]["video_project_status"];
-          style: string | null;
-          title: string;
-          updated_at: string;
-          user_id: string;
-          video_order_id: string;
-        };
-        Insert: {
-          aspect_ratio?: string;
-          child_id?: string | null;
-          child_snapshot: Json;
-          created_at?: string;
-          failure_code?: string | null;
-          failure_message?: string | null;
-          id?: string;
-          image_approved_at?: string | null;
-          image_approved_by?: string | null;
-          language?: string;
-          production_completed_at?: string | null;
-          production_stage?: Database["public"]["Enums"]["video_production_stage"] | null;
-          production_started_at?: string | null;
-          quality_approved_at?: string | null;
-          quality_approved_by?: string | null;
-          reference_image_meta?: Json;
-          reference_image_path?: string | null;
-          reference_image_prompt?: string | null;
-          script?: Json | null;
-          script_approved_at?: string | null;
-          script_approved_by?: string | null;
-          source_order_id?: string | null;
-          source_snapshot?: Json;
-          source_template_id?: string | null;
-          status?: Database["public"]["Enums"]["video_project_status"];
-          style?: string | null;
-          title: string;
-          updated_at?: string;
-          user_id: string;
-          video_order_id: string;
-        };
-        Update: {
-          aspect_ratio?: string;
-          child_id?: string | null;
-          child_snapshot?: Json;
-          created_at?: string;
-          failure_code?: string | null;
-          failure_message?: string | null;
-          id?: string;
-          image_approved_at?: string | null;
-          image_approved_by?: string | null;
-          language?: string;
-          production_completed_at?: string | null;
-          production_stage?: Database["public"]["Enums"]["video_production_stage"] | null;
-          production_started_at?: string | null;
-          quality_approved_at?: string | null;
-          quality_approved_by?: string | null;
-          reference_image_meta?: Json;
-          reference_image_path?: string | null;
-          reference_image_prompt?: string | null;
-          script?: Json | null;
-          script_approved_at?: string | null;
-          script_approved_by?: string | null;
-          source_order_id?: string | null;
-          source_snapshot?: Json;
-          source_template_id?: string | null;
-          status?: Database["public"]["Enums"]["video_project_status"];
-          style?: string | null;
-          title?: string;
-          updated_at?: string;
-          user_id?: string;
-          video_order_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "video_projects_child_id_fkey";
-            columns: ["child_id"];
-            isOneToOne: false;
-            referencedRelation: "child_profiles";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "video_projects_source_order_id_fkey";
-            columns: ["source_order_id"];
-            isOneToOne: false;
-            referencedRelation: "orders";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "video_projects_source_template_id_fkey";
-            columns: ["source_template_id"];
-            isOneToOne: false;
-            referencedRelation: "story_templates";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "video_projects_video_order_id_fkey";
-            columns: ["video_order_id"];
-            isOneToOne: true;
-            referencedRelation: "video_orders";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      video_renders: {
-        Row: {
-          checksum: string | null;
-          created_at: string;
-          duration_ms: number;
-          height: number;
-          id: string;
-          is_current: boolean;
-          mime_type: string;
-          project_id: string;
-          render_type: Database["public"]["Enums"]["video_render_type"];
-          size_bytes: number;
-          storage_path: string;
-          version: number;
-          width: number;
-        };
-        Insert: {
-          checksum?: string | null;
-          created_at?: string;
-          duration_ms: number;
-          height: number;
-          id?: string;
-          is_current?: boolean;
-          mime_type?: string;
-          project_id: string;
-          render_type: Database["public"]["Enums"]["video_render_type"];
-          size_bytes: number;
-          storage_path: string;
-          version: number;
-          width: number;
-        };
-        Update: {
-          checksum?: string | null;
-          created_at?: string;
-          duration_ms?: number;
-          height?: number;
-          id?: string;
-          is_current?: boolean;
-          mime_type?: string;
-          project_id?: string;
-          render_type?: Database["public"]["Enums"]["video_render_type"];
-          size_bytes?: number;
-          storage_path?: string;
-          version?: number;
-          width?: number;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "video_renders_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "video_projects";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      video_scenes: {
-        Row: {
-          approved_at: string | null;
-          approved_by: string | null;
-          attempt_count: number;
-          audio_path: string | null;
-          clip_path: string | null;
-          created_at: string;
-          duration_ms: number;
-          id: string;
-          narration_text: string | null;
-          project_id: string;
-          scene_number: number;
-          selected_asset_meta: Json;
-          selected_image_path: string | null;
-          source_page_number: number | null;
-          status: Database["public"]["Enums"]["video_scene_status"];
-          updated_at: string;
-          visual_prompt: string | null;
-        };
-        Insert: {
-          approved_at?: string | null;
-          approved_by?: string | null;
-          attempt_count?: number;
-          audio_path?: string | null;
-          clip_path?: string | null;
-          created_at?: string;
-          duration_ms: number;
-          id?: string;
-          narration_text?: string | null;
-          project_id: string;
-          scene_number: number;
-          selected_asset_meta?: Json;
-          selected_image_path?: string | null;
-          source_page_number?: number | null;
-          status?: Database["public"]["Enums"]["video_scene_status"];
-          updated_at?: string;
-          visual_prompt?: string | null;
-        };
-        Update: {
-          approved_at?: string | null;
-          approved_by?: string | null;
-          attempt_count?: number;
-          audio_path?: string | null;
-          clip_path?: string | null;
-          created_at?: string;
-          duration_ms?: number;
-          id?: string;
-          narration_text?: string | null;
-          project_id?: string;
-          scene_number?: number;
-          selected_asset_meta?: Json;
-          selected_image_path?: string | null;
-          source_page_number?: number | null;
-          status?: Database["public"]["Enums"]["video_scene_status"];
-          updated_at?: string;
-          visual_prompt?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "video_scenes_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "video_projects";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1332,6 +920,424 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      video_jobs: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          finished_at: string | null
+          id: string
+          idempotency_key: string
+          job_type: Database["public"]["Enums"]["video_job_type"]
+          last_error: string | null
+          next_retry_at: string | null
+          project_id: string
+          provider: string
+          provider_job_id: string | null
+          request_meta: Json
+          response_meta: Json
+          scene_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["video_job_status"]
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          idempotency_key: string
+          job_type: Database["public"]["Enums"]["video_job_type"]
+          last_error?: string | null
+          next_retry_at?: string | null
+          project_id: string
+          provider: string
+          provider_job_id?: string | null
+          request_meta?: Json
+          response_meta?: Json
+          scene_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["video_job_status"]
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          idempotency_key?: string
+          job_type?: Database["public"]["Enums"]["video_job_type"]
+          last_error?: string | null
+          next_retry_at?: string | null
+          project_id?: string
+          provider?: string
+          provider_job_id?: string | null
+          request_meta?: Json
+          response_meta?: Json
+          scene_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["video_job_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_jobs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "video_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_jobs_scene_project_fkey"
+            columns: ["scene_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "video_scenes"
+            referencedColumns: ["id", "project_id"]
+          },
+        ]
+      }
+      video_orders: {
+        Row: {
+          child_id: string | null
+          child_input_snapshot: Json
+          coupon_code: string | null
+          coupon_id: string | null
+          created_at: string
+          delivered_at: string | null
+          delivery_status: Database["public"]["Enums"]["video_delivery_status"]
+          discount_egp: number
+          expected_delivery_at: string | null
+          id: string
+          order_options_snapshot: Json
+          paid_at: string | null
+          payment_status: Database["public"]["Enums"]["video_payment_status"]
+          price_egp: number
+          source_template_id: string | null
+          status: Database["public"]["Enums"]["video_order_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          child_id?: string | null
+          child_input_snapshot: Json
+          coupon_code?: string | null
+          coupon_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_status?: Database["public"]["Enums"]["video_delivery_status"]
+          discount_egp?: number
+          expected_delivery_at?: string | null
+          id?: string
+          order_options_snapshot?: Json
+          paid_at?: string | null
+          payment_status?: Database["public"]["Enums"]["video_payment_status"]
+          price_egp: number
+          source_template_id?: string | null
+          status?: Database["public"]["Enums"]["video_order_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          child_id?: string | null
+          child_input_snapshot?: Json
+          coupon_code?: string | null
+          coupon_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_status?: Database["public"]["Enums"]["video_delivery_status"]
+          discount_egp?: number
+          expected_delivery_at?: string | null
+          id?: string
+          order_options_snapshot?: Json
+          paid_at?: string | null
+          payment_status?: Database["public"]["Enums"]["video_payment_status"]
+          price_egp?: number
+          source_template_id?: string | null
+          status?: Database["public"]["Enums"]["video_order_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_orders_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_orders_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_orders_source_template_id_fkey"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "story_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_projects: {
+        Row: {
+          aspect_ratio: string
+          child_id: string | null
+          child_snapshot: Json
+          created_at: string
+          failure_code: string | null
+          failure_message: string | null
+          id: string
+          image_approved_at: string | null
+          image_approved_by: string | null
+          language: string
+          production_completed_at: string | null
+          production_stage:
+            | Database["public"]["Enums"]["video_production_stage"]
+            | null
+          production_started_at: string | null
+          quality_approved_at: string | null
+          quality_approved_by: string | null
+          reference_image_meta: Json
+          reference_image_path: string | null
+          reference_image_prompt: string | null
+          script: Json | null
+          script_approved_at: string | null
+          script_approved_by: string | null
+          source_order_id: string | null
+          source_snapshot: Json
+          source_template_id: string | null
+          status: Database["public"]["Enums"]["video_project_status"]
+          style: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          video_order_id: string
+        }
+        Insert: {
+          aspect_ratio?: string
+          child_id?: string | null
+          child_snapshot: Json
+          created_at?: string
+          failure_code?: string | null
+          failure_message?: string | null
+          id?: string
+          image_approved_at?: string | null
+          image_approved_by?: string | null
+          language?: string
+          production_completed_at?: string | null
+          production_stage?:
+            | Database["public"]["Enums"]["video_production_stage"]
+            | null
+          production_started_at?: string | null
+          quality_approved_at?: string | null
+          quality_approved_by?: string | null
+          reference_image_meta?: Json
+          reference_image_path?: string | null
+          reference_image_prompt?: string | null
+          script?: Json | null
+          script_approved_at?: string | null
+          script_approved_by?: string | null
+          source_order_id?: string | null
+          source_snapshot?: Json
+          source_template_id?: string | null
+          status?: Database["public"]["Enums"]["video_project_status"]
+          style?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+          video_order_id: string
+        }
+        Update: {
+          aspect_ratio?: string
+          child_id?: string | null
+          child_snapshot?: Json
+          created_at?: string
+          failure_code?: string | null
+          failure_message?: string | null
+          id?: string
+          image_approved_at?: string | null
+          image_approved_by?: string | null
+          language?: string
+          production_completed_at?: string | null
+          production_stage?:
+            | Database["public"]["Enums"]["video_production_stage"]
+            | null
+          production_started_at?: string | null
+          quality_approved_at?: string | null
+          quality_approved_by?: string | null
+          reference_image_meta?: Json
+          reference_image_path?: string | null
+          reference_image_prompt?: string | null
+          script?: Json | null
+          script_approved_at?: string | null
+          script_approved_by?: string | null
+          source_order_id?: string | null
+          source_snapshot?: Json
+          source_template_id?: string | null
+          status?: Database["public"]["Enums"]["video_project_status"]
+          style?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          video_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_projects_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_projects_source_order_id_fkey"
+            columns: ["source_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_projects_source_template_id_fkey"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "story_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_projects_video_order_id_fkey"
+            columns: ["video_order_id"]
+            isOneToOne: true
+            referencedRelation: "video_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_renders: {
+        Row: {
+          checksum: string | null
+          created_at: string
+          duration_ms: number
+          height: number
+          id: string
+          is_current: boolean
+          mime_type: string
+          project_id: string
+          render_type: Database["public"]["Enums"]["video_render_type"]
+          size_bytes: number
+          storage_path: string
+          version: number
+          width: number
+        }
+        Insert: {
+          checksum?: string | null
+          created_at?: string
+          duration_ms: number
+          height: number
+          id?: string
+          is_current?: boolean
+          mime_type?: string
+          project_id: string
+          render_type: Database["public"]["Enums"]["video_render_type"]
+          size_bytes: number
+          storage_path: string
+          version: number
+          width: number
+        }
+        Update: {
+          checksum?: string | null
+          created_at?: string
+          duration_ms?: number
+          height?: number
+          id?: string
+          is_current?: boolean
+          mime_type?: string
+          project_id?: string
+          render_type?: Database["public"]["Enums"]["video_render_type"]
+          size_bytes?: number
+          storage_path?: string
+          version?: number
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_renders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "video_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_scenes: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          attempt_count: number
+          audio_path: string | null
+          clip_path: string | null
+          created_at: string
+          duration_ms: number
+          id: string
+          narration_text: string | null
+          project_id: string
+          scene_number: number
+          selected_asset_meta: Json
+          selected_image_path: string | null
+          source_page_number: number | null
+          status: Database["public"]["Enums"]["video_scene_status"]
+          updated_at: string
+          visual_prompt: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          attempt_count?: number
+          audio_path?: string | null
+          clip_path?: string | null
+          created_at?: string
+          duration_ms: number
+          id?: string
+          narration_text?: string | null
+          project_id: string
+          scene_number: number
+          selected_asset_meta?: Json
+          selected_image_path?: string | null
+          source_page_number?: number | null
+          status?: Database["public"]["Enums"]["video_scene_status"]
+          updated_at?: string
+          visual_prompt?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          attempt_count?: number
+          audio_path?: string | null
+          clip_path?: string | null
+          created_at?: string
+          duration_ms?: number
+          id?: string
+          narration_text?: string | null
+          project_id?: string
+          scene_number?: number
+          selected_asset_meta?: Json
+          selected_image_path?: string | null
+          source_page_number?: number | null
+          status?: Database["public"]["Enums"]["video_scene_status"]
+          updated_at?: string
+          visual_prompt?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_scenes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "video_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wizard_drafts: {
         Row: {
@@ -1416,18 +1422,28 @@ export type Database = {
         | "bedtime"
         | "family"
         | "adventure"
-      template_product_type: "illustrated_story" | "personalized_video";
-      video_delivery_status: "pending" | "delivered";
-      video_job_status: "queued" | "running" | "succeeded" | "failed" | "dead_letter";
+      template_product_type: "illustrated_story" | "personalized_video"
+      video_delivery_status: "pending" | "delivered"
+      video_job_status:
+        | "queued"
+        | "running"
+        | "succeeded"
+        | "failed"
+        | "dead_letter"
       video_job_type:
         | "reference_image"
         | "script"
         | "scene_clip"
         | "narration"
         | "compose"
-        | "final_render";
-      video_order_status: "submitted" | "confirmed" | "cancelled";
-      video_payment_status: "unpaid" | "pending" | "paid" | "failed" | "refunded";
+        | "final_render"
+      video_order_status: "submitted" | "confirmed" | "cancelled"
+      video_payment_status:
+        | "unpaid"
+        | "pending"
+        | "paid"
+        | "failed"
+        | "refunded"
       video_production_stage:
         | "image_generation"
         | "image_review"
@@ -1435,7 +1451,7 @@ export type Database = {
         | "script_review"
         | "video_generation"
         | "quality_review"
-        | "final_render";
+        | "final_render"
       video_project_status:
         | "awaiting_payment"
         | "paid"
@@ -1443,10 +1459,16 @@ export type Database = {
         | "processing"
         | "ready"
         | "failed"
-        | "cancelled";
-      video_render_type: "preview" | "final";
-      video_scene_status: "draft" | "queued" | "generating" | "review" | "approved" | "failed";
-    };
+        | "cancelled"
+      video_render_type: "preview" | "final"
+      video_scene_status:
+        | "draft"
+        | "queued"
+        | "generating"
+        | "review"
+        | "approved"
+        | "failed"
+    }
     CompositeTypes: {
       [_ in never]: never
     }
@@ -1596,7 +1618,13 @@ export const Constants = {
       ],
       template_product_type: ["illustrated_story", "personalized_video"],
       video_delivery_status: ["pending", "delivered"],
-      video_job_status: ["queued", "running", "succeeded", "failed", "dead_letter"],
+      video_job_status: [
+        "queued",
+        "running",
+        "succeeded",
+        "failed",
+        "dead_letter",
+      ],
       video_job_type: [
         "reference_image",
         "script",
@@ -1626,7 +1654,14 @@ export const Constants = {
         "cancelled",
       ],
       video_render_type: ["preview", "final"],
-      video_scene_status: ["draft", "queued", "generating", "review", "approved", "failed"],
+      video_scene_status: [
+        "draft",
+        "queued",
+        "generating",
+        "review",
+        "approved",
+        "failed",
+      ],
     },
   },
 } as const
