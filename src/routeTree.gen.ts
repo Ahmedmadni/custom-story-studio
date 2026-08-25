@@ -31,12 +31,14 @@ import { Route as PaymentReturnRouteImport } from './routes/payment.return'
 import { Route as AuthenticatedRewardsRouteImport } from './routes/_authenticated.rewards'
 import { Route as AuthenticatedRequestStoryRouteImport } from './routes/_authenticated.request-story'
 import { Route as AuthenticatedReferralsRouteImport } from './routes/_authenticated.referrals'
+import { Route as AuthenticatedMyVideosRouteImport } from './routes/_authenticated.my-videos'
 import { Route as AuthenticatedMyOrdersRouteImport } from './routes/_authenticated.my-orders'
 import { Route as AuthenticatedMyChildrenRouteImport } from './routes/_authenticated.my-children'
 import { Route as AuthenticatedFavoritesRouteImport } from './routes/_authenticated.favorites'
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated.checkout'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
+import { Route as AuthenticatedVideoOrderTemplateIdRouteImport } from './routes/_authenticated.video-order.$templateId'
 import { Route as AuthenticatedStoryOrderIdRouteImport } from './routes/_authenticated.story.$orderId'
 import { Route as AuthenticatedOrderTemplateIdRouteImport } from './routes/_authenticated.order.$templateId'
 import { Route as AuthenticatedChildrenCreateRouteImport } from './routes/_authenticated.children.create'
@@ -162,6 +164,11 @@ const AuthenticatedReferralsRoute = AuthenticatedReferralsRouteImport.update({
   path: '/referrals',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedMyVideosRoute = AuthenticatedMyVideosRouteImport.update({
+  id: '/my-videos',
+  path: '/my-videos',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedMyOrdersRoute = AuthenticatedMyOrdersRouteImport.update({
   id: '/my-orders',
   path: '/my-orders',
@@ -192,6 +199,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedVideoOrderTemplateIdRoute =
+  AuthenticatedVideoOrderTemplateIdRouteImport.update({
+    id: '/video-order/$templateId',
+    path: '/video-order/$templateId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedStoryOrderIdRoute =
   AuthenticatedStoryOrderIdRouteImport.update({
     id: '/story/$orderId',
@@ -293,6 +306,7 @@ export interface FileRoutesByFullPath {
   '/favorites': typeof AuthenticatedFavoritesRoute
   '/my-children': typeof AuthenticatedMyChildrenRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/my-videos': typeof AuthenticatedMyVideosRoute
   '/referrals': typeof AuthenticatedReferralsRoute
   '/request-story': typeof AuthenticatedRequestStoryRoute
   '/rewards': typeof AuthenticatedRewardsRoute
@@ -312,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/children/create': typeof AuthenticatedChildrenCreateRoute
   '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
   '/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
+  '/video-order/$templateId': typeof AuthenticatedVideoOrderTemplateIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/children/$id/edit': typeof AuthenticatedChildrenIdEditRoute
   '/api/public/kashier/webhook': typeof ApiPublicKashierWebhookRoute
@@ -335,6 +350,7 @@ export interface FileRoutesByTo {
   '/favorites': typeof AuthenticatedFavoritesRoute
   '/my-children': typeof AuthenticatedMyChildrenRoute
   '/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/my-videos': typeof AuthenticatedMyVideosRoute
   '/referrals': typeof AuthenticatedReferralsRoute
   '/request-story': typeof AuthenticatedRequestStoryRoute
   '/rewards': typeof AuthenticatedRewardsRoute
@@ -354,6 +370,7 @@ export interface FileRoutesByTo {
   '/children/create': typeof AuthenticatedChildrenCreateRoute
   '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
   '/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
+  '/video-order/$templateId': typeof AuthenticatedVideoOrderTemplateIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/children/$id/edit': typeof AuthenticatedChildrenIdEditRoute
   '/api/public/kashier/webhook': typeof ApiPublicKashierWebhookRoute
@@ -380,6 +397,7 @@ export interface FileRoutesById {
   '/_authenticated/favorites': typeof AuthenticatedFavoritesRoute
   '/_authenticated/my-children': typeof AuthenticatedMyChildrenRoute
   '/_authenticated/my-orders': typeof AuthenticatedMyOrdersRoute
+  '/_authenticated/my-videos': typeof AuthenticatedMyVideosRoute
   '/_authenticated/referrals': typeof AuthenticatedReferralsRoute
   '/_authenticated/request-story': typeof AuthenticatedRequestStoryRoute
   '/_authenticated/rewards': typeof AuthenticatedRewardsRoute
@@ -399,6 +417,7 @@ export interface FileRoutesById {
   '/_authenticated/children/create': typeof AuthenticatedChildrenCreateRoute
   '/_authenticated/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
   '/_authenticated/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
+  '/_authenticated/video-order/$templateId': typeof AuthenticatedVideoOrderTemplateIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/children/$id/edit': typeof AuthenticatedChildrenIdEditRoute
   '/api/public/kashier/webhook': typeof ApiPublicKashierWebhookRoute
@@ -425,6 +444,7 @@ export interface FileRouteTypes {
     | '/favorites'
     | '/my-children'
     | '/my-orders'
+    | '/my-videos'
     | '/referrals'
     | '/request-story'
     | '/rewards'
@@ -444,6 +464,7 @@ export interface FileRouteTypes {
     | '/children/create'
     | '/order/$templateId'
     | '/story/$orderId'
+    | '/video-order/$templateId'
     | '/admin/'
     | '/children/$id/edit'
     | '/api/public/kashier/webhook'
@@ -467,6 +488,7 @@ export interface FileRouteTypes {
     | '/favorites'
     | '/my-children'
     | '/my-orders'
+    | '/my-videos'
     | '/referrals'
     | '/request-story'
     | '/rewards'
@@ -486,6 +508,7 @@ export interface FileRouteTypes {
     | '/children/create'
     | '/order/$templateId'
     | '/story/$orderId'
+    | '/video-order/$templateId'
     | '/admin'
     | '/children/$id/edit'
     | '/api/public/kashier/webhook'
@@ -511,6 +534,7 @@ export interface FileRouteTypes {
     | '/_authenticated/favorites'
     | '/_authenticated/my-children'
     | '/_authenticated/my-orders'
+    | '/_authenticated/my-videos'
     | '/_authenticated/referrals'
     | '/_authenticated/request-story'
     | '/_authenticated/rewards'
@@ -530,6 +554,7 @@ export interface FileRouteTypes {
     | '/_authenticated/children/create'
     | '/_authenticated/order/$templateId'
     | '/_authenticated/story/$orderId'
+    | '/_authenticated/video-order/$templateId'
     | '/_authenticated/admin/'
     | '/_authenticated/children/$id/edit'
     | '/api/public/kashier/webhook'
@@ -714,6 +739,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReferralsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/my-videos': {
+      id: '/_authenticated/my-videos'
+      path: '/my-videos'
+      fullPath: '/my-videos'
+      preLoaderRoute: typeof AuthenticatedMyVideosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/my-orders': {
       id: '/_authenticated/my-orders'
       path: '/my-orders'
@@ -755,6 +787,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/video-order/$templateId': {
+      id: '/_authenticated/video-order/$templateId'
+      path: '/video-order/$templateId'
+      fullPath: '/video-order/$templateId'
+      preLoaderRoute: typeof AuthenticatedVideoOrderTemplateIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/story/$orderId': {
       id: '/_authenticated/story/$orderId'
@@ -904,6 +943,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFavoritesRoute: typeof AuthenticatedFavoritesRoute
   AuthenticatedMyChildrenRoute: typeof AuthenticatedMyChildrenRoute
   AuthenticatedMyOrdersRoute: typeof AuthenticatedMyOrdersRoute
+  AuthenticatedMyVideosRoute: typeof AuthenticatedMyVideosRoute
   AuthenticatedReferralsRoute: typeof AuthenticatedReferralsRoute
   AuthenticatedRequestStoryRoute: typeof AuthenticatedRequestStoryRoute
   AuthenticatedRewardsRoute: typeof AuthenticatedRewardsRoute
@@ -911,6 +951,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedChildrenCreateRoute: typeof AuthenticatedChildrenCreateRoute
   AuthenticatedOrderTemplateIdRoute: typeof AuthenticatedOrderTemplateIdRoute
   AuthenticatedStoryOrderIdRoute: typeof AuthenticatedStoryOrderIdRoute
+  AuthenticatedVideoOrderTemplateIdRoute: typeof AuthenticatedVideoOrderTemplateIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -919,6 +960,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFavoritesRoute: AuthenticatedFavoritesRoute,
   AuthenticatedMyChildrenRoute: AuthenticatedMyChildrenRoute,
   AuthenticatedMyOrdersRoute: AuthenticatedMyOrdersRoute,
+  AuthenticatedMyVideosRoute: AuthenticatedMyVideosRoute,
   AuthenticatedReferralsRoute: AuthenticatedReferralsRoute,
   AuthenticatedRequestStoryRoute: AuthenticatedRequestStoryRoute,
   AuthenticatedRewardsRoute: AuthenticatedRewardsRoute,
@@ -926,6 +968,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedChildrenCreateRoute: AuthenticatedChildrenCreateRoute,
   AuthenticatedOrderTemplateIdRoute: AuthenticatedOrderTemplateIdRoute,
   AuthenticatedStoryOrderIdRoute: AuthenticatedStoryOrderIdRoute,
+  AuthenticatedVideoOrderTemplateIdRoute:
+    AuthenticatedVideoOrderTemplateIdRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
