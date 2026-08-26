@@ -81,8 +81,10 @@ function BooksPage() {
         {isError ? (
           <ErrorBlock className="mt-10" title="تعذّر تحميل الكتب" onRetry={() => void refetch()} />
         ) : (
-          <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-            {isLoading ? (
+          <div className="mt-8">
+            <h2 className="sr-only">{category ? `كتب ${category}` : "كل الكتب التعليمية"}</h2>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+
               <CardShimmer count={8} />
             ) : (
               filtered.map((b) => <StoryCard key={b.id} story={b} />)

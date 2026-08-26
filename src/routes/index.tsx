@@ -603,9 +603,10 @@ function Index() {
 
       {/* ============ SECONDARY (books/games/puzzles) ============ */}
       <section className="container mx-auto px-4 pb-16">
-        <h3 className="mb-6 text-center font-display text-xl font-bold text-muted-foreground">
+        <h2 className="mb-6 text-center font-display text-xl font-bold text-muted-foreground">
           استكشف المزيد
-        </h3>
+        </h2>
+
         <div className="grid gap-4 md:grid-cols-3">
           {[
             { to: "/books", icon: BookOpen, label: "كتب تعليمية", desc: "حروف وأرقام وعلوم" },
