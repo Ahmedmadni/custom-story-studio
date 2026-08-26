@@ -22,12 +22,51 @@ import { isKidzyVideoEnabled } from "@/features/video/config";
 import { getVideoOffering } from "@/features/video/video-order.functions";
 
 export const Route = createFileRoute("/stories/$slug")({
-  head: ({ params }) => ({
-    meta: [{ title: "معاينة القصة — كيدزي" }],
-    links: [{ rel: "canonical", href: `${SITE_URL}/stories/${params.slug}` }],
-  }),
+  loader: async ({ params }) => {
+    const { data } = await supabase
+      .from("story_templates")
+      .select("title, summary, cover_url, content_type")
+      .eq("slug", params.slug)
+      .eq("is_published", true)
+      .maybeSingle();
+    return { seo: data };
+  },
+  head: ({ params, loaderData }) => {
+    const seo = loaderData?.seo;
+    const isBook = seo?.content_type === "book";
+    const title = seo?.title
+      ? `${isBook ? "كتاب" : "قصة"} ${seo.title} — كيدزي`
+      : "معاينة القصة — كيدزي";
+    const description = seo?.summary
+      ? seo.summary.slice(0, 155)
+      : "اختر قصة من مكتبة كيدزي واجعل طفلك بطلها بأسلوب كرتوني ثلاثي الأبعاد.";
+    const url = `${SITE_URL}/stories/${params.slug}`;
+    const cover = seo?.cover_url?.startsWith("https://") ? seo.cover_url : null;
+
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "book" },
+        { property: "og:url", content: url },
+        ...(cover
+          ? [
+              { property: "og:image", content: cover },
+              { name: "twitter:image", content: cover },
+            ]
+          : []),
+        { name: "twitter:card", content: cover ? "summary_large_image" : "summary" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: StoryPreview,
 });
+
 
 function StoryPreview() {
   const { slug } = Route.useParams();

@@ -201,9 +201,10 @@ function Index() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <span className="text-xs font-bold text-primary">قصة اليوم المميزة</span>
-                    <h3 className="truncate font-display text-base font-extrabold text-foreground">
+                    <h2 className="truncate font-display text-base font-extrabold text-foreground">
                       {heroStory.title}
-                    </h3>
+                    </h2>
+
                   </div>
                   <Button
                     asChild
@@ -235,7 +236,9 @@ function Index() {
       {/* ============ FEATURE ICONS (4 cards) ============ */}
       <section className="container mx-auto -mt-6 px-4">
         <div className="rounded-[2rem] border border-border/60 bg-card/90 p-6 shadow-[var(--shadow-card)] backdrop-blur md:p-8">
+          <h2 className="sr-only">ماذا تقدّم كيدزي لطفلك؟</h2>
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+
             {[
               {
                 img: iconAi,
