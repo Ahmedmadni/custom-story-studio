@@ -130,7 +130,10 @@ function AuthPage() {
           <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
             <BookOpen className="h-8 w-8" />
           </span>
-          <h1 className="mt-4 font-display text-4xl font-extrabold text-primary">كيدزي</h1>
+          <h1 className="mt-4 font-display text-4xl font-extrabold text-primary">
+            كيدزي — تسجيل الدخول
+          </h1>
+
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
             منصة تحوّل طفلك إلى بطل قصصه وكتبه التعليمية المصوّرة — بأسلوب كرتوني ثلاثي
             الأبعاد، جاهزة للتحميل والمشاركة.
