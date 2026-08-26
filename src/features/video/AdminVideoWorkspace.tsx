@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { VIDEO_PROVIDERS_CONNECTED } from "@/features/video/provider-boundary";
 import * as api from "@/features/video/video-admin.functions";
+import * as production from "@/features/video/video-production.functions";
 
 export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) {
   const qc = useQueryClient();
@@ -26,9 +26,15 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
   const approveScene = useServerFn(api.approveVideoScene);
   const ready = useServerFn(api.markVideoProjectReady);
   const delivered = useServerFn(api.markVideoDelivered);
+  const generateReference = useServerFn(production.generateVideoReferenceImage);
+  const generateScript = useServerFn(production.generateVideoScript);
+  const generateScene = useServerFn(production.generateVideoScene);
+  const refreshJobs = useServerFn(production.refreshVideoProductionJobs);
+  const retryJob = useServerFn(production.retryVideoProductionJob);
   const query = useQuery({
     queryKey: ["admin-video-project", videoOrderId],
     queryFn: () => getProject({ data: { videoOrderId } }),
+    refetchInterval: 5_000,
   });
   const [prompt, setPrompt] = useState("");
   const [script, setScript] = useState("");
@@ -40,6 +46,19 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
       );
     }
   }, [query.data]);
+  useEffect(() => {
+    const projectId = query.data?.project.id;
+    const hasRunningScene = query.data?.jobs.some(
+      (job) => job.job_type === "scene_clip" && job.status === "running",
+    );
+    if (!projectId || !hasRunningScene) return;
+    const timer = window.setInterval(() => {
+      void refreshJobs({ data: { projectId } }).then(() =>
+        qc.invalidateQueries({ queryKey: ["admin-video-project", videoOrderId] }),
+      );
+    }, 5_000);
+    return () => window.clearInterval(timer);
+  }, [query.data?.project.id, query.data?.jobs, qc, refreshJobs, videoOrderId]);
   const mutation = useMutation({
     mutationFn: (fn: () => Promise<unknown>) => fn(),
     onSuccess: () => {
@@ -159,8 +178,14 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
           >
             حفظ الوصف
           </Button>
-          <Button disabled title="سيتم توصيل المزود في مرحلة لاحقة">
-            توليد الصورة — بانتظار ربط المزود
+          <Button
+            disabled={
+              mutation.isPending ||
+              !["image_generation", "image_review"].includes(project.production_stage ?? "")
+            }
+            onClick={() => run(() => generateReference({ data: { projectId: project.id } }))}
+          >
+            توليد الصورة المرجعية
           </Button>
           {project.referenceImageUrl && (
             <img
@@ -193,7 +218,22 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
           >
             حفظ النص
           </Button>
-          <Button disabled={!VIDEO_PROVIDERS_CONNECTED}>توليد النص — بانتظار ربط المزود</Button>
+          <Button
+            disabled={
+              mutation.isPending ||
+              !["script_generation", "script_review"].includes(project.production_stage ?? "") ||
+              !project.image_approved_at
+            }
+            onClick={() => run(() => generateScript({ data: { projectId: project.id } }))}
+          >
+            توليد / إعادة توليد السيناريو
+          </Button>
+          {scenes.some((scene) => scene.clipUrl) && (
+            <p className="text-xs font-bold text-amber-700">
+              توجد مقاطع مولدة؛ حمايةً للأصول لن يُستبدل السيناريو أو بناء المشاهد دون إجراء إعادة
+              بناء صريح في مرحلة لاحقة.
+            </p>
+          )}
           <Button onClick={() => run(() => approveScript({ data: { projectId: project.id } }))}>
             اعتماد النص
           </Button>
@@ -214,6 +254,7 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                   run(() => updateScene({ data: { sceneId: scene.id, ...values } }))
                 }
                 approve={() => run(() => approveScene({ data: { sceneId: scene.id } }))}
+                generate={() => run(() => generateScene({ data: { sceneId: scene.id } }))}
               />
             ))
           ) : (
@@ -234,6 +275,16 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                 provider id: {job.provider_job_id ?? "—"}
                 <br />
                 {job.last_error ?? ""}
+                <div className="mt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={mutation.isPending || !["failed", "succeeded"].includes(job.status)}
+                    onClick={() => run(() => retryJob({ data: { jobId: job.id } }))}
+                  >
+                    {job.status === "succeeded" ? "إعادة التوليد" : "إعادة المحاولة"}
+                  </Button>
+                </div>
               </div>
             ))
           ) : (
@@ -294,6 +345,7 @@ function Scene({
   busy,
   save,
   approve,
+  generate,
 }: {
   scene: {
     id: string;
@@ -311,6 +363,7 @@ function Scene({
     durationMs: number;
   }) => void;
   approve: () => void;
+  generate: () => void;
 }) {
   const [narrationText, setNarration] = useState(scene.narration_text ?? "");
   const [visualPrompt, setVisual] = useState(scene.visual_prompt ?? "");
@@ -354,7 +407,12 @@ function Scene({
         <Button disabled={busy || !scene.clipUrl || scene.status !== "review"} onClick={approve}>
           اعتماد المقطع
         </Button>
-        <Button disabled>إعادة التوليد — المزود غير متصل</Button>
+        <Button
+          disabled={busy || ["queued", "generating"].includes(scene.status)}
+          onClick={generate}
+        >
+          {scene.clipUrl ? "إعادة توليد هذا المشهد" : "توليد هذا المشهد"}
+        </Button>
       </div>
     </div>
   );

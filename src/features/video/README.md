@@ -1,7 +1,8 @@
 # Kidzy Video foundation
 
-This folder contains the customer ordering foundation and the Phase 3 admin production workspace.
-It intentionally contains no provider integration, worker, or media generation code.
+This folder contains the customer ordering foundation, the Phase 3 admin production workspace, and
+the Phase 4A production engine that generates real reference images, scripts, and per-scene clips.
+Final composition/render is intentionally still deferred to a later phase.
 
 ## Availability
 
@@ -46,6 +47,34 @@ flag. Template availability remains controlled by published `personalized_video`
   quality, final-render, ready, and delivery prerequisites are checked on the server.
 - Scene edits invalidate scene/quality approval and the aggregate duration may not exceed 60 seconds.
   Scene approval requires a real stored clip; readiness requires a current final render.
-- `provider-boundary.ts` defines future integrations. Phase 3 neither calls providers nor creates
-  fake assets; generation actions remain explicitly disabled until a later phase.
+- `provider-boundary.ts` defines the provider-independent contracts. Phase 3 itself neither calls
+  providers nor creates fake assets; real generation is wired in Phase 4A below against these same
+  contracts.
 - The existing schema is sufficient for Phase 3. No migration or generated-type change is needed.
+
+## Phase 4A production engine
+
+- `video_jobs` is the source of truth. Reference, script, and per-scene operations use one stable
+  unique idempotency key per project/scene. Concurrent clicks reuse an active job; failed or
+  completed jobs are deliberately retried on the same row up to `VIDEO_JOB_MAX_ATTEMPTS` (default 3).
+- Reference images use the repository's existing direct Gemini image pattern. Structured scripts use
+  the existing Lovable AI gateway. Scene clips use the existing Replicate connector asynchronously:
+  submission returns quickly and the admin workspace polls Kidzy job state while short reconciliation
+  calls poll Replicate. Provider/model configuration is isolated in `provider-config.server.ts`.
+- Scene generation defaults to Replicate's `wan-video/wan-2.2-5b-fast`; deployments may override it
+  with `VIDEO_SCENE_REPLICATE_MODEL`. The Wan request sends `image`, `prompt`, `num_frames`,
+  `frames_per_second`, and a supported `aspect_ratio`. It uses 81 frames and calculates FPS as
+  `clamp(round(81 / desiredSeconds), 5, 30)`. Newly generated
+  storyboards prefer 3-15 second scenes; an existing 2-second scene maps to 30 FPS and produces about
+  2.7 seconds because Wan cannot render 81 frames in exactly 2 seconds within its FPS limit. Kidzy
+  `16:9` and `9:16` map directly to Wan. For `1:1`, Phase 4A deliberately omits `aspect_ratio` and lets
+  the provider use its default framing rather than silently changing the customer's stored choice.
+  `image` and `prompt` field names remain overridable for a deliberately selected alternative model.
+  No model name or secret is sent to UI components.
+- Provider outputs are copied into the private `video-assets` bucket and only signed previews leave
+  the server. Canonical provider-hosted URLs are never persisted on projects or scenes.
+- Storyboards are strict structured JSON with contiguous scenes and a maximum 60-second aggregate.
+  Draft scenes reconcile deterministically by `(project_id, scene_number)`. Regeneration is rejected
+  once any scene owns generated media; a later explicit rebuild workflow is required to destroy it.
+- Phase 4A leaves final composition behind `FinalRenderProvider`; it does not create fake renders,
+  automate delivery, or alter payment/customer status behavior. No schema migration is required.

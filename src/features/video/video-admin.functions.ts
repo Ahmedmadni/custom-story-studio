@@ -7,6 +7,7 @@ import {
   videoPaymentStatusSchema,
   videoProductionStageSchema,
 } from "@/features/video/contracts";
+import { videoStoryboardSchema } from "@/features/video/video-production-core";
 
 type AdminContext = {
   userId: string;
@@ -171,7 +172,19 @@ export const getAdminVideoProject = createServerFn({ method: "POST" })
           clipUrl: await signed(admin, "video-assets", scene.clip_path),
         })),
       ),
-      jobs: jobs ?? [],
+      jobs: (jobs ?? []).map((job) => ({
+        id: job.id,
+        job_type: job.job_type,
+        provider: job.provider,
+        provider_job_id: job.provider_job_id,
+        status: job.status,
+        attempt_count: job.attempt_count,
+        last_error: job.last_error,
+        scene_id: job.scene_id,
+        created_at: job.created_at,
+        started_at: job.started_at,
+        finished_at: job.finished_at,
+      })),
       renders: await Promise.all(
         (renders ?? []).map(async (render) => ({
           ...render,
@@ -336,12 +349,14 @@ export const saveVideoScript = createServerFn({ method: "POST" })
     } catch {
       throw new Error("النص يجب أن يكون JSON صالحاً");
     }
-    if (!script || typeof script !== "object" || Array.isArray(script))
-      throw new Error("النص يجب أن يكون كائن JSON");
+    const storyboard = videoStoryboardSchema.parse(script);
+    const { reconcileVideoStoryboardScenes } =
+      await import("@/features/video/video-scene-reconciliation.server");
+    await reconcileVideoStoryboardScenes(admin, project.id, storyboard);
     const { error } = await admin
       .from("video_projects")
       .update({
-        script: script as never,
+        script: storyboard as never,
         script_approved_at: null,
         script_approved_by: null,
         quality_approved_at: null,
@@ -349,11 +364,6 @@ export const saveVideoScript = createServerFn({ method: "POST" })
       })
       .eq("id", project.id);
     if (error) throw new Error("تعذر حفظ النص");
-    const { error: sceneError } = await admin
-      .from("video_scenes")
-      .update({ status: "draft", approved_at: null, approved_by: null })
-      .eq("project_id", project.id);
-    if (sceneError) throw new Error("تعذر إبطال اعتمادات المشاهد");
     return { ok: true };
   });
 
