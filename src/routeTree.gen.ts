@@ -43,6 +43,7 @@ import { Route as AuthenticatedStoryOrderIdRouteImport } from './routes/_authent
 import { Route as AuthenticatedOrderTemplateIdRouteImport } from './routes/_authenticated.order.$templateId'
 import { Route as AuthenticatedChildrenCreateRouteImport } from './routes/_authenticated.children.create'
 import { Route as AuthenticatedChildrenIdRouteImport } from './routes/_authenticated.children.$id'
+import { Route as AuthenticatedAdminVideosRouteImport } from './routes/_authenticated.admin.videos'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated.admin.users'
 import { Route as AuthenticatedAdminVideosRouteImport } from './routes/_authenticated.admin.videos'
 import { Route as AuthenticatedAdminVideosVideoOrderIdRouteImport } from './routes/_authenticated.admin.videos_.$videoOrderId'
@@ -55,6 +56,7 @@ import { Route as AuthenticatedAdminApprovalsRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated.admin.analytics'
 import { Route as ApiPublicKashierWebhookRouteImport } from './routes/api/public/kashier.webhook'
 import { Route as AuthenticatedChildrenIdEditRouteImport } from './routes/_authenticated.children.$id.edit'
+import { Route as AuthenticatedAdminVideosVideoOrderIdRouteImport } from './routes/_authenticated.admin.videos_.$videoOrderId'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -230,6 +232,12 @@ const AuthenticatedChildrenIdRoute = AuthenticatedChildrenIdRouteImport.update({
   path: '/children/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAdminVideosRoute =
+  AuthenticatedAdminVideosRouteImport.update({
+    id: '/videos',
+    path: '/videos',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -297,6 +305,12 @@ const AuthenticatedChildrenIdEditRoute =
     path: '/edit',
     getParentRoute: () => AuthenticatedChildrenIdRoute,
   } as any)
+const AuthenticatedAdminVideosVideoOrderIdRoute =
+  AuthenticatedAdminVideosVideoOrderIdRouteImport.update({
+    id: '/videos_/$videoOrderId',
+    path: '/videos/$videoOrderId',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -342,6 +356,7 @@ export interface FileRoutesByFullPath {
   '/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
   '/video-order/$templateId': typeof AuthenticatedVideoOrderTemplateIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/videos/$videoOrderId': typeof AuthenticatedAdminVideosVideoOrderIdRoute
   '/children/$id/edit': typeof AuthenticatedChildrenIdEditRoute
   '/api/public/kashier/webhook': typeof ApiPublicKashierWebhookRoute
 }
@@ -388,6 +403,7 @@ export interface FileRoutesByTo {
   '/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
   '/video-order/$templateId': typeof AuthenticatedVideoOrderTemplateIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/videos/$videoOrderId': typeof AuthenticatedAdminVideosVideoOrderIdRoute
   '/children/$id/edit': typeof AuthenticatedChildrenIdEditRoute
   '/api/public/kashier/webhook': typeof ApiPublicKashierWebhookRoute
 }
@@ -437,6 +453,7 @@ export interface FileRoutesById {
   '/_authenticated/story/$orderId': typeof AuthenticatedStoryOrderIdRoute
   '/_authenticated/video-order/$templateId': typeof AuthenticatedVideoOrderTemplateIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/videos_/$videoOrderId': typeof AuthenticatedAdminVideosVideoOrderIdRoute
   '/_authenticated/children/$id/edit': typeof AuthenticatedChildrenIdEditRoute
   '/api/public/kashier/webhook': typeof ApiPublicKashierWebhookRoute
 }
@@ -486,6 +503,7 @@ export interface FileRouteTypes {
     | '/story/$orderId'
     | '/video-order/$templateId'
     | '/admin/'
+    | '/admin/videos/$videoOrderId'
     | '/children/$id/edit'
     | '/api/public/kashier/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -532,6 +550,7 @@ export interface FileRouteTypes {
     | '/story/$orderId'
     | '/video-order/$templateId'
     | '/admin'
+    | '/admin/videos/$videoOrderId'
     | '/children/$id/edit'
     | '/api/public/kashier/webhook'
   id:
@@ -580,6 +599,7 @@ export interface FileRouteTypes {
     | '/_authenticated/story/$orderId'
     | '/_authenticated/video-order/$templateId'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/videos_/$videoOrderId'
     | '/_authenticated/children/$id/edit'
     | '/api/public/kashier/webhook'
   fileRoutesById: FileRoutesById
@@ -847,6 +867,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChildrenIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/videos': {
+      id: '/_authenticated/admin/videos'
+      path: '/videos'
+      fullPath: '/admin/videos'
+      preLoaderRoute: typeof AuthenticatedAdminVideosRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/users': {
       id: '/_authenticated/admin/users'
       path: '/users'
@@ -931,6 +958,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChildrenIdEditRouteImport
       parentRoute: typeof AuthenticatedChildrenIdRoute
     }
+    '/_authenticated/admin/videos_/$videoOrderId': {
+      id: '/_authenticated/admin/videos_/$videoOrderId'
+      path: '/videos/$videoOrderId'
+      fullPath: '/admin/videos/$videoOrderId'
+      preLoaderRoute: typeof AuthenticatedAdminVideosVideoOrderIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
@@ -946,6 +980,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminVideosRoute: typeof AuthenticatedAdminVideosRoute
   AuthenticatedAdminVideosVideoOrderIdRoute: typeof AuthenticatedAdminVideosVideoOrderIdRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminVideosVideoOrderIdRoute: typeof AuthenticatedAdminVideosVideoOrderIdRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
@@ -960,6 +995,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminVideosRoute: AuthenticatedAdminVideosRoute,
   AuthenticatedAdminVideosVideoOrderIdRoute: AuthenticatedAdminVideosVideoOrderIdRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminVideosVideoOrderIdRoute:
+    AuthenticatedAdminVideosVideoOrderIdRoute,
 }
 
 const AuthenticatedAdminRouteWithChildren =
