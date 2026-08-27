@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Library,
   Package,
+  Video,
   ShieldCheck,
   Users,
 } from "lucide-react";
@@ -49,6 +50,7 @@ const singleItems: NavItem[] = [
   { to: "/admin/health", label: "صحة النظام", icon: HeartPulse },
   { to: "/admin/analytics", label: "التحليلات", icon: BarChart3 },
   { to: "/admin/orders", label: "الطلبات", icon: Package },
+  { to: "/admin/videos", label: "إنتاج الفيديو", icon: Video },
   { to: "/admin/payments", label: "المدفوعات", icon: CreditCard },
   { to: "/admin/approvals", label: "اعتماد المحتوى", icon: ShieldCheck },
   { to: "/admin/users", label: "المستخدمون", icon: Users },
