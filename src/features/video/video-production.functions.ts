@@ -88,6 +88,41 @@ async function acquireJob(
   return { job: existing, acquired: false };
 }
 
+/** Re-queue a previously failed job so the same action can simply run again. */
+async function requeueJob(admin: Admin, job: Job): Promise<Job | null> {
+  const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
+  if (!canRetryJob(job.status, job.attempt_count, getVideoProviderConfig().maxAttempts))
+    return null;
+  const oldMeta = jsonObject(job.response_meta);
+  const oldErrors = Array.isArray(oldMeta.previous_errors) ? oldMeta.previous_errors : [];
+  const responseMeta = job.last_error
+    ? {
+        ...oldMeta,
+        previous_errors: [
+          ...oldErrors,
+          {
+            attempt: job.attempt_count,
+            error: job.last_error,
+            recorded_at: new Date().toISOString(),
+          },
+        ],
+      }
+    : oldMeta;
+  const { data: queued } = await admin
+    .from("video_jobs")
+    .update({
+      status: "queued",
+      finished_at: null,
+      next_retry_at: null,
+      response_meta: responseMeta as Json,
+    })
+    .eq("id", job.id)
+    .eq("status", job.status)
+    .select("*")
+    .maybeSingle();
+  return queued ?? null;
+}
+
 async function beginAttempt(admin: Admin, job: Job) {
   const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
   const max = getVideoProviderConfig().maxAttempts;
