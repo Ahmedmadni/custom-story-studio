@@ -496,12 +496,15 @@ export const generateVideoReferenceImage = createServerFn({ method: "POST" })
       jobType: "reference_image",
       provider: "gemini",
     });
+    let target = acquired.job;
     if (!acquired.acquired) {
       if (activeVideoJobStatuses.includes(acquired.job.status as never))
         return { jobId: acquired.job.id, status: acquired.job.status };
-      throw new Error("استخدم إعادة المحاولة للمهمة السابقة");
+      const requeued = await requeueJob(admin, acquired.job);
+      if (!requeued) throw new Error("بلغت المهمة الحد الأقصى للمحاولات");
+      target = requeued;
     }
-    const job = await runReference(admin, acquired.job);
+    const job = await runReference(admin, target);
     return { jobId: job.id, status: job.status };
   });
 
