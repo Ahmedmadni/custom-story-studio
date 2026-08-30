@@ -276,7 +276,21 @@ async function runReference(admin: Admin, original: Job) {
       .eq("id", job.id);
     return { ...job, status: "succeeded" as const };
   } catch (error) {
+    const { getProviderFailureDiagnostic } =
+      await import("@/features/video/provider-diagnostics.server");
+    const isProviderFailure = Boolean(getProviderFailureDiagnostic(error));
     const message = await failJob(admin, job, error);
+    if (isProviderFailure) {
+      const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
+      return {
+        ...job,
+        status:
+          job.attempt_count >= getVideoProviderConfig().maxAttempts
+            ? ("dead_letter" as const)
+            : ("failed" as const),
+        recoverableError: message,
+      };
+    }
     throw new Error(message);
   }
 }
@@ -499,13 +513,15 @@ export const generateVideoReferenceImage = createServerFn({ method: "POST" })
     let target = acquired.job;
     if (!acquired.acquired) {
       if (activeVideoJobStatuses.includes(acquired.job.status as never))
-        return { jobId: acquired.job.id, status: acquired.job.status };
+        return { ok: true as const, jobId: acquired.job.id, status: acquired.job.status };
       const requeued = await requeueJob(admin, acquired.job);
       if (!requeued) throw new Error("بلغت المهمة الحد الأقصى للمحاولات");
       target = requeued;
     }
     const job = await runReference(admin, target);
-    return { jobId: job.id, status: job.status };
+    return "recoverableError" in job
+      ? { ok: false as const, jobId: job.id, status: job.status, error: job.recoverableError }
+      : { ok: true as const, jobId: job.id, status: job.status };
   });
 
 export const generateVideoScript = createServerFn({ method: "POST" })
@@ -618,9 +634,12 @@ export const retryVideoProductionJob = createServerFn({ method: "POST" })
       .select("*")
       .maybeSingle();
     if (error || !queued) throw new Error("بدأت محاولة أخرى بالفعل");
-    if (queued.job_type === "reference_image") await runReference(admin, queued);
-    else if (queued.job_type === "script") await runScript(admin, queued);
+    if (queued.job_type === "reference_image") {
+      const result = await runReference(admin, queued);
+      if ("recoverableError" in result)
+        return { ok: false as const, error: result.recoverableError };
+    } else if (queued.job_type === "script") await runScript(admin, queued);
     else if (queued.job_type === "scene_clip") await submitScene(admin, queued);
     else throw new Error("نوع المهمة غير مدعوم في Phase 4A");
-    return { ok: true };
+    return { ok: true as const };
   });

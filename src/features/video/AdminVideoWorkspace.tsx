@@ -37,15 +37,23 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
     refetchInterval: 5_000,
   });
   const [prompt, setPrompt] = useState("");
+  const [promptDirty, setPromptDirty] = useState(false);
+  const [promptFocused, setPromptFocused] = useState(false);
   const [script, setScript] = useState("");
+  const [scriptDirty, setScriptDirty] = useState(false);
+  const [scriptFocused, setScriptFocused] = useState(false);
   useEffect(() => {
-    if (query.data) {
+    if (query.data && !promptDirty && !promptFocused) {
       setPrompt(query.data.project.reference_image_prompt ?? "");
+    }
+  }, [promptDirty, promptFocused, query.data]);
+  useEffect(() => {
+    if (query.data && !scriptDirty && !scriptFocused) {
       setScript(
         query.data.project.script ? JSON.stringify(query.data.project.script, null, 2) : "{}",
       );
     }
-  }, [query.data]);
+  }, [query.data, scriptDirty, scriptFocused]);
   useEffect(() => {
     const projectId = query.data?.project.id;
     const hasRunningScene = query.data?.jobs.some(
@@ -104,6 +112,12 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                 ? "يجب اعتماد الجودة أولاً"
                 : null;
   const run = (fn: () => Promise<unknown>) => mutation.mutate(fn);
+  const runRecoverable = (fn: () => Promise<{ ok: boolean; error?: string }>) =>
+    run(async () => {
+      const result = await fn();
+      if (!result.ok) throw new Error(result.error ?? "فشلت مهمة الإنتاج، حاول لاحقاً");
+      return result;
+    });
   return (
     <div className="space-y-5" dir="rtl">
       <Card>
@@ -162,9 +176,7 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                   المرحلة التالية: {nextStage}
                 </Button>
                 {nextStageBlockedReason && (
-                  <span className="text-xs font-bold text-amber-700">
-                    {nextStageBlockedReason}
-                  </span>
+                  <span className="text-xs font-bold text-amber-700">{nextStageBlockedReason}</span>
                 )}
               </div>
             )}
@@ -194,11 +206,22 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
         <CardContent className="space-y-3">
           <Textarea
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onFocus={() => setPromptFocused(true)}
+            onBlur={() => setPromptFocused(false)}
+            onChange={(e) => {
+              setPrompt(e.target.value);
+              setPromptDirty(true);
+            }}
             placeholder="وصف الصورة المرجعية"
           />
           <Button
-            onClick={() => run(() => savePrompt({ data: { projectId: project.id, prompt } }))}
+            onClick={() =>
+              run(async () => {
+                const result = await savePrompt({ data: { projectId: project.id, prompt } });
+                setPromptDirty(false);
+                return result;
+              })
+            }
           >
             حفظ الوصف
           </Button>
@@ -207,7 +230,9 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
               mutation.isPending ||
               !["image_generation", "image_review"].includes(project.production_stage ?? "")
             }
-            onClick={() => run(() => generateReference({ data: { projectId: project.id } }))}
+            onClick={() =>
+              runRecoverable(() => generateReference({ data: { projectId: project.id } }))
+            }
           >
             توليد الصورة المرجعية
           </Button>
@@ -235,10 +260,21 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
             dir="ltr"
             className="min-h-52 font-mono"
             value={script}
-            onChange={(e) => setScript(e.target.value)}
+            onFocus={() => setScriptFocused(true)}
+            onBlur={() => setScriptFocused(false)}
+            onChange={(e) => {
+              setScript(e.target.value);
+              setScriptDirty(true);
+            }}
           />
           <Button
-            onClick={() => run(() => saveScript({ data: { projectId: project.id, script } }))}
+            onClick={() =>
+              run(async () => {
+                const result = await saveScript({ data: { projectId: project.id, script } });
+                setScriptDirty(false);
+                return result;
+              })
+            }
           >
             حفظ النص
           </Button>
@@ -304,7 +340,7 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                     size="sm"
                     variant="outline"
                     disabled={mutation.isPending || !["failed", "succeeded"].includes(job.status)}
-                    onClick={() => run(() => retryJob({ data: { jobId: job.id } }))}
+                    onClick={() => runRecoverable(() => retryJob({ data: { jobId: job.id } }))}
                   >
                     {job.status === "succeeded" ? "إعادة التوليد" : "إعادة المحاولة"}
                   </Button>

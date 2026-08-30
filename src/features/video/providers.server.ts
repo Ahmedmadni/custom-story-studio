@@ -52,7 +52,7 @@ export function referenceImageProvider(): ReferenceImageProvider {
           operation: "reference_image",
           model,
         });
-      const body = (await response.json()) as {
+      let body: {
         candidates?: {
           content?: {
             parts?: {
@@ -62,6 +62,18 @@ export function referenceImageProvider(): ReferenceImageProvider {
           };
         }[];
       };
+      try {
+        body = (await response.json()) as typeof body;
+      } catch {
+        throw providerResultFailure(
+          { provider: "gemini", operation: "reference_image", model },
+          {
+            httpStatus: response.status,
+            type: "invalid_json_output",
+            message: "Gemini response was not valid JSON",
+          },
+        );
+      }
       const part = body.candidates?.[0]?.content?.parts?.find(
         (item) => item.inline_data?.data || item.inlineData?.data,
       );
