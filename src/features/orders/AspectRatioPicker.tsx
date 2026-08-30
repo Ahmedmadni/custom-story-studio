@@ -34,17 +34,17 @@ export function AspectRatioPicker({
   value,
   onChange,
   label = "أبعاد الصور والطباعة",
+  description = "تُستخدم هذه الأبعاد في توليد صور القصة وفي ملف الـ PDF النهائي معاً",
 }: {
   value: AspectRatio;
   onChange: (v: AspectRatio) => void;
   label?: string;
+  description?: string;
 }) {
   return (
     <div>
       <Label className="font-bold">{label}</Label>
-      <p className="mt-1 text-xs text-muted-foreground">
-        تُستخدم هذه الأبعاد في توليد صور القصة وفي ملف الـ PDF النهائي معاً
-      </p>
+      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
       <div className="mt-3 grid gap-3 md:grid-cols-3">
         {OPTIONS.map((opt) => {
           const Icon = opt.icon;

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, Check, Heart, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,6 +18,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { STARTING_PRICE_EGP, useCart } from "@/features/cart/CartContext";
 import { parsePages } from "@/features/ai/storyTypes";
 import { SITE_URL } from "@/lib/siteUrl";
+import { isKidzyVideoEnabled } from "@/features/video/config";
+import { getVideoOffering } from "@/features/video/video-order.functions";
 
 export const Route = createFileRoute("/stories/$slug")({
   head: ({ params }) => ({
@@ -30,6 +33,8 @@ function StoryPreview() {
   const { slug } = Route.useParams();
   const { add, has, items } = useCart();
   const navigate = useNavigate();
+  const offeringFn = useServerFn(getVideoOffering);
+  const videoEnabled = isKidzyVideoEnabled();
 
   const { data: story, isLoading } = useQuery({
     queryKey: ["story", slug],
@@ -62,6 +67,12 @@ function StoryPreview() {
         .limit(24);
       return data ?? [];
     },
+  });
+
+  const { data: videoOffering } = useQuery({
+    queryKey: ["video-offering", story?.id],
+    enabled: videoEnabled && Boolean(story?.id),
+    queryFn: () => offeringFn({ data: { templateId: story!.id } }),
   });
 
   const inCart = story ? has(story.id) : false;
@@ -192,6 +203,18 @@ function StoryPreview() {
                   >
                     <ShoppingCart className="ms-2 h-5 w-5" />
                     أضف للسلة — ابتداءً من {STARTING_PRICE_EGP} ج
+                  </Button>
+                )}
+                {videoEnabled && videoOffering?.available && (
+                  <Button
+                    asChild
+                    size="lg"
+                    variant="secondary"
+                    className="rounded-full px-8 font-bold"
+                  >
+                    <Link to="/video-order/$templateId" params={{ templateId: story.id }}>
+                      اطلب فيديو مخصص — {videoOffering.priceEgp} ج
+                    </Link>
                   </Button>
                 )}
               </div>
