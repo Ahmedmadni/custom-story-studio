@@ -87,6 +87,22 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
     "quality_review",
     "final_render",
   ][stageIndex];
+  const allScenesReady =
+    scenes.length > 0 && scenes.every((s) => s.status === "approved" && s.clipUrl);
+  const nextStageBlockedReason =
+    nextStage === "image_review" && !project.referenceImageUrl
+      ? "لا توجد صورة مرجعية مولدة للمراجعة"
+      : nextStage === "script_generation" && !project.image_approved_at
+        ? "يجب اعتماد الصورة أولاً"
+        : nextStage === "script_review" && !project.script
+          ? "لا يوجد نص مولد للمراجعة"
+          : nextStage === "video_generation" && !project.script_approved_at
+            ? "يجب اعتماد النص أولاً"
+            : nextStage === "quality_review" && !allScenesReady
+              ? "يجب اعتماد كل المشاهد ذات المقاطع الفعلية"
+              : nextStage === "final_render" && !project.quality_approved_at
+                ? "يجب اعتماد الجودة أولاً"
+                : null;
   const run = (fn: () => Promise<unknown>) => mutation.mutate(fn);
   return (
     <div className="space-y-5" dir="rtl">
