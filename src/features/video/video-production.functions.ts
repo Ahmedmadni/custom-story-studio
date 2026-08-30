@@ -23,6 +23,12 @@ type Context = {
 };
 type Job = Database["public"]["Tables"]["video_jobs"]["Row"];
 
+function jsonObject(value: Json): Record<string, Json | undefined> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, Json | undefined>)
+    : {};
+}
+
 const projectInput = z.object({ projectId: z.string().uuid() }).strict();
 const sceneInput = z.object({ sceneId: z.string().uuid() }).strict();
 const jobInput = z.object({ jobId: z.string().uuid() }).strict();
@@ -118,12 +124,43 @@ async function beginAttempt(admin: Admin, job: Job) {
 
 async function failJob(admin: Admin, job: Job, error: unknown) {
   const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
+  const { getProviderFailureDiagnostic } =
+    await import("@/features/video/provider-diagnostics.server");
   const message = error instanceof Error ? error.message.slice(0, 500) : "فشلت مهمة الإنتاج";
   const status =
     job.attempt_count >= getVideoProviderConfig().maxAttempts ? "dead_letter" : "failed";
+  const diagnostic = getProviderFailureDiagnostic(error);
+  const currentMeta =
+    job.response_meta && typeof job.response_meta === "object" && !Array.isArray(job.response_meta)
+      ? (job.response_meta as Record<string, Json | undefined>)
+      : {};
+  const previousDiagnostics = Array.isArray(currentMeta.provider_error_history)
+    ? currentMeta.provider_error_history
+    : [];
+  const responseMeta = diagnostic
+    ? {
+        ...currentMeta,
+        ...(currentMeta.provider_error
+          ? {
+              provider_error_history: [...previousDiagnostics, currentMeta.provider_error].slice(
+                -10,
+              ),
+            }
+          : {}),
+        provider_error: diagnostic,
+      }
+    : currentMeta;
+  if (diagnostic) {
+    console.error(`[KidzyVideo][${diagnostic.operation}] provider failure`, diagnostic);
+  }
   await admin
     .from("video_jobs")
-    .update({ status, last_error: message, finished_at: new Date().toISOString() })
+    .update({
+      status,
+      last_error: message,
+      response_meta: responseMeta as Json,
+      finished_at: new Date().toISOString(),
+    })
     .eq("id", job.id);
   return message;
 }
@@ -196,7 +233,11 @@ async function runReference(admin: Admin, original: Job) {
     if (projectError) throw new Error("تعذر ربط الصورة المرجعية بالمشروع");
     await admin
       .from("video_jobs")
-      .update({ status: "succeeded", response_meta: asset.metadata as Json, finished_at: now })
+      .update({
+        status: "succeeded",
+        response_meta: { ...jsonObject(job.response_meta), ...asset.metadata } as Json,
+        finished_at: now,
+      })
       .eq("id", job.id);
     return { ...job, status: "succeeded" as const };
   } catch (error) {
@@ -264,6 +305,7 @@ async function runScript(admin: Admin, original: Job) {
       .update({
         status: "succeeded",
         response_meta: {
+          ...jsonObject(job.response_meta),
           scene_count: parsed.scenes.length,
           duration_ms: parsed.scenes.reduce(
             (sum, scene) => sum + scene.duration_seconds * 1_000,
@@ -386,7 +428,11 @@ async function persistRemoteClip(
   if (sceneError) throw new Error("تعذر ربط المقطع بالمشهد");
   await admin
     .from("video_jobs")
-    .update({ status: "succeeded", response_meta: metadata as Json, finished_at: now })
+    .update({
+      status: "succeeded",
+      response_meta: { ...jsonObject(job.response_meta), ...metadata } as Json,
+      finished_at: now,
+    })
     .eq("id", job.id);
 }
 

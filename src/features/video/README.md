@@ -1,8 +1,7 @@
 # Kidzy Video foundation
 
-This folder contains the customer ordering foundation, the Phase 3 admin production workspace, and
-the Phase 4A production engine that generates real reference images, scripts, and per-scene clips.
-Final composition/render is intentionally still deferred to a later phase.
+This folder contains the customer ordering foundation and the Phase 3 admin production workspace.
+It intentionally contains no provider integration, worker, or media generation code.
 
 ## Availability
 
@@ -47,9 +46,8 @@ flag. Template availability remains controlled by published `personalized_video`
   quality, final-render, ready, and delivery prerequisites are checked on the server.
 - Scene edits invalidate scene/quality approval and the aggregate duration may not exceed 60 seconds.
   Scene approval requires a real stored clip; readiness requires a current final render.
-- `provider-boundary.ts` defines the provider-independent contracts. Phase 3 itself neither calls
-  providers nor creates fake assets; real generation is wired in Phase 4A below against these same
-  contracts.
+- `provider-boundary.ts` defines future integrations. Phase 3 neither calls providers nor creates
+  fake assets; generation actions remain explicitly disabled until a later phase.
 - The existing schema is sufficient for Phase 3. No migration or generated-type change is needed.
 
 ## Phase 4A production engine
@@ -73,6 +71,9 @@ flag. Template availability remains controlled by published `personalized_video`
   No model name or secret is sent to UI components.
 - Provider outputs are copied into the private `video-assets` bucket and only signed previews leave
   the server. Canonical provider-hosted URLs are never persisted on projects or scenes.
+- Provider failures retain only a bounded, redacted diagnostic in the internal job `response_meta`
+  and emit that same safe object to server logs. Keys, headers, signed URLs, image data, request
+  bodies, and raw provider responses are never persisted or logged; admin/customer DTOs omit it.
 - Storyboards are strict structured JSON with contiguous scenes and a maximum 60-second aggregate.
   Draft scenes reconcile deterministically by `(project_id, scene_number)`. Regeneration is rejected
   once any scene owns generated media; a later explicit rebuild workflow is required to destroy it.

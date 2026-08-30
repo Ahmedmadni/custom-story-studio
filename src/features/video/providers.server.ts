@@ -4,13 +4,10 @@ import type {
   VideoSceneProvider,
 } from "@/features/video/provider-boundary";
 import { getVideoProviderConfig } from "@/features/video/provider-config.server";
-
-function safeProviderError(status: number) {
-  if (status === 401 || status === 403) return "بيانات اعتماد مزود الإنتاج غير صالحة";
-  if (status === 402) return "رصيد مزود الإنتاج غير كافٍ";
-  if (status === 429) return "مزود الإنتاج مشغول، حاول لاحقاً";
-  return `فشل مزود الإنتاج (${status})`;
-}
+import {
+  providerHttpFailure,
+  providerResultFailure,
+} from "@/features/video/provider-diagnostics.server";
 
 const WAN_NUM_FRAMES = 81;
 
@@ -49,7 +46,12 @@ export function referenceImageProvider(): ReferenceImageProvider {
           }),
         },
       );
-      if (!response.ok) throw new Error(safeProviderError(response.status));
+      if (!response.ok)
+        throw await providerHttpFailure(response, {
+          provider: "gemini",
+          operation: "reference_image",
+          model,
+        });
       const body = (await response.json()) as {
         candidates?: {
           content?: {
@@ -64,7 +66,15 @@ export function referenceImageProvider(): ReferenceImageProvider {
         (item) => item.inline_data?.data || item.inlineData?.data,
       );
       const data = part?.inline_data?.data ?? part?.inlineData?.data;
-      if (!data) throw new Error("لم يُرجع مزود الصورة أصلاً قابلاً للحفظ");
+      if (!data)
+        throw providerResultFailure(
+          { provider: "gemini", operation: "reference_image", model },
+          {
+            httpStatus: 200,
+            type: "missing_image_output",
+            message: "Gemini response did not include inline image data",
+          },
+        );
       return {
         bytes: Buffer.from(data, "base64"),
         contentType: part?.inline_data?.mime_type ?? part?.inlineData?.mimeType ?? "image/png",
@@ -93,11 +103,27 @@ export function scriptProvider(): ScriptProvider {
           response_format: { type: "json_object" },
         }),
       });
-      if (!response.ok) throw new Error(safeProviderError(response.status));
+      if (!response.ok)
+        throw await providerHttpFailure(response, {
+          provider: "lovable",
+          operation: "script_generation",
+          model,
+        });
       const body = (await response.json()) as { choices?: { message?: { content?: string } }[] };
       const raw = body.choices?.[0]?.message?.content?.replace(/```json|```/gi, "").trim();
       if (!raw) throw new Error("لم يُرجع مزود النص سيناريو");
-      return JSON.parse(raw) as unknown;
+      try {
+        return JSON.parse(raw) as unknown;
+      } catch {
+        throw providerResultFailure(
+          { provider: "lovable", operation: "script_generation", model },
+          {
+            httpStatus: 200,
+            type: "invalid_json_output",
+            message: "Script provider returned invalid JSON",
+          },
+        );
+      }
     },
   };
 }
@@ -135,9 +161,22 @@ export function videoSceneProvider(): VideoSceneProvider {
         headers,
         body: JSON.stringify({ input: providerInput }),
       });
-      if (!response.ok) throw new Error(safeProviderError(response.status));
+      if (!response.ok)
+        throw await providerHttpFailure(response, {
+          provider: "replicate",
+          operation: "scene_generation",
+          model,
+        });
       const body = (await response.json()) as { id?: string };
-      if (!body.id) throw new Error("لم يُرجع مزود الفيديو رقم عملية");
+      if (!body.id)
+        throw providerResultFailure(
+          { provider: "replicate", operation: "scene_generation", model },
+          {
+            httpStatus: 200,
+            type: "missing_prediction_id",
+            message: "Replicate response did not include a prediction id",
+          },
+        );
       return {
         providerJobId: body.id,
         metadata: {
@@ -161,17 +200,29 @@ export function videoSceneProvider(): VideoSceneProvider {
       const response = await fetch(`${gateway}/predictions/${encodeURIComponent(providerJobId)}`, {
         headers,
       });
-      if (!response.ok) throw new Error(safeProviderError(response.status));
+      if (!response.ok)
+        throw await providerHttpFailure(response, {
+          provider: "replicate",
+          operation: "scene_poll",
+          model,
+        });
       const body = (await response.json()) as {
         status?: string;
         output?: string | string[];
+        error?: unknown;
       };
       if (["starting", "processing"].includes(body.status ?? "")) return { status: "running" };
       if (["failed", "canceled"].includes(body.status ?? ""))
-        return {
-          status: "failed",
-          error: `فشل توليد المقطع لدى المزود (${body.status})`,
-        };
+        throw providerResultFailure(
+          { provider: "replicate", operation: "scene_poll", model },
+          {
+            type: body.status ?? "failed",
+            message:
+              typeof body.error === "string"
+                ? body.error
+                : `Replicate prediction ended with status ${body.status}`,
+          },
+        );
       const url = Array.isArray(body.output) ? body.output[0] : body.output;
       if (body.status === "succeeded" && typeof url === "string")
         return { status: "succeeded", assetUrl: url, metadata: {} };
