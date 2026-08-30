@@ -148,17 +148,25 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
               اعتماد الإنتاج
             </Button>
             {nextStage && (
-              <Button
-                variant="outline"
-                disabled={mutation.isPending}
-                onClick={() =>
-                  run(() =>
-                    changeStage({ data: { projectId: project.id, stage: nextStage as never } }),
-                  )
-                }
-              >
-                المرحلة التالية: {nextStage}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  title={nextStageBlockedReason ?? undefined}
+                  disabled={mutation.isPending || Boolean(nextStageBlockedReason)}
+                  onClick={() =>
+                    run(() =>
+                      changeStage({ data: { projectId: project.id, stage: nextStage as never } }),
+                    )
+                  }
+                >
+                  المرحلة التالية: {nextStage}
+                </Button>
+                {nextStageBlockedReason && (
+                  <span className="text-xs font-bold text-amber-700">
+                    {nextStageBlockedReason}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </CardContent>
