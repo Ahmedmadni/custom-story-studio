@@ -547,12 +547,15 @@ export const generateVideoScene = createServerFn({ method: "POST" })
       jobType: "scene_clip",
       provider: "replicate",
     });
+    let target = acquired.job;
     if (!acquired.acquired) {
       if (activeVideoJobStatuses.includes(acquired.job.status as never))
         return { jobId: acquired.job.id, status: acquired.job.status };
-      throw new Error("استخدم إعادة المحاولة للمهمة السابقة");
+      const requeued = await requeueJob(admin, acquired.job);
+      if (!requeued) throw new Error("بلغت المهمة الحد الأقصى للمحاولات");
+      target = requeued;
     }
-    const job = await submitScene(admin, acquired.job);
+    const job = await submitScene(admin, target);
     return { jobId: job.id, status: job.status };
   });
 
