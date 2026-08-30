@@ -88,6 +88,41 @@ async function acquireJob(
   return { job: existing, acquired: false };
 }
 
+/** Re-queue a previously failed job so the same action can simply run again. */
+async function requeueJob(admin: Admin, job: Job): Promise<Job | null> {
+  const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
+  if (!canRetryJob(job.status, job.attempt_count, getVideoProviderConfig().maxAttempts))
+    return null;
+  const oldMeta = jsonObject(job.response_meta);
+  const oldErrors = Array.isArray(oldMeta.previous_errors) ? oldMeta.previous_errors : [];
+  const responseMeta = job.last_error
+    ? {
+        ...oldMeta,
+        previous_errors: [
+          ...oldErrors,
+          {
+            attempt: job.attempt_count,
+            error: job.last_error,
+            recorded_at: new Date().toISOString(),
+          },
+        ],
+      }
+    : oldMeta;
+  const { data: queued } = await admin
+    .from("video_jobs")
+    .update({
+      status: "queued",
+      finished_at: null,
+      next_retry_at: null,
+      response_meta: responseMeta as Json,
+    })
+    .eq("id", job.id)
+    .eq("status", job.status)
+    .select("*")
+    .maybeSingle();
+  return queued ?? null;
+}
+
 async function beginAttempt(admin: Admin, job: Job) {
   const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
   const max = getVideoProviderConfig().maxAttempts;
@@ -461,12 +496,15 @@ export const generateVideoReferenceImage = createServerFn({ method: "POST" })
       jobType: "reference_image",
       provider: "gemini",
     });
+    let target = acquired.job;
     if (!acquired.acquired) {
       if (activeVideoJobStatuses.includes(acquired.job.status as never))
         return { jobId: acquired.job.id, status: acquired.job.status };
-      throw new Error("استخدم إعادة المحاولة للمهمة السابقة");
+      const requeued = await requeueJob(admin, acquired.job);
+      if (!requeued) throw new Error("بلغت المهمة الحد الأقصى للمحاولات");
+      target = requeued;
     }
-    const job = await runReference(admin, acquired.job);
+    const job = await runReference(admin, target);
     return { jobId: job.id, status: job.status };
   });
 
@@ -480,12 +518,15 @@ export const generateVideoScript = createServerFn({ method: "POST" })
       jobType: "script",
       provider: "lovable",
     });
+    let target = acquired.job;
     if (!acquired.acquired) {
       if (activeVideoJobStatuses.includes(acquired.job.status as never))
         return { jobId: acquired.job.id, status: acquired.job.status };
-      throw new Error("استخدم إعادة المحاولة للمهمة السابقة");
+      const requeued = await requeueJob(admin, acquired.job);
+      if (!requeued) throw new Error("بلغت المهمة الحد الأقصى للمحاولات");
+      target = requeued;
     }
-    const job = await runScript(admin, acquired.job);
+    const job = await runScript(admin, target);
     return { jobId: job.id, status: job.status };
   });
 
@@ -506,12 +547,15 @@ export const generateVideoScene = createServerFn({ method: "POST" })
       jobType: "scene_clip",
       provider: "replicate",
     });
+    let target = acquired.job;
     if (!acquired.acquired) {
       if (activeVideoJobStatuses.includes(acquired.job.status as never))
         return { jobId: acquired.job.id, status: acquired.job.status };
-      throw new Error("استخدم إعادة المحاولة للمهمة السابقة");
+      const requeued = await requeueJob(admin, acquired.job);
+      if (!requeued) throw new Error("بلغت المهمة الحد الأقصى للمحاولات");
+      target = requeued;
     }
-    const job = await submitScene(admin, acquired.job);
+    const job = await submitScene(admin, target);
     return { jobId: job.id, status: job.status };
   });
 
