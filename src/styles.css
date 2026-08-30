@@ -45,7 +45,7 @@
 
 
 @theme {
-  --font-display: "Cairo", "Tajawal", "Alexandria", "Kufam", "Baloo Bhaijaan 2", sans-serif;
+  --font-display: "Cairo", "Tajawal", "Alexandria", "Kufam", sans-serif;
   --font-sans: "Tajawal", "Cairo", "Alexandria", "Kufam", sans-serif;
 }
 
