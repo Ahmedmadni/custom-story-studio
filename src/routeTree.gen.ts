@@ -45,8 +45,6 @@ import { Route as AuthenticatedChildrenCreateRouteImport } from './routes/_authe
 import { Route as AuthenticatedChildrenIdRouteImport } from './routes/_authenticated.children.$id'
 import { Route as AuthenticatedAdminVideosRouteImport } from './routes/_authenticated.admin.videos'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated.admin.users'
-import { Route as AuthenticatedAdminVideosRouteImport } from './routes/_authenticated.admin.videos'
-import { Route as AuthenticatedAdminVideosVideoOrderIdRouteImport } from './routes/_authenticated.admin.videos_.$videoOrderId'
 import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authenticated.admin.templates'
 import { Route as AuthenticatedAdminRolesRouteImport } from './routes/_authenticated.admin.roles'
 import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated.admin.payments'
@@ -243,16 +241,6 @@ const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const AuthenticatedAdminVideosRoute = AuthenticatedAdminVideosRouteImport.update({
-  id: '/videos',
-  path: '/videos',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminVideosVideoOrderIdRoute = AuthenticatedAdminVideosVideoOrderIdRouteImport.update({
-  id: '/videos_/$videoOrderId',
-  path: '/videos/$videoOrderId',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
 const AuthenticatedAdminTemplatesRoute =
   AuthenticatedAdminTemplatesRouteImport.update({
     id: '/templates',
@@ -349,7 +337,6 @@ export interface FileRoutesByFullPath {
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/videos': typeof AuthenticatedAdminVideosRoute
-  '/admin/videos/$videoOrderId': typeof AuthenticatedAdminVideosVideoOrderIdRoute
   '/children/$id': typeof AuthenticatedChildrenIdRouteWithChildren
   '/children/create': typeof AuthenticatedChildrenCreateRoute
   '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
@@ -396,7 +383,6 @@ export interface FileRoutesByTo {
   '/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/admin/videos': typeof AuthenticatedAdminVideosRoute
-  '/admin/videos/$videoOrderId': typeof AuthenticatedAdminVideosVideoOrderIdRoute
   '/children/$id': typeof AuthenticatedChildrenIdRouteWithChildren
   '/children/create': typeof AuthenticatedChildrenCreateRoute
   '/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
@@ -446,7 +432,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/templates': typeof AuthenticatedAdminTemplatesRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/admin/videos': typeof AuthenticatedAdminVideosRoute
-  '/_authenticated/admin/videos_/$videoOrderId': typeof AuthenticatedAdminVideosVideoOrderIdRoute
   '/_authenticated/children/$id': typeof AuthenticatedChildrenIdRouteWithChildren
   '/_authenticated/children/create': typeof AuthenticatedChildrenCreateRoute
   '/_authenticated/order/$templateId': typeof AuthenticatedOrderTemplateIdRoute
@@ -496,7 +481,6 @@ export interface FileRouteTypes {
     | '/admin/templates'
     | '/admin/users'
     | '/admin/videos'
-    | '/admin/videos/$videoOrderId'
     | '/children/$id'
     | '/children/create'
     | '/order/$templateId'
@@ -543,7 +527,6 @@ export interface FileRouteTypes {
     | '/admin/templates'
     | '/admin/users'
     | '/admin/videos'
-    | '/admin/videos/$videoOrderId'
     | '/children/$id'
     | '/children/create'
     | '/order/$templateId'
@@ -592,7 +575,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/templates'
     | '/_authenticated/admin/users'
     | '/_authenticated/admin/videos'
-    | '/_authenticated/admin/videos_/$videoOrderId'
     | '/_authenticated/children/$id'
     | '/_authenticated/children/create'
     | '/_authenticated/order/$templateId'
@@ -881,20 +863,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/videos': {
-      id: '/_authenticated/admin/videos'
-      path: '/videos'
-      fullPath: '/admin/videos'
-      preLoaderRoute: typeof AuthenticatedAdminVideosRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/videos_/$videoOrderId': {
-      id: '/_authenticated/admin/videos_/$videoOrderId'
-      path: '/videos/$videoOrderId'
-      fullPath: '/admin/videos/$videoOrderId'
-      preLoaderRoute: typeof AuthenticatedAdminVideosVideoOrderIdRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
     '/_authenticated/admin/templates': {
       id: '/_authenticated/admin/templates'
       path: '/templates'
@@ -978,7 +946,6 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminTemplatesRoute: typeof AuthenticatedAdminTemplatesRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedAdminVideosRoute: typeof AuthenticatedAdminVideosRoute
-  AuthenticatedAdminVideosVideoOrderIdRoute: typeof AuthenticatedAdminVideosVideoOrderIdRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminVideosVideoOrderIdRoute: typeof AuthenticatedAdminVideosVideoOrderIdRoute
 }
@@ -993,7 +960,6 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminTemplatesRoute: AuthenticatedAdminTemplatesRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
   AuthenticatedAdminVideosRoute: AuthenticatedAdminVideosRoute,
-  AuthenticatedAdminVideosVideoOrderIdRoute: AuthenticatedAdminVideosVideoOrderIdRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminVideosVideoOrderIdRoute:
     AuthenticatedAdminVideosVideoOrderIdRoute,

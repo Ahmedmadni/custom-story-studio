@@ -96,6 +96,8 @@
   --color-grass-foreground: var(--grass-foreground);
   --color-candy: var(--candy);
   --color-candy-foreground: var(--candy-foreground);
+  --shadow-soft: var(--shadow-soft);
+  --shadow-card: var(--shadow-card);
 }
 
 :root {
