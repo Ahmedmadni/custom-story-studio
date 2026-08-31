@@ -40,7 +40,7 @@ async function toCustomerDtos(rows: SafeOrderRow[]): Promise<CustomerVideoOrderD
 
   const { data: projects } = await supabaseAdmin
     .from("video_projects")
-    .select("video_order_id, status")
+    .select("id, video_order_id, status")
     .in("video_order_id", orderIds);
   let templates: { id: string; title: string }[] = [];
   if (templateIds.length) {
@@ -52,6 +52,32 @@ async function toCustomerDtos(rows: SafeOrderRow[]): Promise<CustomerVideoOrderD
   }
 
   const projectStatus = new Map((projects ?? []).map((row) => [row.video_order_id, row.status]));
+  const deliveredProjects = (projects ?? []).filter(
+    (project) =>
+      project.status === "ready" &&
+      rows.some((row) => row.id === project.video_order_id && row.delivery_status === "delivered"),
+  );
+  const { data: renders } = deliveredProjects.length
+    ? await supabaseAdmin
+        .from("video_renders")
+        .select("project_id, storage_path")
+        .in(
+          "project_id",
+          deliveredProjects.map((project) => project.id),
+        )
+        .eq("render_type", "final")
+        .eq("is_current", true)
+    : { data: [] };
+  const signedFinalUrls = new Map<string, string>();
+  await Promise.all(
+    (renders ?? []).map(async (render) => {
+      const { data } = await supabaseAdmin.storage
+        .from("video-renders")
+        .createSignedUrl(render.storage_path, 600);
+      if (data?.signedUrl) signedFinalUrls.set(render.project_id, data.signedUrl);
+    }),
+  );
+  const projectByOrder = new Map((projects ?? []).map((row) => [row.video_order_id, row]));
   const templateTitles = new Map(templates.map((row) => [row.id, row.title]));
 
   return rows.map((row) => {
@@ -61,6 +87,8 @@ async function toCustomerDtos(rows: SafeOrderRow[]): Promise<CustomerVideoOrderD
       deliveryStatus: row.delivery_status,
       projectStatus: projectStatus.get(row.id) ?? null,
     });
+    const project = projectByOrder.get(row.id);
+    const finalVideoUrl = project ? (signedFinalUrls.get(project.id) ?? null) : null;
     return {
       id: row.id,
       templateTitle:
@@ -71,7 +99,11 @@ async function toCustomerDtos(rows: SafeOrderRow[]): Promise<CustomerVideoOrderD
       deliveryStatus: row.delivery_status,
       status,
       statusLabel: CUSTOMER_VIDEO_STATUS_LABELS[status],
-      finalDeliveryAvailable: row.delivery_status === "delivered",
+      finalDeliveryAvailable:
+        row.delivery_status === "delivered" &&
+        project?.status === "ready" &&
+        Boolean(finalVideoUrl),
+      finalVideoUrl,
     };
   });
 }

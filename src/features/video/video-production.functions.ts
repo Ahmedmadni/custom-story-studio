@@ -515,7 +515,14 @@ export const generateVideoReferenceImage = createServerFn({ method: "POST" })
       if (activeVideoJobStatuses.includes(acquired.job.status as never))
         return { ok: true as const, jobId: acquired.job.id, status: acquired.job.status };
       const requeued = await requeueJob(admin, acquired.job);
-      if (!requeued) throw new Error("بلغت المهمة الحد الأقصى للمحاولات");
+      if (!requeued)
+        return {
+          ok: false as const,
+          jobId: acquired.job.id,
+          status: "dead_letter" as const,
+          error:
+            "بلغت المهمة الحد الأقصى للمحاولات. استخدم الرفع اليدوي أو أعد تفعيل المزود لاحقاً.",
+        };
       target = requeued;
     }
     const job = await runReference(admin, target);
@@ -537,13 +544,20 @@ export const generateVideoScript = createServerFn({ method: "POST" })
     let target = acquired.job;
     if (!acquired.acquired) {
       if (activeVideoJobStatuses.includes(acquired.job.status as never))
-        return { jobId: acquired.job.id, status: acquired.job.status };
+        return { ok: true as const, jobId: acquired.job.id, status: acquired.job.status };
       const requeued = await requeueJob(admin, acquired.job);
-      if (!requeued) throw new Error("بلغت المهمة الحد الأقصى للمحاولات");
+      if (!requeued)
+        return {
+          ok: false as const,
+          jobId: acquired.job.id,
+          status: "dead_letter" as const,
+          error:
+            "بلغت المهمة الحد الأقصى للمحاولات. استخدم الإدخال اليدوي أو أعد تفعيل المزود لاحقاً.",
+        };
       target = requeued;
     }
     const job = await runScript(admin, target);
-    return { jobId: job.id, status: job.status };
+    return { ok: true as const, jobId: job.id, status: job.status };
   });
 
 export const generateVideoScene = createServerFn({ method: "POST" })
@@ -566,13 +580,20 @@ export const generateVideoScene = createServerFn({ method: "POST" })
     let target = acquired.job;
     if (!acquired.acquired) {
       if (activeVideoJobStatuses.includes(acquired.job.status as never))
-        return { jobId: acquired.job.id, status: acquired.job.status };
+        return { ok: true as const, jobId: acquired.job.id, status: acquired.job.status };
       const requeued = await requeueJob(admin, acquired.job);
-      if (!requeued) throw new Error("بلغت المهمة الحد الأقصى للمحاولات");
+      if (!requeued)
+        return {
+          ok: false as const,
+          jobId: acquired.job.id,
+          status: "dead_letter" as const,
+          error:
+            "بلغت المهمة الحد الأقصى للمحاولات. استخدم الرفع اليدوي أو أعد تفعيل المزود لاحقاً.",
+        };
       target = requeued;
     }
     const job = await submitScene(admin, target);
-    return { jobId: job.id, status: job.status };
+    return { ok: true as const, jobId: job.id, status: job.status };
   });
 
 export const refreshVideoProductionJobs = createServerFn({ method: "POST" })
@@ -599,7 +620,13 @@ export const retryVideoProductionJob = createServerFn({ method: "POST" })
     const { data: job } = await admin.from("video_jobs").select("*").eq("id", data.jobId).single();
     if (!job) throw new Error("مهمة الإنتاج غير موجودة");
     const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
-    if (!canRetryJob(job.status, job.attempt_count, getVideoProviderConfig().maxAttempts))
+    const maxAttempts = getVideoProviderConfig().maxAttempts;
+    if (job.attempt_count >= maxAttempts)
+      return {
+        ok: false as const,
+        error: "بلغت المهمة الحد الأقصى للمحاولات. استخدم الرفع اليدوي أو أعد تفعيل المزود لاحقاً.",
+      };
+    if (!canRetryJob(job.status, job.attempt_count, maxAttempts))
       throw new Error("لا يمكن إعادة محاولة هذه المهمة");
     const oldMeta =
       job.response_meta &&

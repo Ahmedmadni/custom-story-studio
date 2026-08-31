@@ -18,14 +18,18 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
   const approveProduction = useServerFn(api.approveVideoProduction);
   const changeStage = useServerFn(api.updateVideoProductionStage);
   const savePrompt = useServerFn(api.saveVideoReferencePrompt);
+  const uploadReference = useServerFn(api.uploadVideoReferenceImage);
   const saveScript = useServerFn(api.saveVideoScript);
+  const resetStoryboard = useServerFn(api.resetVideoStoryboard);
   const approveImage = useServerFn(api.approveVideoReferenceImage);
   const approveScript = useServerFn(api.approveVideoScript);
   const approveQuality = useServerFn(api.approveVideoQuality);
   const updateScene = useServerFn(api.updateVideoScene);
+  const uploadSceneClip = useServerFn(api.uploadVideoSceneClip);
   const approveScene = useServerFn(api.approveVideoScene);
   const ready = useServerFn(api.markVideoProjectReady);
   const delivered = useServerFn(api.markVideoDelivered);
+  const uploadFinalRender = useServerFn(api.uploadVideoFinalRender);
   const generateReference = useServerFn(production.generateVideoReferenceImage);
   const generateScript = useServerFn(production.generateVideoScript);
   const generateScene = useServerFn(production.generateVideoScene);
@@ -97,6 +101,14 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
   ][stageIndex];
   const allScenesReady =
     scenes.length > 0 && scenes.every((s) => s.status === "approved" && s.clipUrl);
+  const providerAvailableForJob = (job: (typeof jobs)[number]) =>
+    job.job_type === "reference_image"
+      ? query.data.providerAvailability.reference
+      : job.job_type === "script"
+        ? query.data.providerAvailability.script
+        : job.job_type === "scene_clip"
+          ? query.data.providerAvailability.scene
+          : false;
   const nextStageBlockedReason =
     nextStage === "image_review" && !project.referenceImageUrl
       ? "لا توجد صورة مرجعية مولدة للمراجعة"
@@ -118,6 +130,45 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
       if (!result.ok) throw new Error(result.error ?? "فشلت مهمة الإنتاج، حاول لاحقاً");
       return result;
     });
+  const upload = (
+    file: File | undefined,
+    action: (asset: { dataBase64: string; mimeType: string }) => Promise<unknown>,
+  ) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onerror = () => toast.error("تعذر قراءة الملف");
+    reader.onload = () => {
+      const encoded = typeof reader.result === "string" ? reader.result.split(",")[1] : null;
+      if (!encoded) {
+        toast.error("بيانات الملف غير صالحة");
+        return;
+      }
+      run(() => action({ dataBase64: encoded, mimeType: file.type }));
+    };
+    reader.readAsDataURL(file);
+  };
+  const uploadFinal = (file: File | undefined) => {
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      toast.error("تعذر قراءة بيانات الفيديو");
+    };
+    video.onloadedmetadata = () => {
+      const metadata = {
+        durationMs: Math.max(1, Math.round(video.duration * 1_000)),
+        width: video.videoWidth,
+        height: video.videoHeight,
+      };
+      URL.revokeObjectURL(objectUrl);
+      upload(file, (asset) =>
+        uploadFinalRender({ data: { projectId: project.id, ...asset, ...metadata } }),
+      );
+    };
+    video.src = objectUrl;
+  };
   return (
     <div className="space-y-5" dir="rtl">
       <Card>
@@ -225,9 +276,32 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
           >
             حفظ الوصف
           </Button>
+          <div className="space-y-1">
+            <p className="text-sm font-bold">
+              {project.referenceImageUrl ? "استبدال الصورة المرجعية" : "رفع الصورة المرجعية"}
+            </p>
+            <Input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={
+                mutation.isPending ||
+                !["image_generation", "image_review"].includes(project.production_stage ?? "")
+              }
+              onChange={(event) => {
+                upload(event.target.files?.[0], (asset) =>
+                  uploadReference({ data: { projectId: project.id, ...asset } }),
+                );
+                event.currentTarget.value = "";
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              يمكن تجهيز الملف خارجياً ثم رفعه هنا. الرفع لا يعتمد الصورة تلقائياً.
+            </p>
+          </div>
           <Button
             disabled={
               mutation.isPending ||
+              !query.data.providerAvailability.reference ||
               !["image_generation", "image_review"].includes(project.production_stage ?? "")
             }
             onClick={() =>
@@ -236,6 +310,11 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
           >
             توليد الصورة المرجعية
           </Button>
+          {!query.data.providerAvailability.reference && (
+            <p className="text-sm font-bold text-amber-700">
+              الربط التلقائي بالذكاء الاصطناعي غير مفعّل حالياً
+            </p>
+          )}
           {project.referenceImageUrl && (
             <img
               src={project.referenceImageUrl}
@@ -279,15 +358,38 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
             حفظ النص
           </Button>
           <Button
+            variant="destructive"
+            disabled={mutation.isPending || !project.script || !project.image_approved_at}
+            onClick={() => {
+              const confirmation = window.prompt(
+                "سيتم فصل أصول كل المشاهد وإلغاء اعتماد النص والجودة ثم إعادة بناء المشاهد من النص المحفوظ. الملفات الخاصة ستبقى مخزنة. اكتب RESET للتأكيد.",
+              );
+              if (confirmation === "RESET")
+                run(() =>
+                  resetStoryboard({ data: { projectId: project.id, confirmation: "RESET" } }),
+                );
+            }}
+          >
+            تصفير / إعادة بناء لوحة المشاهد
+          </Button>
+          <Button
             disabled={
               mutation.isPending ||
+              !query.data.providerAvailability.script ||
               !["script_generation", "script_review"].includes(project.production_stage ?? "") ||
               !project.image_approved_at
             }
-            onClick={() => run(() => generateScript({ data: { projectId: project.id } }))}
+            onClick={() =>
+              runRecoverable(() => generateScript({ data: { projectId: project.id } }))
+            }
           >
             توليد / إعادة توليد السيناريو
           </Button>
+          {!query.data.providerAvailability.script && (
+            <p className="text-sm font-bold text-amber-700">
+              الربط التلقائي بالذكاء الاصطناعي غير مفعّل حالياً — يمكن لصق JSON يدوياً.
+            </p>
+          )}
           {scenes.some((scene) => scene.clipUrl) && (
             <p className="text-xs font-bold text-amber-700">
               توجد مقاطع مولدة؛ حمايةً للأصول لن يُستبدل السيناريو أو بناء المشاهد دون إجراء إعادة
@@ -314,7 +416,16 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                   run(() => updateScene({ data: { sceneId: scene.id, ...values } }))
                 }
                 approve={() => run(() => approveScene({ data: { sceneId: scene.id } }))}
-                generate={() => run(() => generateScene({ data: { sceneId: scene.id } }))}
+                generate={() =>
+                  runRecoverable(() => generateScene({ data: { sceneId: scene.id } }))
+                }
+                uploadClip={(file) =>
+                  upload(file, (asset) =>
+                    uploadSceneClip({ data: { sceneId: scene.id, ...asset } }),
+                  )
+                }
+                providerAvailable={query.data.providerAvailability.scene}
+                canUpload={project.production_stage === "video_generation"}
               />
             ))
           ) : (
@@ -339,8 +450,18 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={mutation.isPending || !["failed", "succeeded"].includes(job.status)}
-                    onClick={() => runRecoverable(() => retryJob({ data: { jobId: job.id } }))}
+                    disabled={
+                      mutation.isPending ||
+                      !providerAvailableForJob(job) ||
+                      !["failed", "succeeded"].includes(job.status)
+                    }
+                    title={
+                      providerAvailableForJob(job) ? undefined : "الربط التلقائي غير مفعّل حالياً"
+                    }
+                    onClick={() =>
+                      providerAvailableForJob(job) &&
+                      runRecoverable(() => retryJob({ data: { jobId: job.id } }))
+                    }
                   >
                     {job.status === "succeeded" ? "إعادة التوليد" : "إعادة المحاولة"}
                   </Button>
@@ -349,6 +470,11 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
             ))
           ) : (
             <p>لا توجد وظائف</p>
+          )}
+          {jobs.some((job) => job.status === "dead_letter") && (
+            <p className="font-bold text-amber-700">
+              بلغت مهمة الحد الأقصى للمحاولات. استخدم الرفع اليدوي أو أعد تفعيل المزود لاحقاً.
+            </p>
           )}
         </CardContent>
       </Card>
@@ -368,6 +494,24 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
             <p>لا توجد رندرات فعلية</p>
           )}
           <Button disabled>إنشاء الرندر — بانتظار ربط المزود</Button>
+          <div className="space-y-1">
+            <Input
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime"
+              disabled={
+                mutation.isPending ||
+                !["quality_review", "final_render"].includes(project.production_stage ?? "") ||
+                !allScenesReady
+              }
+              onChange={(event) => {
+                uploadFinal(event.target.files?.[0]);
+                event.currentTarget.value = "";
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              رفع فيديو نهائي مُركّب خارجياً لا يحدد المشروع جاهزاً تلقائياً.
+            </p>
+          </div>
         </CardContent>
       </Card>
       <Card>
@@ -406,6 +550,9 @@ function Scene({
   save,
   approve,
   generate,
+  uploadClip,
+  providerAvailable,
+  canUpload,
 }: {
   scene: {
     id: string;
@@ -424,6 +571,9 @@ function Scene({
   }) => void;
   approve: () => void;
   generate: () => void;
+  uploadClip: (file: File | undefined) => void;
+  providerAvailable: boolean;
+  canUpload: boolean;
 }) {
   const [narrationText, setNarration] = useState(scene.narration_text ?? "");
   const [visualPrompt, setVisual] = useState(scene.visual_prompt ?? "");
@@ -451,6 +601,18 @@ function Scene({
         onChange={(e) => setDuration(Number(e.target.value))}
       />
       {scene.clipUrl && <video controls src={scene.clipUrl} className="max-h-60 w-full" />}
+      <Input
+        type="file"
+        accept="video/mp4,video/webm,video/quicktime"
+        disabled={busy || !canUpload}
+        onChange={(event) => {
+          uploadClip(event.target.files?.[0]);
+          event.currentTarget.value = "";
+        }}
+      />
+      <p className="text-xs text-muted-foreground">
+        {scene.clipUrl ? "استبدال مقطع المشهد" : "رفع مقطع المشهد"}
+      </p>
       <div className="flex gap-2">
         <Button
           disabled={busy}
@@ -468,12 +630,17 @@ function Scene({
           اعتماد المقطع
         </Button>
         <Button
-          disabled={busy || ["queued", "generating"].includes(scene.status)}
+          disabled={busy || !providerAvailable || ["queued", "generating"].includes(scene.status)}
           onClick={generate}
         >
           {scene.clipUrl ? "إعادة توليد هذا المشهد" : "توليد هذا المشهد"}
         </Button>
       </div>
+      {!providerAvailable && (
+        <p className="text-xs font-bold text-amber-700">
+          الربط التلقائي غير مفعّل؛ ارفع مقطعاً مجهزاً خارجياً.
+        </p>
+      )}
     </div>
   );
 }

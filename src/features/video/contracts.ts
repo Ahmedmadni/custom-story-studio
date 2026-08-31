@@ -112,4 +112,5 @@ export type CustomerVideoOrderDto = {
   status: CustomerVideoStatusKey;
   statusLabel: string;
   finalDeliveryAvailable: boolean;
+  finalVideoUrl: string | null;
 };
