@@ -8,6 +8,7 @@ import {
   videoProductionStageSchema,
 } from "@/features/video/contracts";
 import { videoStoryboardSchema } from "@/features/video/video-production-core";
+import { activeVideoJobStatuses } from "@/features/video/video-production-core";
 
 type AdminContext = {
   userId: string;
@@ -32,6 +33,22 @@ async function authorize(context: AdminContext) {
 const idInput = z.object({ videoOrderId: z.string().uuid() }).strict();
 const projectInput = z.object({ projectId: z.string().uuid() }).strict();
 const textField = z.string().trim().max(20_000);
+const encodedAssetInput = z
+  .object({
+    dataBase64: z.string().min(1).max(150_000_000),
+    mimeType: z.string().trim().max(100),
+  })
+  .strict();
+const imageMimeExtensions = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+} as const;
+const videoMimeExtensions = {
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+  "video/quicktime": "mov",
+} as const;
 const STAGES = [
   "image_generation",
   "image_review",
@@ -86,6 +103,46 @@ async function scenesFor(admin: Awaited<ReturnType<typeof authorize>>, projectId
     .order("scene_number");
   if (error) throw new Error("تعذر تحميل المشاهد");
   return data ?? [];
+}
+
+async function validatedAsset(input: z.infer<typeof encodedAssetInput>, kind: "image" | "video") {
+  const extensions = kind === "image" ? imageMimeExtensions : videoMimeExtensions;
+  const extension = (extensions as Record<string, string>)[input.mimeType];
+  if (!extension)
+    throw new Error(kind === "image" ? "صيغة الصورة غير مدعومة" : "صيغة الفيديو غير مدعومة");
+  const normalized = input.dataBase64.replace(/\s/g, "");
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(normalized)) throw new Error("بيانات الملف غير صالحة");
+  const bytes = Buffer.from(normalized, "base64");
+  const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
+  if (!bytes.length || bytes.byteLength > getVideoProviderConfig().maxAssetBytes)
+    throw new Error("حجم الملف يتجاوز الحد المسموح");
+  const validSignature =
+    input.mimeType === "image/jpeg"
+      ? bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+      : input.mimeType === "image/png"
+        ? bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+        : input.mimeType === "image/webp"
+          ? bytes.subarray(0, 4).toString("ascii") === "RIFF" &&
+            bytes.subarray(8, 12).toString("ascii") === "WEBP"
+          : input.mimeType === "video/webm"
+            ? bytes.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]))
+            : ["video/mp4", "video/quicktime"].includes(input.mimeType)
+              ? bytes.subarray(4, 8).toString("ascii") === "ftyp"
+              : false;
+  if (!validSignature) throw new Error("محتوى الملف لا يطابق صيغته المعلنة");
+  return { bytes, extension };
+}
+
+async function invalidateCurrentRenders(
+  admin: Awaited<ReturnType<typeof authorize>>,
+  projectId: string,
+) {
+  const { error } = await admin
+    .from("video_renders")
+    .update({ is_current: false })
+    .eq("project_id", projectId)
+    .eq("is_current", true);
+  if (error) throw new Error("تعذر إبطال الرندر السابق");
 }
 
 export const listAdminVideoOrders = createServerFn({ method: "POST" })
@@ -145,6 +202,8 @@ export const getAdminVideoProject = createServerFn({ method: "POST" })
     if (!order) throw new Error("طلب الفيديو غير موجود");
     const child = objectValue(order.child_input_snapshot);
     const childPhotoPath = typeof child.photo_path === "string" ? child.photo_path : null;
+    const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
+    const providerConfig = getVideoProviderConfig();
     return {
       order: {
         id: order.id,
@@ -161,6 +220,11 @@ export const getAdminVideoProject = createServerFn({ method: "POST" })
         referenceImageUrl: await signed(admin, "video-assets", project.reference_image_path),
       },
       childPhotoUrl: await signed(admin, "child-photos", childPhotoPath),
+      providerAvailability: {
+        reference: Boolean(providerConfig.reference.apiKey),
+        script: Boolean(providerConfig.script.apiKey),
+        scene: Boolean(providerConfig.scene.lovableKey && providerConfig.scene.apiKey),
+      },
       scenes: await Promise.all(
         scenes.map(async (scene) => ({
           ...scene,
@@ -330,6 +394,67 @@ export const saveVideoReferencePrompt = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const uploadVideoReferenceImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    projectInput.extend(encodedAssetInput.shape).strict().parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const admin = await authorize(context as unknown as AdminContext);
+    const project = await projectById(admin, data.projectId);
+    if (
+      !["image_generation", "image_review"].includes(project.production_stage ?? "") ||
+      !["approved", "processing"].includes(project.status)
+    )
+      throw new Error("لا يمكن رفع الصورة المرجعية في هذه المرحلة");
+    const { data: activeJobs } = await admin
+      .from("video_jobs")
+      .select("id")
+      .eq("project_id", project.id)
+      .in("status", [...activeVideoJobStatuses]);
+    if (activeJobs?.length) throw new Error("انتظر انتهاء مهام الإنتاج النشطة قبل استبدال الصورة");
+    const asset = await validatedAsset(data, "image");
+    const path = `projects/${project.id}/reference/manual-${crypto.randomUUID()}.${asset.extension}`;
+    const { error: uploadError } = await admin.storage
+      .from("video-assets")
+      .upload(path, asset.bytes, { contentType: data.mimeType, upsert: false });
+    if (uploadError) throw new Error("تعذر حفظ الصورة المرجعية الخاصة");
+    const { error } = await admin
+      .from("video_projects")
+      .update({
+        reference_image_path: path,
+        reference_image_meta: {
+          source: "manual",
+          mime_type: data.mimeType,
+          size_bytes: asset.bytes.byteLength,
+        },
+        production_stage: "image_review",
+        status: "processing",
+        image_approved_at: null,
+        image_approved_by: null,
+        script_approved_at: null,
+        script_approved_by: null,
+        quality_approved_at: null,
+        quality_approved_by: null,
+      })
+      .eq("id", project.id);
+    if (error) throw new Error("تعذر ربط الصورة المرجعية بالمشروع");
+    const { error: sceneError } = await admin
+      .from("video_scenes")
+      .update({
+        selected_image_path: null,
+        audio_path: null,
+        clip_path: null,
+        status: "draft",
+        approved_at: null,
+        approved_by: null,
+      })
+      .eq("project_id", project.id);
+    if (sceneError) throw new Error("تعذر إبطال أصول المشاهد السابقة");
+    await invalidateCurrentRenders(admin, project.id);
+    return { ok: true };
+  });
+
 export const saveVideoScript = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
@@ -388,11 +513,19 @@ function approval(name: "image" | "script" | "quality") {
       )
         throw new Error("النص واعتماد الصورة مطلوبان");
       if (name === "quality") {
-        if (project.production_stage !== "quality_review")
+        if (!["quality_review", "final_render"].includes(project.production_stage ?? ""))
           throw new Error("المشروع ليس في مراجعة الجودة");
         const scenes = await scenesFor(admin, project.id);
         if (!scenes.length || scenes.some((s) => s.status !== "approved" || !s.clip_path))
           throw new Error("كل المقاطع يجب أن تكون مولدة ومعتمدة");
+        const { data: render } = await admin
+          .from("video_renders")
+          .select("id")
+          .eq("project_id", project.id)
+          .eq("render_type", "final")
+          .eq("is_current", true)
+          .maybeSingle();
+        if (!render) throw new Error("يلزم فيديو نهائي حالي لمراجعة الجودة");
       }
       const update =
         name === "image"
@@ -408,6 +541,167 @@ function approval(name: "image" | "script" | "quality") {
 export const approveVideoReferenceImage = approval("image");
 export const approveVideoScript = approval("script");
 export const approveVideoQuality = approval("quality");
+
+/**
+ * Explicit destructive rebuild: retains private objects physically, clears every
+ * scene asset reference/approval, rematerializes the saved storyboard, invalidates
+ * script/quality approvals and current renders, and returns to script review.
+ */
+export const resetVideoStoryboard = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    projectInput
+      .extend({ confirmation: z.literal("RESET") })
+      .strict()
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const admin = await authorize(context as unknown as AdminContext);
+    const project = await projectById(admin, data.projectId);
+    if (
+      project.status !== "processing" ||
+      !["script_review", "video_generation", "quality_review", "final_render"].includes(
+        project.production_stage ?? "",
+      ) ||
+      !project.image_approved_at ||
+      !project.script
+    )
+      throw new Error("يلزم نص محفوظ وصورة معتمدة لإعادة البناء");
+    const { data: activeJobs } = await admin
+      .from("video_jobs")
+      .select("id")
+      .eq("project_id", project.id)
+      .in("status", [...activeVideoJobStatuses]);
+    if (activeJobs?.length) throw new Error("لا يمكن إعادة البناء أثناء وجود مهام إنتاج نشطة");
+    const storyboard = videoStoryboardSchema.parse(project.script);
+    const { error: resetError } = await admin
+      .from("video_scenes")
+      .update({
+        selected_image_path: null,
+        audio_path: null,
+        clip_path: null,
+        status: "draft",
+        approved_at: null,
+        approved_by: null,
+      })
+      .eq("project_id", project.id);
+    if (resetError) throw new Error("تعذر تصفير مراجع المشاهد");
+    const { reconcileVideoStoryboardScenes } =
+      await import("@/features/video/video-scene-reconciliation.server");
+    await reconcileVideoStoryboardScenes(admin, project.id, storyboard);
+    const { error } = await admin
+      .from("video_projects")
+      .update({
+        production_stage: "script_review",
+        status: "processing",
+        script_approved_at: null,
+        script_approved_by: null,
+        quality_approved_at: null,
+        quality_approved_by: null,
+      })
+      .eq("id", project.id);
+    if (error) throw new Error("تعذر إعادة بناء لوحة المشاهد");
+    await invalidateCurrentRenders(admin, project.id);
+    return { ok: true };
+  });
+
+export const uploadVideoSceneClip = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ sceneId: z.string().uuid(), ...encodedAssetInput.shape })
+      .strict()
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const admin = await authorize(context as unknown as AdminContext);
+    const { data: scene } = await admin
+      .from("video_scenes")
+      .select("*")
+      .eq("id", data.sceneId)
+      .single();
+    if (!scene) throw new Error("المشهد غير موجود");
+    const project = await projectById(admin, scene.project_id);
+    if (project.production_stage !== "video_generation" || !project.script_approved_at)
+      throw new Error("المشروع ليس جاهزاً لرفع مقاطع المشاهد");
+    const asset = await validatedAsset(data, "video");
+    const path = `projects/${project.id}/scenes/${scene.id}/manual-${crypto.randomUUID()}.${asset.extension}`;
+    const { error: uploadError } = await admin.storage
+      .from("video-assets")
+      .upload(path, asset.bytes, { contentType: data.mimeType, upsert: false });
+    if (uploadError) throw new Error("تعذر حفظ مقطع المشهد الخاص");
+    const { error } = await admin
+      .from("video_scenes")
+      .update({ clip_path: path, status: "review", approved_at: null, approved_by: null })
+      .eq("id", scene.id)
+      .eq("project_id", project.id);
+    if (error) throw new Error("تعذر ربط المقطع بالمشهد");
+    await admin
+      .from("video_projects")
+      .update({ quality_approved_at: null, quality_approved_by: null })
+      .eq("id", project.id);
+    await invalidateCurrentRenders(admin, project.id);
+    return { ok: true };
+  });
+
+export const uploadVideoFinalRender = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    projectInput
+      .extend({
+        ...encodedAssetInput.shape,
+        durationMs: z.number().int().min(1).max(MAX_VIDEO_DURATION_MS),
+        width: z.number().int().min(1).max(10_000),
+        height: z.number().int().min(1).max(10_000),
+      })
+      .strict()
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const admin = await authorize(context as unknown as AdminContext);
+    const project = await projectById(admin, data.projectId);
+    if (
+      !["quality_review", "final_render"].includes(project.production_stage ?? "") ||
+      project.status !== "processing"
+    )
+      throw new Error("المشروع ليس في مرحلة تسمح برفع الفيديو النهائي");
+    const scenes = await scenesFor(admin, project.id);
+    if (!scenes.length || scenes.some((scene) => scene.status !== "approved" || !scene.clip_path))
+      throw new Error("يجب اعتماد كل مقاطع المشاهد أولاً");
+    const asset = await validatedAsset(data, "video");
+    const { data: latest } = await admin
+      .from("video_renders")
+      .select("version")
+      .eq("project_id", project.id)
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const version = (latest?.version ?? 0) + 1;
+    const path = `projects/${project.id}/final/v${version}-${crypto.randomUUID()}.${asset.extension}`;
+    const { error: uploadError } = await admin.storage
+      .from("video-renders")
+      .upload(path, asset.bytes, { contentType: data.mimeType, upsert: false });
+    if (uploadError) throw new Error("تعذر حفظ الفيديو النهائي الخاص");
+    await invalidateCurrentRenders(admin, project.id);
+    const { error } = await admin.from("video_renders").insert({
+      project_id: project.id,
+      render_type: "final",
+      is_current: true,
+      storage_path: path,
+      version,
+      mime_type: data.mimeType,
+      size_bytes: asset.bytes.byteLength,
+      duration_ms: data.durationMs,
+      width: data.width,
+      height: data.height,
+    });
+    if (error) throw new Error("تعذر تسجيل الفيديو النهائي");
+    await admin
+      .from("video_projects")
+      .update({ quality_approved_at: null, quality_approved_by: null })
+      .eq("id", project.id);
+    return { ok: true };
+  });
 
 export const updateVideoScene = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -526,6 +820,14 @@ export const markVideoDelivered = createServerFn({ method: "POST" })
     const admin = await authorize(context as unknown as AdminContext);
     const project = await projectByOrder(admin, data.videoOrderId);
     if (project.status !== "ready") throw new Error("لا يمكن التسليم قبل جاهزية المشروع");
+    const { data: render } = await admin
+      .from("video_renders")
+      .select("id")
+      .eq("project_id", project.id)
+      .eq("render_type", "final")
+      .eq("is_current", true)
+      .maybeSingle();
+    if (!render) throw new Error("لا يمكن التسليم دون فيديو نهائي حالي");
     const { data: order } = await admin
       .from("video_orders")
       .select("delivery_status")

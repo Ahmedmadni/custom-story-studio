@@ -87,6 +87,17 @@ function MyVideosPage() {
                     {new Date(order.expectedDeliveryAt).toLocaleDateString("ar-EG")}
                   </p>
                 )}
+                {order.finalDeliveryAvailable && order.finalVideoUrl ? (
+                  <video
+                    controls
+                    src={order.finalVideoUrl}
+                    className="mt-4 max-h-96 w-full rounded-2xl bg-black"
+                  />
+                ) : (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    سيظهر الفيديو النهائي هنا بعد اكتمال الإنتاج والتسليم.
+                  </p>
+                )}
               </article>
             ))
           )}
