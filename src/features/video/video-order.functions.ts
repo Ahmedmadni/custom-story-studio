@@ -8,6 +8,7 @@ import {
   toCustomerVideoStatus,
 } from "@/features/video/customer-status";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
 
 const TemplateIdInput = z.object({ templateId: z.string().uuid() }).strict();
 const VideoOrderIdInput = z.object({ orderId: z.string().uuid() }).strict();
@@ -28,6 +29,12 @@ function snapshotChildName(snapshot: unknown): string {
   if (!snapshot || typeof snapshot !== "object" || !("name" in snapshot)) return "طفلك";
   const name = (snapshot as { name?: unknown }).name;
   return typeof name === "string" && name.trim() ? name : "طفلك";
+}
+
+function objectValue(value: unknown): Record<string, Json | undefined> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, Json | undefined>)
+    : {};
 }
 
 async function toCustomerDtos(rows: SafeOrderRow[]): Promise<CustomerVideoOrderDto[]> {
@@ -133,7 +140,7 @@ export const getVideoOffering = createServerFn({ method: "POST" })
     };
   });
 
-/** Atomically creates the unpaid commercial record and its awaiting-payment project. */
+/** Creates the video order only after the customer's transfer receipt is present in private storage. */
 export const submitVideoOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => videoOrderInputSchema.parse(input))
@@ -141,6 +148,9 @@ export const submitVideoOrder = createServerFn({ method: "POST" })
     if (!isKidzyVideoEnabled()) throw new Error("خدمة الفيديو غير متاحة حالياً");
     if (!data.childPhotoPath.startsWith(`${context.userId}/`)) {
       throw new Error("صورة الطفل غير صالحة لهذا الحساب");
+    }
+    if (!data.paymentReceiptPath.startsWith(`${context.userId}/`)) {
+      throw new Error("إيصال التحويل غير صالح لهذا الحساب");
     }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -165,16 +175,23 @@ export const submitVideoOrder = createServerFn({ method: "POST" })
       if (!child) throw new Error("ملف الطفل غير موجود أو لا يخص هذا الحساب");
     }
 
-    const photoName = data.childPhotoPath.slice(context.userId.length + 1);
-    const { data: photoFiles } = await supabaseAdmin.storage
-      .from("child-photos")
-      .list(context.userId, { limit: 10, search: photoName });
-    if (!(photoFiles ?? []).some((file) => file.name === photoName)) {
+    const childPhotoName = data.childPhotoPath.slice(context.userId.length + 1);
+    const receiptName = data.paymentReceiptPath.slice(context.userId.length + 1);
+    const [{ data: photoFiles }, { data: receiptFiles }] = await Promise.all([
+      supabaseAdmin.storage
+        .from("child-photos")
+        .list(context.userId, { limit: 20, search: childPhotoName }),
+      supabaseAdmin.storage
+        .from("payment-receipts")
+        .list(context.userId, { limit: 20, search: receiptName }),
+    ]);
+    if (!(photoFiles ?? []).some((file) => file.name === childPhotoName)) {
       throw new Error("صورة الطفل غير موجودة أو لا تخص هذا الحساب");
     }
+    if (!(receiptFiles ?? []).some((file) => file.name === receiptName)) {
+      throw new Error("إيصال التحويل غير موجود أو لا يخص هذا الحساب");
+    }
 
-    // Generated RPC arg types mark every parameter non-nullable; the SQL function
-    // accepts NULL for the optional child fields.
     const rpcArgs = {
       _user_id: context.userId,
       _template_id: data.templateId,
@@ -195,11 +212,36 @@ export const submitVideoOrder = createServerFn({ method: "POST" })
       throw new Error("تعذر إنشاء طلب الفيديو، حاول مرة أخرى");
     }
 
+    const { data: orderRow, error: readError } = await supabaseAdmin
+      .from("video_orders")
+      .select("order_options_snapshot")
+      .eq("id", created.video_order_id)
+      .eq("user_id", context.userId)
+      .single();
+    if (readError || !orderRow) throw new Error("تعذر استكمال بيانات طلب الفيديو");
+    const options = objectValue(orderRow.order_options_snapshot);
+    const { error: updateError } = await supabaseAdmin
+      .from("video_orders")
+      .update({
+        payment_status: "pending",
+        order_options_snapshot: {
+          ...options,
+          language: data.language,
+          aspect_ratio: data.aspectRatio,
+          payment_method: "vodafone_cash",
+          payment_receipt_path: data.paymentReceiptPath,
+          receipt_uploaded_at: new Date().toISOString(),
+        } as Json,
+      })
+      .eq("id", created.video_order_id)
+      .eq("user_id", context.userId);
+    if (updateError) throw new Error("تعذر ربط إيصال التحويل بطلب الفيديو");
+
     const [dto] = await toCustomerDtos([
       {
         id: created.video_order_id,
         user_id: context.userId,
-        payment_status: "unpaid",
+        payment_status: "pending",
         status: "submitted",
         delivery_status: "pending",
         child_input_snapshot: { name: data.childName },
