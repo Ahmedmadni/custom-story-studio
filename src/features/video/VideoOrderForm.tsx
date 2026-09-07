@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Camera, Loader2, Send } from "lucide-react";
+import { Camera, Copy, Loader2, Receipt, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -24,6 +24,7 @@ import { optimizeImage } from "@/lib/imageOptimize";
 import { cn } from "@/lib/utils";
 
 const MAX_PHOTO_MB = 8;
+const VODAFONE_NUMBER = "01120016502";
 
 export function VideoOrderForm({
   templateId,
@@ -43,6 +44,8 @@ export function VideoOrderForm({
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("16:9");
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
 
   const chooseChild = (child: ChildPickerProfile | null) => {
     setSelectedChild(child);
@@ -62,10 +65,30 @@ export function VideoOrderForm({
     setPreview(URL.createObjectURL(file));
   };
 
+  const chooseReceipt = (file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return toast.error("اختر صورة صالحة لإيصال التحويل");
+    if (file.size > MAX_PHOTO_MB * 1024 * 1024) {
+      return toast.error(`حجم الإيصال يجب ألا يتجاوز ${MAX_PHOTO_MB} ميجابايت`);
+    }
+    setReceipt(file);
+    setReceiptPreview(URL.createObjectURL(file));
+  };
+
   const submit = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("سجّل الدخول أولاً");
       if (!photo) throw new Error("ارفع صورة واضحة للطفل");
+      if (!receipt) throw new Error("ارفع صورة إيصال التحويل قبل إرسال الطلب");
+
+      const receiptOpt = await optimizeImage(receipt, { maxWidth: 1800, quality: 0.85 });
+      const receiptExt = receiptOpt.file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const paymentReceiptPath = `${user.id}/${crypto.randomUUID()}.${receiptExt}`;
+      const { error: receiptError } = await supabase.storage
+        .from("payment-receipts")
+        .upload(paymentReceiptPath, receiptOpt.file, { contentType: receiptOpt.file.type });
+      if (receiptError) throw new Error("تعذر رفع إيصال التحويل");
+
       const { file: optimized } = await optimizeImage(photo, { maxWidth: 1600, quality: 0.85 });
       const ext = optimized.name.split(".").pop()?.toLowerCase() || "jpg";
       const childPhotoPath = `${user.id}/${crypto.randomUUID()}.${ext}`;
@@ -82,13 +105,14 @@ export function VideoOrderForm({
           childAge: childAge ? Number(childAge) : null,
           childGender: gender,
           childPhotoPath,
+          paymentReceiptPath,
           language,
           aspectRatio,
         },
       });
     },
     onSuccess: () => {
-      toast.success("تم إنشاء طلب الفيديو — في انتظار تأكيد الدفع");
+      toast.success("تم إرسال طلب الفيديو وإيصال التحويل — بانتظار مراجعة الإدارة");
       void navigate({ to: "/my-videos" });
     },
     onError: (error: Error) => toast.error(error.message || "تعذر إرسال الطلب"),
@@ -105,9 +129,7 @@ export function VideoOrderForm({
 
       <div className="grid gap-5 md:grid-cols-2">
         <div>
-          <Label htmlFor="video-child-name" className="font-bold">
-            اسم الطفل
-          </Label>
+          <Label htmlFor="video-child-name" className="font-bold">اسم الطفل</Label>
           <Input
             id="video-child-name"
             value={childName}
@@ -118,9 +140,7 @@ export function VideoOrderForm({
           />
         </div>
         <div>
-          <Label htmlFor="video-child-age" className="font-bold">
-            العمر (اختياري)
-          </Label>
+          <Label htmlFor="video-child-age" className="font-bold">العمر (اختياري)</Label>
           <Input
             id="video-child-age"
             type="number"
@@ -156,25 +176,14 @@ export function VideoOrderForm({
         <Label className="font-bold">صورة الطفل الأصلية</Label>
         <label className="mt-2 flex cursor-pointer flex-col items-center rounded-2xl border-2 border-dashed border-primary/40 bg-secondary/30 p-6">
           {preview ? (
-            <img
-              src={preview}
-              alt="معاينة صورة الطفل"
-              className="h-40 w-40 rounded-2xl object-cover"
-            />
+            <img src={preview} alt="معاينة صورة الطفل" className="h-40 w-40 rounded-2xl object-cover" />
           ) : (
             <>
               <Camera className="h-10 w-10 text-primary" />
-              <span className="mt-2 text-sm font-semibold text-muted-foreground">
-                اختر صورة واضحة لوجه الطفل
-              </span>
+              <span className="mt-2 text-sm font-semibold text-muted-foreground">اختر صورة واضحة لوجه الطفل</span>
             </>
           )}
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(event) => choosePhoto(event.target.files?.[0] ?? null)}
-          />
+          <input type="file" accept="image/*" className="hidden" onChange={(event) => choosePhoto(event.target.files?.[0] ?? null)} />
         </label>
       </div>
 
@@ -202,25 +211,57 @@ export function VideoOrderForm({
         value={aspectRatio}
         onChange={setAspectRatio}
         label="أبعاد الفيديو"
-        description="اختر الشكل المناسب لمشاهدة الفيديو؛ يمكن للإدارة مراجعته قبل بدء الإنتاج."
+        description="اختر الشكل المناسب للفيديو النهائي."
       />
 
+      <div className="space-y-4 rounded-2xl border-2 border-primary/20 bg-primary/5 p-5">
+        <div className="flex items-start gap-3">
+          <Receipt className="mt-1 h-6 w-6 text-primary" />
+          <div>
+            <h3 className="font-bold">التحويل وإرفاق الإيصال</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              حوّل قيمة الطلب عبر فودافون كاش، ثم ارفع صورة الإيصال هنا. لن يُرسل الطلب بدون الإيصال.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-background p-3">
+          <b dir="ltr">{VODAFONE_NUMBER}</b>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              void navigator.clipboard.writeText(VODAFONE_NUMBER);
+              toast.success("تم نسخ رقم فودافون كاش");
+            }}
+          >
+            <Copy className="ms-1 h-4 w-4" /> نسخ الرقم
+          </Button>
+        </div>
+        <label className="flex cursor-pointer flex-col items-center rounded-2xl border-2 border-dashed border-primary/40 bg-background p-5">
+          {receiptPreview ? (
+            <img src={receiptPreview} alt="معاينة إيصال التحويل" className="max-h-52 rounded-xl object-contain" />
+          ) : (
+            <>
+              <Receipt className="h-9 w-9 text-primary" />
+              <span className="mt-2 text-sm font-bold">ارفع صورة إيصال التحويل</span>
+            </>
+          )}
+          <input type="file" accept="image/*" className="hidden" onChange={(event) => chooseReceipt(event.target.files?.[0] ?? null)} />
+        </label>
+      </div>
+
       <div className="rounded-2xl bg-secondary/60 p-4 text-sm text-muted-foreground">
-        طلبك لفيديو «{templateTitle}» سيتوقف عند حالة انتظار الدفع. لن يبدأ أي إنتاج أو توليد في هذه
-        المرحلة.
+        بعد إرسال الطلب ستراجع الإدارة إيصال التحويل، ثم تُجهَّز نصوص المشاهد تلقائياً ويبدأ إنتاج كل مشهد على حدة.
       </div>
       <Button
         size="lg"
         className="w-full rounded-full font-bold"
-        disabled={submit.isPending || !childName.trim() || !photo}
+        disabled={submit.isPending || !childName.trim() || !photo || !receipt}
         onClick={() => submit.mutate()}
       >
-        {submit.isPending ? (
-          <Loader2 className="ms-2 h-5 w-5 animate-spin" />
-        ) : (
-          <Send className="ms-2 h-5 w-5" />
-        )}
-        إرسال طلب الفيديو
+        {submit.isPending ? <Loader2 className="ms-2 h-5 w-5 animate-spin" /> : <Send className="ms-2 h-5 w-5" />}
+        إرسال الطلب والإيصال
       </Button>
     </div>
   );

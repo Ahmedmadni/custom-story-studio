@@ -1,7 +1,7 @@
 import type { CustomerVideoStatusKey } from "@/features/video/contracts";
 
 export const CUSTOMER_VIDEO_STATUS_LABELS: Record<CustomerVideoStatusKey, string> = {
-  awaiting_payment: "في انتظار تأكيد الدفع",
+  awaiting_payment: "بانتظار مراجعة التحويل",
   in_production: "قيد الإنتاج",
   ready: "جاهز",
   delivered: "تم التسليم",
