@@ -29,7 +29,23 @@ export interface VideoSceneProvider {
   poll(providerJobId: string): Promise<AsyncProviderResult>;
 }
 
+export type FinalRenderWatermark = {
+  /** Public Kidzy brand asset used by the compositor. */
+  assetPath: "/favicon.png";
+  position: "top-center";
+  maxWidthPercent: number;
+  topMarginPercent: number;
+};
+
+/**
+ * Final composition must embed the Kidzy mark into the actual video pixels.
+ * A DOM overlay in the customer player is not considered a valid final render.
+ */
 export interface FinalRenderProvider {
-  submit(input: { projectId: string; sceneAssetUrls: string[] }): Promise<AsyncProviderJob>;
+  submit(input: {
+    projectId: string;
+    sceneAssetUrls: string[];
+    watermark: FinalRenderWatermark;
+  }): Promise<AsyncProviderJob>;
   poll(providerJobId: string): Promise<AsyncProviderResult>;
 }
