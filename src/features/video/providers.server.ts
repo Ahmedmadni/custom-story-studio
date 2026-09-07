@@ -17,8 +17,8 @@ function wanFramesPerSecond(desiredDurationSeconds: number) {
 
 export function referenceImageProvider(): ReferenceImageProvider {
   const config = getVideoProviderConfig().reference;
-  const apiKey = config.apiKey;
-  const model = config.model;
+  const apiKey = config.gemini.apiKey;
+  const model = config.gemini.model;
   if (!apiKey) throw new Error("GEMINI_API_KEY غير مهيأ لتوليد الصورة المرجعية");
   return {
     async generate({ prompt, sourceImage }) {
@@ -142,28 +142,29 @@ export function scriptProvider(): ScriptProvider {
 
 export function videoSceneProvider(): VideoSceneProvider {
   const config = getVideoProviderConfig().scene;
-  const model = config.model;
-  if (!config.lovableKey || !config.apiKey)
+  const replicate = config.replicate;
+  const model = replicate.model;
+  if (!replicate.lovableKey || !replicate.apiKey)
     throw new Error("يلزم LOVABLE_API_KEY وREPLICATE_API_KEY لتوليد المشاهد");
   const headers = {
-    Authorization: `Bearer ${config.lovableKey}`,
-    "X-Connection-Api-Key": config.apiKey,
+    Authorization: `Bearer ${replicate.lovableKey}`,
+    "X-Connection-Api-Key": replicate.apiKey,
     "Content-Type": "application/json",
   };
   const gateway = "https://connector-gateway.lovable.dev/replicate/v1";
   return {
     async submit(input) {
       const providerInput: Record<string, unknown> = {
-        [config.promptField]: input.prompt,
-        [config.imageField]: input.referenceImageUrl,
+        [replicate.promptField]: input.prompt,
+        [replicate.imageField]: input.referenceImageUrl,
       };
       const supportedAspectRatio = ["16:9", "9:16"].includes(input.aspectRatio)
         ? input.aspectRatio
         : null;
-      const framesPerSecond = config.useWanTimingControls
+      const framesPerSecond = replicate.useWanTimingControls
         ? wanFramesPerSecond(input.durationSeconds)
         : null;
-      if (config.useWanTimingControls) {
+      if (replicate.useWanTimingControls) {
         providerInput.num_frames = WAN_NUM_FRAMES;
         providerInput.frames_per_second = framesPerSecond;
         if (supportedAspectRatio) providerInput.aspect_ratio = supportedAspectRatio;
@@ -195,12 +196,12 @@ export function videoSceneProvider(): VideoSceneProvider {
           model,
           requestedDurationSeconds: input.durationSeconds,
           sourceAspectRatio: input.aspectRatio,
-          numFrames: config.useWanTimingControls ? WAN_NUM_FRAMES : null,
+          numFrames: replicate.useWanTimingControls ? WAN_NUM_FRAMES : null,
           framesPerSecond,
           approximateOutputDurationSeconds:
             framesPerSecond === null ? null : WAN_NUM_FRAMES / framesPerSecond,
-          durationControl: config.useWanTimingControls ? "wan_frames_per_second" : "not_mapped",
-          aspectRatioControl: config.useWanTimingControls
+          durationControl: replicate.useWanTimingControls ? "wan_frames_per_second" : "not_mapped",
+          aspectRatioControl: replicate.useWanTimingControls
             ? supportedAspectRatio
               ? "explicit"
               : "provider_default_for_unsupported_1_1"
