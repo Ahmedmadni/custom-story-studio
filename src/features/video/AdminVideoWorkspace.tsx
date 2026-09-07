@@ -1,135 +1,74 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { CheckCircle2, Film, Loader2, Receipt, Sparkles, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import * as api from "@/features/video/video-admin.functions";
 import * as production from "@/features/video/video-production.functions";
+import * as simple from "@/features/video/video-simple-workflow.functions";
 
 export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) {
   const qc = useQueryClient();
   const getProject = useServerFn(api.getAdminVideoProject);
-  const payment = useServerFn(api.updateVideoPaymentStatus);
-  const approveProduction = useServerFn(api.approveVideoProduction);
-  const changeStage = useServerFn(api.updateVideoProductionStage);
-  const savePrompt = useServerFn(api.saveVideoReferencePrompt);
-  const uploadReference = useServerFn(api.uploadVideoReferenceImage);
-  const saveScript = useServerFn(api.saveVideoScript);
-  const resetStoryboard = useServerFn(api.resetVideoStoryboard);
-  const approveImage = useServerFn(api.approveVideoReferenceImage);
-  const approveScript = useServerFn(api.approveVideoScript);
-  const approveQuality = useServerFn(api.approveVideoQuality);
-  const updateScene = useServerFn(api.updateVideoScene);
   const uploadSceneClip = useServerFn(api.uploadVideoSceneClip);
   const approveScene = useServerFn(api.approveVideoScene);
-  const ready = useServerFn(api.markVideoProjectReady);
   const delivered = useServerFn(api.markVideoDelivered);
   const uploadFinalRender = useServerFn(api.uploadVideoFinalRender);
-  const generateReference = useServerFn(production.generateVideoReferenceImage);
-  const generateScript = useServerFn(production.generateVideoScript);
   const generateScene = useServerFn(production.generateVideoScene);
   const refreshJobs = useServerFn(production.refreshVideoProductionJobs);
   const retryJob = useServerFn(production.retryVideoProductionJob);
+  const getReceipt = useServerFn(simple.getVideoPaymentReceipt);
+  const approvePaymentAndPrepare = useServerFn(simple.approveVideoPaymentAndPrepareScenes);
+  const prepareScenes = useServerFn(simple.prepareVideoScenesAutomatically);
+  const beginFinalization = useServerFn(simple.beginVideoFinalization);
+  const approveFinal = useServerFn(simple.approveFinalVideoAndMarkReady);
+
   const query = useQuery({
     queryKey: ["admin-video-project", videoOrderId],
     queryFn: () => getProject({ data: { videoOrderId } }),
     refetchInterval: 5_000,
   });
-  const [prompt, setPrompt] = useState("");
-  const [promptDirty, setPromptDirty] = useState(false);
-  const [promptFocused, setPromptFocused] = useState(false);
-  const [script, setScript] = useState("");
-  const [scriptDirty, setScriptDirty] = useState(false);
-  const [scriptFocused, setScriptFocused] = useState(false);
-  useEffect(() => {
-    if (query.data && !promptDirty && !promptFocused) {
-      setPrompt(query.data.project.reference_image_prompt ?? "");
-    }
-  }, [promptDirty, promptFocused, query.data]);
-  useEffect(() => {
-    if (query.data && !scriptDirty && !scriptFocused) {
-      setScript(
-        query.data.project.script ? JSON.stringify(query.data.project.script, null, 2) : "{}",
-      );
-    }
-  }, [query.data, scriptDirty, scriptFocused]);
-  useEffect(() => {
-    const projectId = query.data?.project.id;
-    const hasRunningScene = query.data?.jobs.some(
-      (job) => job.job_type === "scene_clip" && job.status === "running",
-    );
-    if (!projectId || !hasRunningScene) return;
-    const timer = window.setInterval(() => {
-      void refreshJobs({ data: { projectId } }).then(() =>
-        qc.invalidateQueries({ queryKey: ["admin-video-project", videoOrderId] }),
-      );
-    }, 5_000);
-    return () => window.clearInterval(timer);
-  }, [query.data?.project.id, query.data?.jobs, qc, refreshJobs, videoOrderId]);
+  const receiptQuery = useQuery({
+    queryKey: ["admin-video-receipt", videoOrderId],
+    queryFn: () => getReceipt({ data: { videoOrderId } }),
+    staleTime: 30_000,
+  });
+
   const mutation = useMutation({
     mutationFn: (fn: () => Promise<unknown>) => fn(),
     onSuccess: () => {
-      toast.success("تم الحفظ");
+      toast.success("تم تحديث طلب الفيديو");
       void qc.invalidateQueries({ queryKey: ["admin-video-project", videoOrderId] });
+      void qc.invalidateQueries({ queryKey: ["admin-video-receipt", videoOrderId] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
-  if (query.isLoading) return <p>جارٍ تحميل مساحة العمل…</p>;
-  if (!query.data) return <p>تعذر تحميل المشروع</p>;
-  const { order, project, scenes, jobs, renders } = query.data;
-  const stageIndex = [
-    "image_generation",
-    "image_review",
-    "script_generation",
-    "script_review",
-    "video_generation",
-    "quality_review",
-    "final_render",
-  ].indexOf(project.production_stage ?? "");
-  const nextStage = [
-    "image_review",
-    "script_generation",
-    "script_review",
-    "video_generation",
-    "quality_review",
-    "final_render",
-  ][stageIndex];
-  const allScenesReady =
-    scenes.length > 0 && scenes.every((s) => s.status === "approved" && s.clipUrl);
-  const providerAvailableForJob = (job: (typeof jobs)[number]) =>
-    job.job_type === "reference_image"
-      ? query.data.providerAvailability.reference
-      : job.job_type === "script"
-        ? query.data.providerAvailability.script
-        : job.job_type === "scene_clip"
-          ? query.data.providerAvailability.scene
-          : false;
-  const nextStageBlockedReason =
-    nextStage === "image_review" && !project.referenceImageUrl
-      ? "لا توجد صورة مرجعية مولدة للمراجعة"
-      : nextStage === "script_generation" && !project.image_approved_at
-        ? "يجب اعتماد الصورة أولاً"
-        : nextStage === "script_review" && !project.script
-          ? "لا يوجد نص مولد للمراجعة"
-          : nextStage === "video_generation" && !project.script_approved_at
-            ? "يجب اعتماد النص أولاً"
-            : nextStage === "quality_review" && !allScenesReady
-              ? "يجب اعتماد كل المشاهد ذات المقاطع الفعلية"
-              : nextStage === "final_render" && !project.quality_approved_at
-                ? "يجب اعتماد الجودة أولاً"
-                : null;
   const run = (fn: () => Promise<unknown>) => mutation.mutate(fn);
   const runRecoverable = (fn: () => Promise<{ ok: boolean; error?: string }>) =>
     run(async () => {
       const result = await fn();
-      if (!result.ok) throw new Error(result.error ?? "فشلت مهمة الإنتاج، حاول لاحقاً");
+      if (!result.ok) {
+        toast.error(result.error ?? "تعذر تنفيذ المهمة");
+        return result;
+      }
       return result;
     });
+
+  if (query.isLoading) return <p>جارٍ تحميل مساحة الإنتاج…</p>;
+  if (!query.data) return <p>تعذر تحميل مشروع الفيديو</p>;
+
+  const { order, project, scenes, jobs, renders } = query.data;
+  const allScenesApproved =
+    scenes.length > 0 && scenes.every((scene) => scene.status === "approved" && scene.clipUrl);
+  const hasAnyClip = scenes.some((scene) => Boolean(scene.clipUrl));
+  const currentFinalRender = renders.find((render) => render.render_type === "final" && render.is_current);
+  const paymentReviewed = order.paymentStatus === "paid";
+  const scenesPrepared = scenes.length > 0 && Boolean(project.script_approved_at);
+
   const upload = (
     file: File | undefined,
     action: (asset: { dataBase64: string; mimeType: string }) => Promise<unknown>,
@@ -139,14 +78,12 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
     reader.onerror = () => toast.error("تعذر قراءة الملف");
     reader.onload = () => {
       const encoded = typeof reader.result === "string" ? reader.result.split(",")[1] : null;
-      if (!encoded) {
-        toast.error("بيانات الملف غير صالحة");
-        return;
-      }
+      if (!encoded) return toast.error("بيانات الملف غير صالحة");
       run(() => action({ dataBase64: encoded, mimeType: file.type }));
     };
     reader.readAsDataURL(file);
   };
+
   const uploadFinal = (file: File | undefined) => {
     if (!file) return;
     const objectUrl = URL.createObjectURL(file);
@@ -169,299 +106,222 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
     };
     video.src = objectUrl;
   };
+
+  const refreshRunning = () =>
+    run(async () => {
+      const result = await refreshJobs({ data: { projectId: project.id } });
+      return result;
+    });
+
   return (
     <div className="space-y-5" dir="rtl">
+      <div className="rounded-3xl bg-gradient-to-l from-primary/15 via-secondary/20 to-background p-5">
+        <h1 className="text-2xl font-black">إنتاج فيديو «{project.title}»</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          دورة مبسطة: مراجعة التحويل ← تجهيز المشاهد تلقائياً ← إنتاج واعتماد كل مشهد ← إصدار الفيديو.
+        </p>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>1. ملخص الطلب</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-4">
-          <span>
-            الطلب: <b dir="ltr">{order.id}</b>
-          </span>
-          <span>
-            الدفع: <Badge>{order.paymentStatus}</Badge>
-          </span>
-          <span>
-            المشروع: <Badge>{project.status}</Badge>
-          </span>
-          <span>
-            الإنتاج: <Badge>{project.production_stage ?? "—"}</Badge>
-          </span>
-          <span>
-            التسليم: <Badge>{order.deliveryStatus}</Badge>
-          </span>
-          <span>الطفل: {order.childName}</span>
-          <span>المدة: {scenes.reduce((n, s) => n + s.duration_ms, 0) / 1000} ثانية</span>
-          <span>
-            المتوقع:{" "}
-            {order.expectedDeliveryAt
-              ? new Date(order.expectedDeliveryAt).toLocaleString("ar-EG")
-              : "—"}
-          </span>
-          <div className="md:col-span-4 flex flex-wrap gap-2">
-            <Button
-              disabled={mutation.isPending || !["unpaid", "pending"].includes(order.paymentStatus)}
-              onClick={() => run(() => payment({ data: { videoOrderId, paymentStatus: "paid" } }))}
-            >
-              تأكيد الدفع
-            </Button>
-            <Button
-              disabled={mutation.isPending || project.status !== "paid"}
-              onClick={() => run(() => approveProduction({ data: { projectId: project.id } }))}
-            >
-              اعتماد الإنتاج
-            </Button>
-            {nextStage && (
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="outline"
-                  title={nextStageBlockedReason ?? undefined}
-                  disabled={mutation.isPending || Boolean(nextStageBlockedReason)}
-                  onClick={() =>
-                    run(() =>
-                      changeStage({ data: { projectId: project.id, stage: nextStage as never } }),
-                    )
-                  }
-                >
-                  المرحلة التالية: {nextStage}
-                </Button>
-                {nextStageBlockedReason && (
-                  <span className="text-xs font-bold text-amber-700">{nextStageBlockedReason}</span>
-                )}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>2. مصدر الطفل / الصورة الأصلية</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {query.data.childPhotoUrl ? (
-            <img
-              src={query.data.childPhotoUrl}
-              alt="صورة الطفل الأصلية الخاصة"
-              className="max-h-72 rounded-xl object-contain"
-            />
-          ) : (
-            <p className="text-muted-foreground">لا تتوفر معاينة موقعة</p>
-          )}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>3. سير الصورة المرجعية</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Textarea
-            value={prompt}
-            onFocus={() => setPromptFocused(true)}
-            onBlur={() => setPromptFocused(false)}
-            onChange={(e) => {
-              setPrompt(e.target.value);
-              setPromptDirty(true);
-            }}
-            placeholder="وصف الصورة المرجعية"
-          />
-          <Button
-            onClick={() =>
-              run(async () => {
-                const result = await savePrompt({ data: { projectId: project.id, prompt } });
-                setPromptDirty(false);
-                return result;
-              })
-            }
-          >
-            حفظ الوصف
-          </Button>
-          <div className="space-y-1">
-            <p className="text-sm font-bold">
-              {project.referenceImageUrl ? "استبدال الصورة المرجعية" : "رفع الصورة المرجعية"}
-            </p>
-            <Input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              disabled={
-                mutation.isPending ||
-                !["image_generation", "image_review"].includes(project.production_stage ?? "")
-              }
-              onChange={(event) => {
-                upload(event.target.files?.[0], (asset) =>
-                  uploadReference({ data: { projectId: project.id, ...asset } }),
-                );
-                event.currentTarget.value = "";
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              يمكن تجهيز الملف خارجياً ثم رفعه هنا. الرفع لا يعتمد الصورة تلقائياً.
-            </p>
-          </div>
-          <Button
-            disabled={
-              mutation.isPending ||
-              !query.data.providerAvailability.reference ||
-              !["image_generation", "image_review"].includes(project.production_stage ?? "")
-            }
-            onClick={() =>
-              runRecoverable(() => generateReference({ data: { projectId: project.id } }))
-            }
-          >
-            توليد الصورة المرجعية
-          </Button>
-          {!query.data.providerAvailability.reference && (
-            <p className="text-sm font-bold text-amber-700">
-              الربط التلقائي بالذكاء الاصطناعي غير مفعّل حالياً
-            </p>
-          )}
-          {project.referenceImageUrl && (
-            <img
-              src={project.referenceImageUrl}
-              alt="الصورة المرجعية"
-              className="max-h-72 rounded-xl"
-            />
-          )}
-          <Button
-            disabled={!project.referenceImageUrl}
-            onClick={() => run(() => approveImage({ data: { projectId: project.id } }))}
-          >
-            اعتماد الصورة
-          </Button>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>4. تحرير واعتماد النص / لوحة المشاهد</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Textarea
-            dir="ltr"
-            className="min-h-52 font-mono"
-            value={script}
-            onFocus={() => setScriptFocused(true)}
-            onBlur={() => setScriptFocused(false)}
-            onChange={(e) => {
-              setScript(e.target.value);
-              setScriptDirty(true);
-            }}
-          />
-          <Button
-            onClick={() =>
-              run(async () => {
-                const result = await saveScript({ data: { projectId: project.id, script } });
-                setScriptDirty(false);
-                return result;
-              })
-            }
-          >
-            حفظ النص
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={mutation.isPending || !project.script || !project.image_approved_at}
-            onClick={() => {
-              const confirmation = window.prompt(
-                "سيتم فصل أصول كل المشاهد وإلغاء اعتماد النص والجودة ثم إعادة بناء المشاهد من النص المحفوظ. الملفات الخاصة ستبقى مخزنة. اكتب RESET للتأكيد.",
-              );
-              if (confirmation === "RESET")
-                run(() =>
-                  resetStoryboard({ data: { projectId: project.id, confirmation: "RESET" } }),
-                );
-            }}
-          >
-            تصفير / إعادة بناء لوحة المشاهد
-          </Button>
-          <Button
-            disabled={
-              mutation.isPending ||
-              !query.data.providerAvailability.script ||
-              !["script_generation", "script_review"].includes(project.production_stage ?? "") ||
-              !project.image_approved_at
-            }
-            onClick={() =>
-              runRecoverable(() => generateScript({ data: { projectId: project.id } }))
-            }
-          >
-            توليد / إعادة توليد السيناريو
-          </Button>
-          {!query.data.providerAvailability.script && (
-            <p className="text-sm font-bold text-amber-700">
-              الربط التلقائي بالذكاء الاصطناعي غير مفعّل حالياً — يمكن لصق JSON يدوياً.
-            </p>
-          )}
-          {scenes.some((scene) => scene.clipUrl) && (
-            <p className="text-xs font-bold text-amber-700">
-              توجد مقاطع مولدة؛ حمايةً للأصول لن يُستبدل السيناريو أو بناء المشاهد دون إجراء إعادة
-              بناء صريح في مرحلة لاحقة.
-            </p>
-          )}
-          <Button onClick={() => run(() => approveScript({ data: { projectId: project.id } }))}>
-            اعتماد النص
-          </Button>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>5. إدارة المشاهد</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-primary" /> 1. مراجعة التحويل وبدء الإنتاج
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {scenes.length ? (
+          <div className="grid gap-3 md:grid-cols-4">
+            <span>الطفل: <b>{order.childName}</b></span>
+            <span>الدفع: <Badge>{order.paymentStatus}</Badge></span>
+            <span>الحالة: <Badge>{project.status}</Badge></span>
+            <span>التسليم: <Badge>{order.deliveryStatus}</Badge></span>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border p-3">
+              <p className="mb-2 font-bold">صورة الطفل</p>
+              {query.data.childPhotoUrl ? (
+                <img src={query.data.childPhotoUrl} alt="صورة الطفل" className="max-h-64 rounded-xl object-contain" />
+              ) : (
+                <p className="text-sm text-muted-foreground">لا تتوفر معاينة</p>
+              )}
+            </div>
+            <div className="rounded-2xl border p-3">
+              <p className="mb-2 font-bold">إيصال التحويل</p>
+              {receiptQuery.data?.receiptUrl ? (
+                <img src={receiptQuery.data.receiptUrl} alt="إيصال التحويل" className="max-h-64 rounded-xl object-contain" />
+              ) : (
+                <p className="text-sm font-bold text-amber-700">لا يوجد إيصال مرتبط بهذا الطلب</p>
+              )}
+            </div>
+          </div>
+          {!paymentReviewed ? (
+            <Button
+              size="lg"
+              disabled={mutation.isPending || !receiptQuery.data?.receiptUrl}
+              onClick={() => run(() => approvePaymentAndPrepare({ data: { videoOrderId } }))}
+            >
+              {mutation.isPending && <Loader2 className="ms-2 h-4 w-4 animate-spin" />}
+              اعتماد التحويل وتجهيز المشاهد تلقائياً
+            </Button>
+          ) : (
+            <p className="flex items-center gap-2 font-bold text-emerald-700">
+              <CheckCircle2 className="h-5 w-5" /> تم اعتماد التحويل وبدء الإنتاج
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" /> 2. النصوص والبرومبتات — تلقائياً
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!scenesPrepared ? (
+            <div className="rounded-2xl bg-secondary/50 p-4 text-sm">
+              بعد اعتماد التحويل تُستخرج نصوص المشاهد والوصف البصري تلقائياً من القصة المختارة؛ لا يوجد إدخال JSON أو اعتماد نص منفصل.
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {scenes.map((scene) => (
+                <div key={scene.id} className="rounded-2xl border p-4">
+                  <b>المشهد {scene.scene_number}</b>
+                  <p className="mt-2 text-sm leading-7">{scene.narration_text}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{scene.visual_prompt}</p>
+                  <span className="mt-2 block text-xs font-bold">{scene.duration_ms / 1000} ثوانٍ</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {paymentReviewed && !hasAnyClip && (
+            <Button
+              variant="outline"
+              disabled={mutation.isPending}
+              onClick={() => run(() => prepareScenes({ data: { projectId: project.id } }))}
+            >
+              {scenesPrepared ? "إعادة إعداد النصوص والمشاهد تلقائياً" : "إعداد النصوص والمشاهد تلقائياً"}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Film className="h-5 w-5 text-primary" /> 3. إنتاج واعتماد المشاهد
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {scenesPrepared ? (
             scenes.map((scene) => (
-              <Scene
+              <SimpleScene
                 key={scene.id}
                 scene={scene}
                 busy={mutation.isPending}
-                save={(values) =>
-                  run(() => updateScene({ data: { sceneId: scene.id, ...values } }))
-                }
-                approve={() => run(() => approveScene({ data: { sceneId: scene.id } }))}
-                generate={() =>
-                  runRecoverable(() => generateScene({ data: { sceneId: scene.id } }))
-                }
-                uploadClip={(file) =>
-                  upload(file, (asset) =>
-                    uploadSceneClip({ data: { sceneId: scene.id, ...asset } }),
-                  )
-                }
                 providerAvailable={query.data.providerAvailability.scene}
-                canUpload={project.production_stage === "video_generation"}
+                generate={() => runRecoverable(() => generateScene({ data: { sceneId: scene.id } }))}
+                approve={() => run(() => approveScene({ data: { sceneId: scene.id } }))}
+                uploadClip={(file) =>
+                  upload(file, (asset) => uploadSceneClip({ data: { sceneId: scene.id, ...asset } }))
+                }
               />
             ))
           ) : (
-            <p className="text-muted-foreground">لا توجد مشاهد. لن تنشئ Phase 3 مخرجات وهمية.</p>
+            <p className="text-muted-foreground">سيظهر كل مشهد هنا بعد تجهيز النصوص تلقائياً.</p>
+          )}
+          {jobs.some((job) => job.status === "running") && (
+            <Button variant="outline" disabled={mutation.isPending} onClick={refreshRunning}>
+              تحديث حالة التوليد
+            </Button>
           )}
         </CardContent>
       </Card>
+
       <Card>
         <CardHeader>
-          <CardTitle>6. تشخيص الوظائف (للإدارة فقط)</CardTitle>
+          <CardTitle>4. دمج المشاهد وإصدار الفيديو</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-4">
+          {!allScenesApproved && (
+            <p className="text-sm font-bold text-amber-700">اعتمد كل مشهد أولاً؛ بعدها ستفتح مرحلة الدمج النهائية.</p>
+          )}
+          {allScenesApproved && project.production_stage === "video_generation" && (
+            <Button disabled={mutation.isPending} onClick={() => run(() => beginFinalization({ data: { projectId: project.id } }))}>
+              الانتقال إلى دمج المشاهد
+            </Button>
+          )}
+
+          {["quality_review", "final_render"].includes(project.production_stage ?? "") && (
+            <div className="space-y-3 rounded-2xl border p-4">
+              <Button disabled className="w-full">
+                دمج المشاهد وإصدار الفيديو تلقائياً — سيتم تفعيله قبل الإطلاق
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                عند ربط مزود الدمج سيُدمج ترتيب المشاهد المعتمدة فقط، وسيُطبع شعار كيدزي فعلياً أعلى الفيديو النهائي.
+              </p>
+              <details className="rounded-xl bg-secondary/40 p-3">
+                <summary className="cursor-pointer font-bold">اختبار بدون API — رفع فيديو نهائي جاهز</summary>
+                <div className="mt-3 space-y-2">
+                  <Input
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime"
+                    disabled={mutation.isPending || !allScenesApproved}
+                    onChange={(event) => {
+                      uploadFinal(event.target.files?.[0]);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">هذا المسار للاختبار فقط. الملف النهائي التجاري سيحصل على شعار كيدزي أثناء عملية الدمج نفسها.</p>
+                </div>
+              </details>
+            </div>
+          )}
+
+          {renders.length > 0 && (
+            <div className="space-y-3">
+              {renders.map((render) => (
+                <div key={render.id} className="rounded-2xl border p-3">
+                  <p className="font-bold">النسخة {render.version} · {render.render_type}</p>
+                  {render.url && <video controls src={render.url} className="mt-2 max-h-96 w-full rounded-xl" />}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {project.production_stage === "quality_review" && currentFinalRender && (
+            <Button size="lg" disabled={mutation.isPending} onClick={() => run(() => approveFinal({ data: { projectId: project.id } }))}>
+              اعتماد وإصدار الفيديو
+            </Button>
+          )}
+          {project.status === "ready" && (
+            <div className="space-y-3">
+              <p className="font-bold text-emerald-700">الفيديو جاهز للتسليم للعميل.</p>
+              <Button
+                size="lg"
+                disabled={mutation.isPending || order.deliveryStatus === "delivered"}
+                onClick={() => run(() => delivered({ data: { videoOrderId } }))}
+              >
+                {order.deliveryStatus === "delivered" ? "تم التسليم" : "تسليم الفيديو للعميل"}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <details className="rounded-2xl border bg-card p-4">
+        <summary className="cursor-pointer font-bold text-muted-foreground">تفاصيل تقنية ومهام التوليد</summary>
+        <div className="mt-4 space-y-2">
           {jobs.length ? (
             jobs.map((job) => (
-              <div key={job.id} className="rounded-lg border p-3 text-xs" dir="ltr">
+              <div key={job.id} className="rounded-xl border p-3 text-xs" dir="ltr">
                 {job.job_type} · {job.provider} · {job.status} · attempts {job.attempt_count}
-                <br />
-                provider id: {job.provider_job_id ?? "—"}
-                <br />
-                {job.last_error ?? ""}
+                {job.last_error ? <><br />{job.last_error}</> : null}
                 <div className="mt-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={
-                      mutation.isPending ||
-                      !providerAvailableForJob(job) ||
-                      !["failed", "succeeded"].includes(job.status)
-                    }
-                    title={
-                      providerAvailableForJob(job) ? undefined : "الربط التلقائي غير مفعّل حالياً"
-                    }
-                    onClick={() =>
-                      providerAvailableForJob(job) &&
-                      runRecoverable(() => retryJob({ data: { jobId: job.id } }))
-                    }
+                    disabled={mutation.isPending || !["failed", "succeeded"].includes(job.status)}
+                    onClick={() => runRecoverable(() => retryJob({ data: { jobId: job.id } }))}
                   >
                     {job.status === "succeeded" ? "إعادة التوليد" : "إعادة المحاولة"}
                   </Button>
@@ -469,90 +329,21 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
               </div>
             ))
           ) : (
-            <p>لا توجد وظائف</p>
+            <p className="text-sm text-muted-foreground">لا توجد مهام تقنية.</p>
           )}
-          {jobs.some((job) => job.status === "dead_letter") && (
-            <p className="font-bold text-amber-700">
-              بلغت مهمة الحد الأقصى للمحاولات. استخدم الرفع اليدوي أو أعد تفعيل المزود لاحقاً.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>7. الرندرات</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {renders.length ? (
-            renders.map((render) => (
-              <div key={render.id} className="rounded-lg border p-3">
-                نسخة {render.version} · {render.render_type} · {render.duration_ms / 1000} ث
-                {render.url && <video controls src={render.url} className="mt-2 max-h-80 w-full" />}
-              </div>
-            ))
-          ) : (
-            <p>لا توجد رندرات فعلية</p>
-          )}
-          <Button disabled>إنشاء الرندر — بانتظار ربط المزود</Button>
-          <div className="space-y-1">
-            <Input
-              type="file"
-              accept="video/mp4,video/webm,video/quicktime"
-              disabled={
-                mutation.isPending ||
-                !["quality_review", "final_render"].includes(project.production_stage ?? "") ||
-                !allScenesReady
-              }
-              onChange={(event) => {
-                uploadFinal(event.target.files?.[0]);
-                event.currentTarget.value = "";
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              رفع فيديو نهائي مُركّب خارجياً لا يحدد المشروع جاهزاً تلقائياً.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>8. الجودة والإنهاء</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button onClick={() => run(() => approveQuality({ data: { projectId: project.id } }))}>
-            اعتماد الجودة
-          </Button>
-          <Button onClick={() => run(() => ready({ data: { projectId: project.id } }))}>
-            تحديد المشروع جاهزاً
-          </Button>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>9. التسليم</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Button
-            disabled={order.deliveryStatus === "delivered"}
-            onClick={() => run(() => delivered({ data: { videoOrderId } }))}
-          >
-            تسجيل التسليم
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </details>
     </div>
   );
 }
 
-function Scene({
+function SimpleScene({
   scene,
   busy,
-  save,
-  approve,
-  generate,
-  uploadClip,
   providerAvailable,
-  canUpload,
+  generate,
+  approve,
+  uploadClip,
 }: {
   scene: {
     id: string;
@@ -564,83 +355,50 @@ function Scene({
     clipUrl: string | null;
   };
   busy: boolean;
-  save: (value: {
-    narrationText: string | null;
-    visualPrompt: string | null;
-    durationMs: number;
-  }) => void;
-  approve: () => void;
-  generate: () => void;
-  uploadClip: (file: File | undefined) => void;
   providerAvailable: boolean;
-  canUpload: boolean;
+  generate: () => void;
+  approve: () => void;
+  uploadClip: (file: File | undefined) => void;
 }) {
-  const [narrationText, setNarration] = useState(scene.narration_text ?? "");
-  const [visualPrompt, setVisual] = useState(scene.visual_prompt ?? "");
-  const [durationMs, setDuration] = useState(scene.duration_ms);
+  const complete = scene.status === "approved" && Boolean(scene.clipUrl);
   return (
-    <div className="space-y-2 rounded-xl border p-3">
-      <b>
-        المشهد {scene.scene_number} · {scene.status}
-      </b>
-      <Textarea
-        value={narrationText}
-        onChange={(e) => setNarration(e.target.value)}
-        placeholder="السرد"
-      />
-      <Textarea
-        value={visualPrompt}
-        onChange={(e) => setVisual(e.target.value)}
-        placeholder="الوصف البصري"
-      />
-      <Input
-        type="number"
-        min={1}
-        max={60000}
-        value={durationMs}
-        onChange={(e) => setDuration(Number(e.target.value))}
-      />
-      {scene.clipUrl && <video controls src={scene.clipUrl} className="max-h-60 w-full" />}
-      <Input
-        type="file"
-        accept="video/mp4,video/webm,video/quicktime"
-        disabled={busy || !canUpload}
-        onChange={(event) => {
-          uploadClip(event.target.files?.[0]);
-          event.currentTarget.value = "";
-        }}
-      />
-      <p className="text-xs text-muted-foreground">
-        {scene.clipUrl ? "استبدال مقطع المشهد" : "رفع مقطع المشهد"}
-      </p>
-      <div className="flex gap-2">
-        <Button
-          disabled={busy}
-          onClick={() =>
-            save({
-              narrationText: narrationText || null,
-              visualPrompt: visualPrompt || null,
-              durationMs,
-            })
-          }
-        >
-          حفظ وإبطال الاعتماد عند التغيير
+    <div className="rounded-2xl border p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <b className="text-lg">المشهد {scene.scene_number}</b>
+          <Badge className="me-2">{scene.status}</Badge>
+        </div>
+        {complete && <span className="font-bold text-emerald-700">✓ معتمد</span>}
+      </div>
+      <p className="mt-3 leading-7">{scene.narration_text}</p>
+      <p className="mt-2 rounded-xl bg-secondary/40 p-3 text-xs text-muted-foreground">{scene.visual_prompt}</p>
+      <p className="mt-2 text-xs font-bold">المدة المستهدفة: {scene.duration_ms / 1000} ث</p>
+      {scene.clipUrl && <video controls src={scene.clipUrl} className="mt-3 max-h-80 w-full rounded-xl" />}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button disabled={busy || !providerAvailable || ["queued", "generating"].includes(scene.status)} onClick={generate}>
+          {scene.clipUrl ? "إعادة توليد المشهد" : "توليد المشهد"}
         </Button>
-        <Button disabled={busy || !scene.clipUrl || scene.status !== "review"} onClick={approve}>
-          اعتماد المقطع
-        </Button>
-        <Button
-          disabled={busy || !providerAvailable || ["queued", "generating"].includes(scene.status)}
-          onClick={generate}
-        >
-          {scene.clipUrl ? "إعادة توليد هذا المشهد" : "توليد هذا المشهد"}
+        <Button variant="outline" disabled={busy || !scene.clipUrl || scene.status !== "review"} onClick={approve}>
+          اعتماد المشهد
         </Button>
       </div>
       {!providerAvailable && (
-        <p className="text-xs font-bold text-amber-700">
-          الربط التلقائي غير مفعّل؛ ارفع مقطعاً مجهزاً خارجياً.
-        </p>
+        <p className="mt-2 text-sm font-bold text-amber-700">توليد الفيديو التلقائي سيُفعّل عند ربط الـAPI قبل الإطلاق.</p>
       )}
+      <details className="mt-3 rounded-xl bg-secondary/30 p-3">
+        <summary className="cursor-pointer text-sm font-bold">اختبار بدون API — رفع مقطع جاهز</summary>
+        <div className="mt-3">
+          <Input
+            type="file"
+            accept="video/mp4,video/webm,video/quicktime"
+            disabled={busy}
+            onChange={(event) => {
+              uploadClip(event.target.files?.[0]);
+              event.currentTarget.value = "";
+            }}
+          />
+        </div>
+      </details>
     </div>
   );
 }
