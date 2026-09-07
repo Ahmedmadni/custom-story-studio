@@ -221,9 +221,14 @@ export const getAdminVideoProject = createServerFn({ method: "POST" })
       },
       childPhotoUrl: await signed(admin, "child-photos", childPhotoPath),
       providerAvailability: {
-        reference: Boolean(providerConfig.reference.apiKey),
+        reference: Boolean(
+          providerConfig.reference.lovable.apiKey ?? providerConfig.reference.gemini.apiKey,
+        ),
         script: Boolean(providerConfig.script.apiKey),
-        scene: Boolean(providerConfig.scene.lovableKey && providerConfig.scene.apiKey),
+        scene: Boolean(
+          providerConfig.scene.lovable.apiKey ??
+            (providerConfig.scene.replicate.lovableKey && providerConfig.scene.replicate.apiKey),
+        ),
       },
       scenes: await Promise.all(
         scenes.map(async (scene) => ({
