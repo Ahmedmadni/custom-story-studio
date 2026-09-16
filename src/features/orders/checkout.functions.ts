@@ -146,7 +146,6 @@ export const submitCheckout = createServerFn({ method: "POST" })
         template_id: it.templateId,
         child_id: it.childId ?? null,
         child_name: it.childName,
-
         child_name_en: it.childNameEn?.trim() || null,
         child_age: it.childAge ?? null,
         gender: it.gender,
@@ -172,10 +171,8 @@ export const submitCheckout = createServerFn({ method: "POST" })
       };
     });
 
-    const { data: inserted, error } = await context.supabase
-      .from("orders")
-      .insert(rows)
-      .select("id");
+    // Order creation is a trusted server operation. Browser roles do not get INSERT on orders.
+    const { data: inserted, error } = await supabaseAdmin.from("orders").insert(rows).select("id");
     if (error) throw new Error("تعذر إرسال الطلب، حاول مرة أخرى");
 
     if (couponId && couponDiscount > 0) {
