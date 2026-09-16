@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { recordGameRound, resetGameProgressSession } from "./progress.functions";
 import type { GameKey, AgeGroup } from "./types";
 
 export interface GameProgress {
@@ -11,7 +14,13 @@ export interface GameProgress {
 
 export function useGameProgress(gameKey: GameKey, ageGroup: AgeGroup) {
   const { user } = useAuth();
-  const [progress, setProgress] = useState<GameProgress>({ score: 0, best_score: 0, rounds_played: 0 });
+  const recordRoundServer = useServerFn(recordGameRound);
+  const resetSessionServer = useServerFn(resetGameProgressSession);
+  const [progress, setProgress] = useState<GameProgress>({
+    score: 0,
+    best_score: 0,
+    rounds_played: 0,
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -27,31 +36,37 @@ export function useGameProgress(gameKey: GameKey, ageGroup: AgeGroup) {
   }, [user, gameKey]);
 
   async function recordRound(correct: boolean) {
-    setProgress((p) => {
-      const score = correct ? p.score + 1 : p.score;
-      const rounds_played = p.rounds_played + 1;
-      const best_score = Math.max(p.best_score, score);
-      const next = { score, best_score, rounds_played };
-      if (user) {
-        void supabase.from("game_progress").upsert(
-          {
-            user_id: user.id,
-            game_key: gameKey,
-            age_group: ageGroup,
-            score,
-            best_score,
-            rounds_played,
-            last_played_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id,game_key" },
-        );
-      }
-      return next;
+    if (!user) {
+      setProgress((p) => {
+        const score = correct ? p.score + 1 : p.score;
+        return {
+          score,
+          best_score: Math.max(p.best_score, score),
+          rounds_played: p.rounds_played + 1,
+        };
+      });
+      return;
+    }
+
+    const saved = await recordRoundServer({ data: { gameKey, ageGroup, correct } });
+    setProgress({
+      score: saved.score,
+      best_score: saved.best_score,
+      rounds_played: saved.rounds_played,
     });
   }
 
   function resetSession() {
     setProgress((p) => ({ ...p, score: 0, rounds_played: 0 }));
+    if (user) {
+      void resetSessionServer({ data: { gameKey, ageGroup } }).then((saved) => {
+        setProgress({
+          score: saved.score,
+          best_score: saved.best_score,
+          rounds_played: saved.rounds_played,
+        });
+      });
+    }
   }
 
   return { progress, recordRound, resetSession, isSignedIn: !!user };
