@@ -15,7 +15,7 @@ function wanFramesPerSecond(desiredDurationSeconds: number) {
   return Math.min(30, Math.max(5, Math.round(WAN_NUM_FRAMES / desiredDurationSeconds)));
 }
 
-/** Lovable AI Gateway is the first-choice image provider (no extra key needed). */
+/** Lovable AI Gateway is the first-choice image provider. */
 function lovableReferenceImageProvider(): ReferenceImageProvider {
   const config = getVideoProviderConfig().reference;
   const apiKey = config.lovable.apiKey;
@@ -146,10 +146,22 @@ function geminiReferenceImageProvider(): ReferenceImageProvider {
       return {
         bytes: Buffer.from(data, "base64"),
         contentType: part?.inline_data?.mime_type ?? part?.inlineData?.mimeType ?? "image/png",
-        metadata: { model },
+        metadata: { model, provider: "gemini" },
       };
     },
   };
+}
+
+/**
+ * Select an implemented reference-image adapter.
+ * Lovable is preferred when configured; Gemini is only a configuration fallback.
+ * Runtime provider failures are not silently retried against a second paid provider.
+ */
+export function referenceImageProvider(): ReferenceImageProvider {
+  const config = getVideoProviderConfig().reference;
+  if (config.lovable.apiKey) return lovableReferenceImageProvider();
+  if (config.gemini.apiKey) return geminiReferenceImageProvider();
+  throw new Error("لا يوجد مزود صور مرجعية مهيأ حالياً");
 }
 
 export function scriptProvider(): ScriptProvider {
