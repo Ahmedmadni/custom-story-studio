@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { recordPuzzleCompletion as recordPuzzleCompletionServer } from "@/features/games/progress.functions";
 
 const STORAGE_KEY = "hekayati_puzzle_progress_v1";
 
@@ -41,7 +44,10 @@ export function useAllPuzzleProgress() {
   useEffect(() => {
     const local = readLocal();
     setMap(local);
-    if (!user) { setLoading(false); return; }
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     void (async () => {
       const { data } = await supabase
         .from("game_progress")
@@ -73,6 +79,7 @@ export function useAllPuzzleProgress() {
 
 export function usePuzzleProgress(puzzleId: string) {
   const { user } = useAuth();
+  const recordCompletionServer = useServerFn(recordPuzzleCompletionServer);
   const [progress, setProgress] = useState<PuzzleProgress>(() => {
     const local = readLocal();
     return (
@@ -88,7 +95,7 @@ export function usePuzzleProgress(puzzleId: string) {
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !puzzleId) return;
     void (async () => {
       const { data } = await supabase
         .from("game_progress")
@@ -115,33 +122,26 @@ export function usePuzzleProgress(puzzleId: string) {
 
   async function recordCompletion(stars: number) {
     const safeStars = Math.max(0, Math.min(3, Math.round(stars)));
-    const next: PuzzleProgress = {
-      puzzleId,
-      stars: Math.max(progress.stars, safeStars),
-      bestScore: Math.max(progress.bestScore, safeStars),
-      attempts: progress.attempts + 1,
-      completed: true,
-      lastPlayedAt: new Date().toISOString(),
-    };
+    let next: PuzzleProgress;
+
+    if (user && puzzleId) {
+      const saved = await recordCompletionServer({ data: { puzzleId, stars: safeStars } });
+      next = { puzzleId, ...saved };
+    } else {
+      next = {
+        puzzleId,
+        stars: Math.max(progress.stars, safeStars),
+        bestScore: Math.max(progress.bestScore, safeStars),
+        attempts: progress.attempts + 1,
+        completed: true,
+        lastPlayedAt: new Date().toISOString(),
+      };
+    }
+
     setProgress(next);
     const local = readLocal();
     local[puzzleId] = next;
     writeLocal(local);
-
-    if (user) {
-      await supabase.from("game_progress").upsert(
-        {
-          user_id: user.id,
-          game_key: gameKey(puzzleId),
-          age_group: "puzzle",
-          score: safeStars,
-          best_score: next.bestScore,
-          rounds_played: next.attempts,
-          last_played_at: next.lastPlayedAt,
-        },
-        { onConflict: "user_id,game_key" },
-      );
-    }
     return next;
   }
 
