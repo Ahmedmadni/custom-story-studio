@@ -45,7 +45,8 @@ export const submitCustomStoryRequest = createServerFn({ method: "POST" })
       .filter(Boolean)
       .join("\n");
 
-    const { data: inserted, error } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: inserted, error } = await supabaseAdmin
       .from("orders")
       .insert({
         user_id: context.userId,
