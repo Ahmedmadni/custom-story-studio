@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, Film, Loader2, Receipt, Sparkles, Upload } from "lucide-react";
+import { CheckCircle2, Film, Loader2, Receipt, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +11,12 @@ import * as api from "@/features/video/video-admin.functions";
 import * as production from "@/features/video/video-production.functions";
 import * as simple from "@/features/video/video-simple-workflow.functions";
 
+const VIDEO_RECEIPT_ROLLOUT_AT = Date.parse("2026-09-07T04:54:57Z");
+
 export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) {
   const qc = useQueryClient();
   const getProject = useServerFn(api.getAdminVideoProject);
+  const updatePayment = useServerFn(api.updateVideoPaymentStatus);
   const uploadSceneClip = useServerFn(api.uploadVideoSceneClip);
   const approveScene = useServerFn(api.approveVideoScene);
   const delivered = useServerFn(api.markVideoDelivered);
@@ -65,9 +68,24 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
   const allScenesApproved =
     scenes.length > 0 && scenes.every((scene) => scene.status === "approved" && scene.clipUrl);
   const hasAnyClip = scenes.some((scene) => Boolean(scene.clipUrl));
-  const currentFinalRender = renders.find((render) => render.render_type === "final" && render.is_current);
+  const currentFinalRender = renders.find(
+    (render) => render.render_type === "final" && render.is_current,
+  );
   const paymentReviewed = order.paymentStatus === "paid";
   const scenesPrepared = scenes.length > 0 && Boolean(project.script_approved_at);
+  const receiptUrl = receiptQuery.data?.receiptUrl ?? null;
+  const createdAt = Date.parse(order.createdAt);
+  const legacyWithoutReceipt =
+    !receiptUrl && Number.isFinite(createdAt) && createdAt < VIDEO_RECEIPT_ROLLOUT_AT;
+
+  const approvePayment = () =>
+    run(async () => {
+      if (legacyWithoutReceipt) {
+        await updatePayment({ data: { videoOrderId, paymentStatus: "paid" } });
+        return prepareScenes({ data: { projectId: project.id } });
+      }
+      return approvePaymentAndPrepare({ data: { videoOrderId } });
+    });
 
   const upload = (
     file: File | undefined,
@@ -130,24 +148,44 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-4">
-            <span>الطفل: <b>{order.childName}</b></span>
-            <span>الدفع: <Badge>{order.paymentStatus}</Badge></span>
-            <span>الحالة: <Badge>{project.status}</Badge></span>
-            <span>التسليم: <Badge>{order.deliveryStatus}</Badge></span>
+            <span>
+              الطفل: <b>{order.childName}</b>
+            </span>
+            <span>
+              الدفع: <Badge>{order.paymentStatus}</Badge>
+            </span>
+            <span>
+              الحالة: <Badge>{project.status}</Badge>
+            </span>
+            <span>
+              التسليم: <Badge>{order.deliveryStatus}</Badge>
+            </span>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border p-3">
               <p className="mb-2 font-bold">صورة الطفل</p>
               {query.data.childPhotoUrl ? (
-                <img src={query.data.childPhotoUrl} alt="صورة الطفل" className="max-h-64 rounded-xl object-contain" />
+                <img
+                  src={query.data.childPhotoUrl}
+                  alt="صورة الطفل"
+                  className="max-h-64 rounded-xl object-contain"
+                />
               ) : (
                 <p className="text-sm text-muted-foreground">لا تتوفر معاينة</p>
               )}
             </div>
             <div className="rounded-2xl border p-3">
               <p className="mb-2 font-bold">إيصال التحويل</p>
-              {receiptQuery.data?.receiptUrl ? (
-                <img src={receiptQuery.data.receiptUrl} alt="إيصال التحويل" className="max-h-64 rounded-xl object-contain" />
+              {receiptUrl ? (
+                <img
+                  src={receiptUrl}
+                  alt="إيصال التحويل"
+                  className="max-h-64 rounded-xl object-contain"
+                />
+              ) : legacyWithoutReceipt ? (
+                <p className="text-sm font-bold text-amber-700">
+                  طلب قديم قبل تفعيل رفع الإيصال. راجع السداد خارج النظام ثم اعتمده يدوياً.
+                </p>
               ) : (
                 <p className="text-sm font-bold text-amber-700">لا يوجد إيصال مرتبط بهذا الطلب</p>
               )}
@@ -156,11 +194,13 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
           {!paymentReviewed ? (
             <Button
               size="lg"
-              disabled={mutation.isPending || !receiptQuery.data?.receiptUrl}
-              onClick={() => run(() => approvePaymentAndPrepare({ data: { videoOrderId } }))}
+              disabled={mutation.isPending || (!receiptUrl && !legacyWithoutReceipt)}
+              onClick={approvePayment}
             >
               {mutation.isPending && <Loader2 className="ms-2 h-4 w-4 animate-spin" />}
-              اعتماد التحويل وتجهيز المشاهد تلقائياً
+              {legacyWithoutReceipt
+                ? "اعتماد الطلب القديم وتجهيز المشاهد"
+                : "اعتماد التحويل وتجهيز المشاهد تلقائياً"}
             </Button>
           ) : (
             <p className="flex items-center gap-2 font-bold text-emerald-700">
@@ -188,7 +228,9 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                   <b>المشهد {scene.scene_number}</b>
                   <p className="mt-2 text-sm leading-7">{scene.narration_text}</p>
                   <p className="mt-2 text-xs text-muted-foreground">{scene.visual_prompt}</p>
-                  <span className="mt-2 block text-xs font-bold">{scene.duration_ms / 1000} ثوانٍ</span>
+                  <span className="mt-2 block text-xs font-bold">
+                    {scene.duration_ms / 1000} ثوانٍ
+                  </span>
                 </div>
               ))}
             </div>
@@ -199,7 +241,9 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
               disabled={mutation.isPending}
               onClick={() => run(() => prepareScenes({ data: { projectId: project.id } }))}
             >
-              {scenesPrepared ? "إعادة إعداد النصوص والمشاهد تلقائياً" : "إعداد النصوص والمشاهد تلقائياً"}
+              {scenesPrepared
+                ? "إعادة إعداد النصوص والمشاهد تلقائياً"
+                : "إعداد النصوص والمشاهد تلقائياً"}
             </Button>
           )}
         </CardContent>
@@ -219,15 +263,21 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                 scene={scene}
                 busy={mutation.isPending}
                 providerAvailable={query.data.providerAvailability.scene}
-                generate={() => runRecoverable(() => generateScene({ data: { sceneId: scene.id } }))}
+                generate={() =>
+                  runRecoverable(() => generateScene({ data: { sceneId: scene.id } }))
+                }
                 approve={() => run(() => approveScene({ data: { sceneId: scene.id } }))}
                 uploadClip={(file) =>
-                  upload(file, (asset) => uploadSceneClip({ data: { sceneId: scene.id, ...asset } }))
+                  upload(file, (asset) =>
+                    uploadSceneClip({ data: { sceneId: scene.id, ...asset } }),
+                  )
                 }
               />
             ))
           ) : (
-            <p className="text-muted-foreground">سيظهر كل مشهد هنا بعد تجهيز النصوص تلقائياً.</p>
+            <p className="text-muted-foreground">
+              سيظهر كل مشهد هنا بعد تجهيز النصوص تلقائياً.
+            </p>
           )}
           {jobs.some((job) => job.status === "running") && (
             <Button variant="outline" disabled={mutation.isPending} onClick={refreshRunning}>
@@ -243,10 +293,15 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
         </CardHeader>
         <CardContent className="space-y-4">
           {!allScenesApproved && (
-            <p className="text-sm font-bold text-amber-700">اعتمد كل مشهد أولاً؛ بعدها ستفتح مرحلة الدمج النهائية.</p>
+            <p className="text-sm font-bold text-amber-700">
+              اعتمد كل مشهد أولاً؛ بعدها ستفتح مرحلة الدمج النهائية.
+            </p>
           )}
           {allScenesApproved && project.production_stage === "video_generation" && (
-            <Button disabled={mutation.isPending} onClick={() => run(() => beginFinalization({ data: { projectId: project.id } }))}>
+            <Button
+              disabled={mutation.isPending}
+              onClick={() => run(() => beginFinalization({ data: { projectId: project.id } }))}
+            >
               الانتقال إلى دمج المشاهد
             </Button>
           )}
@@ -260,7 +315,9 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                 عند ربط مزود الدمج سيُدمج ترتيب المشاهد المعتمدة فقط، وسيُطبع شعار كيدزي فعلياً أعلى الفيديو النهائي.
               </p>
               <details className="rounded-xl bg-secondary/40 p-3">
-                <summary className="cursor-pointer font-bold">اختبار بدون API — رفع فيديو نهائي جاهز</summary>
+                <summary className="cursor-pointer font-bold">
+                  اختبار بدون API — رفع فيديو نهائي جاهز
+                </summary>
                 <div className="mt-3 space-y-2">
                   <Input
                     type="file"
@@ -271,7 +328,9 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                       event.currentTarget.value = "";
                     }}
                   />
-                  <p className="text-xs text-muted-foreground">هذا المسار للاختبار فقط. الملف النهائي التجاري سيحصل على شعار كيدزي أثناء عملية الدمج نفسها.</p>
+                  <p className="text-xs text-muted-foreground">
+                    هذا المسار للاختبار فقط. الملف النهائي التجاري سيحصل على شعار كيدزي أثناء عملية الدمج نفسها.
+                  </p>
                 </div>
               </details>
             </div>
@@ -281,15 +340,23 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
             <div className="space-y-3">
               {renders.map((render) => (
                 <div key={render.id} className="rounded-2xl border p-3">
-                  <p className="font-bold">النسخة {render.version} · {render.render_type}</p>
-                  {render.url && <video controls src={render.url} className="mt-2 max-h-96 w-full rounded-xl" />}
+                  <p className="font-bold">
+                    النسخة {render.version} · {render.render_type}
+                  </p>
+                  {render.url && (
+                    <video controls src={render.url} className="mt-2 max-h-96 w-full rounded-xl" />
+                  )}
                 </div>
               ))}
             </div>
           )}
 
           {project.production_stage === "quality_review" && currentFinalRender && (
-            <Button size="lg" disabled={mutation.isPending} onClick={() => run(() => approveFinal({ data: { projectId: project.id } }))}>
+            <Button
+              size="lg"
+              disabled={mutation.isPending}
+              onClick={() => run(() => approveFinal({ data: { projectId: project.id } }))}
+            >
               اعتماد وإصدار الفيديو
             </Button>
           )}
@@ -301,7 +368,9 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                 disabled={mutation.isPending || order.deliveryStatus === "delivered"}
                 onClick={() => run(() => delivered({ data: { videoOrderId } }))}
               >
-                {order.deliveryStatus === "delivered" ? "تم التسليم" : "تسليم الفيديو للعميل"}
+                {order.deliveryStatus === "delivered"
+                  ? "تم التسليم"
+                  : "تسليم الفيديو للعميل"}
               </Button>
             </div>
           )}
@@ -309,19 +378,30 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
       </Card>
 
       <details className="rounded-2xl border bg-card p-4">
-        <summary className="cursor-pointer font-bold text-muted-foreground">تفاصيل تقنية ومهام التوليد</summary>
+        <summary className="cursor-pointer font-bold text-muted-foreground">
+          تفاصيل تقنية ومهام التوليد
+        </summary>
         <div className="mt-4 space-y-2">
           {jobs.length ? (
             jobs.map((job) => (
               <div key={job.id} className="rounded-xl border p-3 text-xs" dir="ltr">
                 {job.job_type} · {job.provider} · {job.status} · attempts {job.attempt_count}
-                {job.last_error ? <><br />{job.last_error}</> : null}
+                {job.last_error ? (
+                  <>
+                    <br />
+                    {job.last_error}
+                  </>
+                ) : null}
                 <div className="mt-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={mutation.isPending || !["failed", "succeeded"].includes(job.status)}
-                    onClick={() => runRecoverable(() => retryJob({ data: { jobId: job.id } }))}
+                    disabled={
+                      mutation.isPending || !["failed", "succeeded"].includes(job.status)
+                    }
+                    onClick={() =>
+                      runRecoverable(() => retryJob({ data: { jobId: job.id } }))
+                    }
                   >
                     {job.status === "succeeded" ? "إعادة التوليد" : "إعادة المحاولة"}
                   </Button>
@@ -371,22 +451,39 @@ function SimpleScene({
         {complete && <span className="font-bold text-emerald-700">✓ معتمد</span>}
       </div>
       <p className="mt-3 leading-7">{scene.narration_text}</p>
-      <p className="mt-2 rounded-xl bg-secondary/40 p-3 text-xs text-muted-foreground">{scene.visual_prompt}</p>
+      <p className="mt-2 rounded-xl bg-secondary/40 p-3 text-xs text-muted-foreground">
+        {scene.visual_prompt}
+      </p>
       <p className="mt-2 text-xs font-bold">المدة المستهدفة: {scene.duration_ms / 1000} ث</p>
-      {scene.clipUrl && <video controls src={scene.clipUrl} className="mt-3 max-h-80 w-full rounded-xl" />}
+      {scene.clipUrl && (
+        <video controls src={scene.clipUrl} className="mt-3 max-h-80 w-full rounded-xl" />
+      )}
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button disabled={busy || !providerAvailable || ["queued", "generating"].includes(scene.status)} onClick={generate}>
+        <Button
+          disabled={
+            busy || !providerAvailable || ["queued", "generating"].includes(scene.status)
+          }
+          onClick={generate}
+        >
           {scene.clipUrl ? "إعادة توليد المشهد" : "توليد المشهد"}
         </Button>
-        <Button variant="outline" disabled={busy || !scene.clipUrl || scene.status !== "review"} onClick={approve}>
+        <Button
+          variant="outline"
+          disabled={busy || !scene.clipUrl || scene.status !== "review"}
+          onClick={approve}
+        >
           اعتماد المشهد
         </Button>
       </div>
       {!providerAvailable && (
-        <p className="mt-2 text-sm font-bold text-amber-700">توليد الفيديو التلقائي سيُفعّل عند ربط الـAPI قبل الإطلاق.</p>
+        <p className="mt-2 text-sm font-bold text-amber-700">
+          توليد الفيديو التلقائي سيُفعّل عند ربط الـAPI قبل الإطلاق.
+        </p>
       )}
       <details className="mt-3 rounded-xl bg-secondary/30 p-3">
-        <summary className="cursor-pointer text-sm font-bold">اختبار بدون API — رفع مقطع جاهز</summary>
+        <summary className="cursor-pointer text-sm font-bold">
+          اختبار بدون API — رفع مقطع جاهز
+        </summary>
         <div className="mt-3">
           <Input
             type="file"
