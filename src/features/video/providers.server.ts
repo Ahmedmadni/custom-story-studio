@@ -15,7 +15,63 @@ function wanFramesPerSecond(desiredDurationSeconds: number) {
   return Math.min(30, Math.max(5, Math.round(WAN_NUM_FRAMES / desiredDurationSeconds)));
 }
 
-export function referenceImageProvider(): ReferenceImageProvider {
+/** Lovable AI Gateway is the first-choice image provider (no extra key needed). */
+function lovableReferenceImageProvider(): ReferenceImageProvider {
+  const config = getVideoProviderConfig().reference;
+  const apiKey = config.lovable.apiKey;
+  const model = config.lovable.model;
+  if (!apiKey) throw new Error("LOVABLE_API_KEY غير مهيأ لتوليد الصورة المرجعية");
+  return {
+    async generate({ prompt, sourceImage }) {
+      const bytes = Buffer.from(await sourceImage.arrayBuffer());
+      const dataUrl = `data:${sourceImage.type || "image/jpeg"};base64,${bytes.toString("base64")}`;
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: dataUrl } },
+              ],
+            },
+          ],
+          modalities: ["image", "text"],
+        }),
+      });
+      if (!response.ok)
+        throw await providerHttpFailure(response, {
+          provider: "lovable",
+          operation: "reference_image",
+          model,
+        });
+      const body = (await response.json()) as {
+        choices?: { message?: { images?: { image_url?: { url?: string } }[] } }[];
+      };
+      const outputUrl = body.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      if (!outputUrl?.includes("base64,"))
+        throw providerResultFailure(
+          { provider: "lovable", operation: "reference_image", model },
+          {
+            httpStatus: 200,
+            type: "missing_image_output",
+            message: "Lovable AI response did not include an image",
+          },
+        );
+      const [meta, base64] = outputUrl.split("base64,");
+      return {
+        bytes: Buffer.from(base64, "base64"),
+        contentType: meta.slice(5).replace(/[;,]$/, "") || "image/png",
+        metadata: { model, provider: "lovable" },
+      };
+    },
+  };
+}
+
+function geminiReferenceImageProvider(): ReferenceImageProvider {
   const config = getVideoProviderConfig().reference;
   const apiKey = config.gemini.apiKey;
   const model = config.gemini.model;

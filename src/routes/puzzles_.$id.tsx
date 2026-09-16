@@ -37,6 +37,7 @@ function PuzzleDetailPage() {
   const puzzle = getPuzzleById(id);
   const navigate = useNavigate();
   const [playing, setPlaying] = useState(false);
+  const { progress, recordCompletion } = usePuzzleProgress(puzzle?.id ?? "");
 
   if (!puzzle) {
     return (

@@ -1,0 +1,1 @@
+revoke all on function public.validate_order_pricing() from public, anon, authenticated;
