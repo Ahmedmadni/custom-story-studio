@@ -35,10 +35,11 @@ export function getVideoProviderConfig() {
       model: process.env.VIDEO_SCRIPT_MODEL ?? "google/gemini-3-flash-preview",
     },
     scene: {
-      provider: "lovable" as const,
-      fallbackProvider: "replicate" as const,
+      // A direct Lovable video adapter is not implemented yet. Keep its model reserved,
+      // but do not advertise the provider as available until an adapter actually exists.
+      provider: "replicate" as const,
       lovable: {
-        apiKey: lovableKey,
+        apiKey: undefined as string | undefined,
         model: process.env.VIDEO_SCENE_MODEL ?? "google/gemini-omni-1.1-flash",
       },
       replicate: {
