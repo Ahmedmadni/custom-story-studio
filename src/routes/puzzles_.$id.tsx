@@ -25,7 +25,9 @@ export const Route = createFileRoute("/puzzles_/$id")({
       <Header />
       <div className="container mx-auto px-4 py-16 text-center">
         <h1 className="font-display text-3xl font-bold">اللغز غير موجود</h1>
-        <Link to="/puzzles" className="mt-4 inline-block text-primary underline">العودة لقائمة الألغاز</Link>
+        <Link to="/puzzles" className="mt-4 inline-block text-primary underline">
+          العودة لقائمة الألغاز
+        </Link>
       </div>
       <Footer />
     </div>
@@ -45,21 +47,29 @@ function PuzzleDetailPage() {
         <Header />
         <div className="container mx-auto px-4 py-16 text-center">
           <h1 className="font-display text-3xl font-bold">اللغز غير موجود</h1>
-          <Link to="/puzzles" className="mt-4 inline-block text-primary underline">العودة لقائمة الألغاز</Link>
+          <Link to="/puzzles" className="mt-4 inline-block text-primary underline">
+            العودة لقائمة الألغاز
+          </Link>
         </div>
         <Footer />
       </div>
     );
   }
 
-  const { progress, recordCompletion } = usePuzzleProgress(puzzle.id);
-  const related = PUZZLES.filter((p) => p.id !== puzzle.id && p.difficulty === puzzle.difficulty).slice(0, 3);
+  const related = PUZZLES.filter(
+    (p) => p.id !== puzzle.id && p.difficulty === puzzle.difficulty,
+  ).slice(0, 3);
 
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="container mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 pb-12">
-        <Button variant="outline" size="sm" onClick={() => navigate({ to: "/puzzles" })} className="mb-4 rounded-full touch-manipulation">
+      <main className="container mx-auto max-w-3xl px-4 pb-12 pt-6 sm:px-6 sm:pt-10 lg:px-8">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate({ to: "/puzzles" })}
+          className="mb-4 touch-manipulation rounded-full"
+        >
           <ArrowRight className="me-1 h-4 w-4" /> كل الألغاز
         </Button>
 
@@ -69,7 +79,9 @@ function PuzzleDetailPage() {
             <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-card text-4xl shadow">
               {puzzle.emoji}
             </div>
-            <span className={`rounded-full px-3 py-1 text-xs font-bold ${DIFFICULTY_COLOR[puzzle.difficulty]}`}>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-bold ${DIFFICULTY_COLOR[puzzle.difficulty]}`}
+            >
               {DIFFICULTY_LABEL[puzzle.difficulty]}
             </span>
           </div>
@@ -87,7 +99,10 @@ function PuzzleDetailPage() {
             ))}
             <span className="inline-flex items-center gap-0.5 rounded-full bg-card px-3 py-1 text-accent">
               {Array.from({ length: 3 }).map((_, i) => (
-                <Star key={i} className={`h-4 w-4 ${i < progress.stars ? "fill-current" : "opacity-30"}`} />
+                <Star
+                  key={i}
+                  className={`h-4 w-4 ${i < progress.stars ? "fill-current" : "opacity-30"}`}
+                />
               ))}
             </span>
           </div>
@@ -96,7 +111,7 @@ function PuzzleDetailPage() {
             {!playing ? (
               <Button
                 size="lg"
-                className="w-full min-h-12 rounded-full text-lg touch-manipulation sm:w-auto"
+                className="min-h-12 w-full touch-manipulation rounded-full text-lg sm:w-auto"
                 onClick={() => setPlaying(true)}
               >
                 <Play className="me-1 h-5 w-5" /> ابدأ اللعب
@@ -105,7 +120,7 @@ function PuzzleDetailPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="w-full min-h-12 rounded-full touch-manipulation sm:w-auto"
+                className="min-h-12 w-full touch-manipulation rounded-full sm:w-auto"
                 onClick={() => setPlaying(false)}
               >
                 إنهاء الجلسة
@@ -124,7 +139,9 @@ function PuzzleDetailPage() {
           <div className="mt-6">
             <PuzzleEngine
               puzzle={puzzle}
-              onComplete={(stars) => { void recordCompletion(stars); }}
+              onComplete={(stars) => {
+                void recordCompletion(stars);
+              }}
             />
           </div>
         )}
