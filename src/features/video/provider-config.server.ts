@@ -9,14 +9,19 @@ function positiveInteger(value: string | undefined, fallback: number) {
 
 /** Server-only provider/model selection. Never import this module from a component. */
 export function getVideoProviderConfig() {
-  const lovableKey = process.env.LOVABLE_API_KEY;
-  const geminiKey = process.env.GEMINI_API_KEY;
-  const replicateKey =
-    process.env.REPLICATE_API_KEY ?? process.env.LOVABLE_CONNECTOR_REPLICATE_API_KEY;
+  // Paid/usage-based generation stays explicitly disabled during product development.
+  // Before public launch, enable it deliberately in server secrets/configuration.
+  const providersEnabled = process.env.VIDEO_AI_PROVIDERS_ENABLED === "true";
+  const lovableKey = providersEnabled ? process.env.LOVABLE_API_KEY : undefined;
+  const geminiKey = providersEnabled ? process.env.GEMINI_API_KEY : undefined;
+  const replicateKey = providersEnabled
+    ? (process.env.REPLICATE_API_KEY ?? process.env.LOVABLE_CONNECTOR_REPLICATE_API_KEY)
+    : undefined;
   const sceneReplicateModel =
     process.env.VIDEO_SCENE_REPLICATE_MODEL ?? DEFAULT_VIDEO_SCENE_REPLICATE_MODEL;
 
   return {
+    providersEnabled,
     reference: {
       provider: "lovable" as const,
       fallbackProvider: "gemini" as const,
