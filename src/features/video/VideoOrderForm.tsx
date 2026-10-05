@@ -29,9 +29,11 @@ const VODAFONE_NUMBER = "01120016502";
 export function VideoOrderForm({
   templateId,
   templateTitle,
+  priceEgp,
 }: {
   templateId: string;
   templateTitle: string;
+  priceEgp: number;
 }) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -215,12 +217,19 @@ export function VideoOrderForm({
       />
 
       <div className="space-y-4 rounded-2xl border-2 border-primary/20 bg-primary/5 p-5">
+        <div className="rounded-2xl bg-background p-4 text-center">
+          <p className="text-sm font-bold text-muted-foreground">قيمة طلب الفيديو</p>
+          <p className="mt-1 font-display text-3xl font-black text-primary">
+            {priceEgp.toLocaleString("ar-EG")} جنيه
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">القصة: {templateTitle}</p>
+        </div>
         <div className="flex items-start gap-3">
           <Receipt className="mt-1 h-6 w-6 text-primary" />
           <div>
             <h3 className="font-bold">التحويل وإرفاق الإيصال</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              حوّل قيمة الطلب عبر فودافون كاش، ثم ارفع صورة الإيصال هنا. لن يُرسل الطلب بدون الإيصال.
+              حوّل المبلغ الموضح أعلاه عبر فودافون كاش، ثم ارفع صورة الإيصال هنا. لن يُرسل الطلب بدون الإيصال.
             </p>
           </div>
         </div>
