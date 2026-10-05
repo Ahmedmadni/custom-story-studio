@@ -1,12 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Film, Loader2, Receipt, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import * as api from "@/features/video/video-admin.functions";
 import * as production from "@/features/video/video-production.functions";
 import * as simple from "@/features/video/video-simple-workflow.functions";
@@ -19,6 +21,8 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
   const updatePayment = useServerFn(api.updateVideoPaymentStatus);
   const uploadSceneClip = useServerFn(api.uploadVideoSceneClip);
   const approveScene = useServerFn(api.approveVideoScene);
+  const updateScene = useServerFn(api.updateVideoScene);
+  const resetStoryboard = useServerFn(api.resetVideoStoryboard);
   const delivered = useServerFn(api.markVideoDelivered);
   const uploadFinalRender = useServerFn(api.uploadVideoFinalRender);
   const generateScene = useServerFn(production.generateVideoScene);
@@ -51,6 +55,7 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
     onError: (error: Error) => toast.error(error.message),
   });
   const run = (fn: () => Promise<unknown>) => mutation.mutate(fn);
+  const runAsync = (fn: () => Promise<unknown>) => mutation.mutateAsync(fn);
   const runRecoverable = (fn: () => Promise<{ ok: boolean; error?: string }>) =>
     run(async () => {
       const result = await fn();
@@ -60,6 +65,26 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
       }
       return result;
     });
+
+  const runningJobIds =
+    query.data?.jobs
+      .filter((job) => job.status === "running")
+      .map((job) => job.id)
+      .sort()
+      .join(",") ?? "";
+
+  useEffect(() => {
+    if (!runningJobIds || !query.data?.project.id) return;
+    const projectId = query.data.project.id;
+    const timer = window.setInterval(() => {
+      void refreshJobs({ data: { projectId } })
+        .then(() =>
+          qc.invalidateQueries({ queryKey: ["admin-video-project", videoOrderId] }),
+        )
+        .catch(() => undefined);
+    }, 5_000);
+    return () => window.clearInterval(timer);
+  }, [qc, query.data?.project.id, refreshJobs, runningJobIds, videoOrderId]);
 
   if (query.isLoading) return <p>جارٍ تحميل مساحة الإنتاج…</p>;
   if (!query.data) return <p>تعذر تحميل مشروع الفيديو</p>;
@@ -296,6 +321,18 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                   runRecoverable(() => generateScene({ data: { sceneId: scene.id } }))
                 }
                 approve={() => run(() => approveScene({ data: { sceneId: scene.id } }))}
+                saveEdits={(input) =>
+                  runAsync(() =>
+                    updateScene({
+                      data: {
+                        sceneId: scene.id,
+                        narrationText: input.narrationText,
+                        visualPrompt: input.visualPrompt,
+                        durationMs: input.durationMs,
+                      },
+                    }),
+                  )
+                }
                 uploadClip={(file) =>
                   upload(file, (asset) =>
                     uploadSceneClip({ data: { sceneId: scene.id, ...asset } }),
@@ -406,6 +443,40 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
         </CardContent>
       </Card>
 
+      {paymentReviewed && scenes.length > 0 && (
+        <details className="rounded-2xl border bg-card p-4">
+          <summary className="cursor-pointer font-bold text-muted-foreground">
+            خيارات متقدمة للمشاهد
+          </summary>
+          <div className="mt-4 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              استخدم إعادة البناء فقط إذا أردت حذف مراجع المقاطع الحالية والعودة إلى
+              نصوص القصة الأصلية. لن تُحذف الملفات الخاصة من التخزين تلقائياً.
+            </p>
+            <Button
+              variant="destructive"
+              disabled={mutation.isPending || jobs.some((job) => ["queued", "running"].includes(job.status))}
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    "سيتم إلغاء اعتمادات ومراجع المقاطع الحالية وإعادة بناء المشاهد. هل تريد المتابعة؟",
+                  )
+                )
+                  return;
+                run(async () => {
+                  await resetStoryboard({
+                    data: { projectId: project.id, confirmation: "RESET" },
+                  });
+                  return prepareScenes({ data: { projectId: project.id } });
+                });
+              }}
+            >
+              إعادة بناء المشاهد من القصة
+            </Button>
+          </div>
+        </details>
+      )}
+
       <details className="rounded-2xl border bg-card p-4">
         <summary className="cursor-pointer font-bold text-muted-foreground">
           تفاصيل تقنية ومهام التوليد
@@ -452,6 +523,7 @@ function SimpleScene({
   providerAvailable,
   generate,
   approve,
+  saveEdits,
   uploadClip,
 }: {
   scene: {
@@ -467,9 +539,39 @@ function SimpleScene({
   providerAvailable: boolean;
   generate: () => void;
   approve: () => void;
+  saveEdits: (input: {
+    narrationText: string | null;
+    visualPrompt: string | null;
+    durationMs: number;
+  }) => Promise<unknown>;
   uploadClip: (file: File | undefined) => void;
 }) {
   const complete = scene.status === "approved" && Boolean(scene.clipUrl);
+  const [narrationDraft, setNarrationDraft] = useState(scene.narration_text ?? "");
+  const [promptDraft, setPromptDraft] = useState(scene.visual_prompt ?? "");
+  const [durationSeconds, setDurationSeconds] = useState(
+    Math.max(1, Math.round(scene.duration_ms / 1_000)),
+  );
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    if (dirty) return;
+    setNarrationDraft(scene.narration_text ?? "");
+    setPromptDraft(scene.visual_prompt ?? "");
+    setDurationSeconds(Math.max(1, Math.round(scene.duration_ms / 1_000)));
+  }, [dirty, scene.duration_ms, scene.narration_text, scene.visual_prompt]);
+
+  const save = () => {
+    const durationMs = Math.max(1_000, Math.round(durationSeconds * 1_000));
+    void saveEdits({
+      narrationText: narrationDraft.trim() || null,
+      visualPrompt: promptDraft.trim() || null,
+      durationMs,
+    })
+      .then(() => setDirty(false))
+      .catch(() => undefined);
+  };
+
   return (
     <div className="rounded-2xl border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -479,11 +581,55 @@ function SimpleScene({
         </div>
         {complete && <span className="font-bold text-emerald-700">✓ معتمد</span>}
       </div>
-      <p className="mt-3 leading-7">{scene.narration_text}</p>
-      <p className="mt-2 rounded-xl bg-secondary/40 p-3 text-xs text-muted-foreground">
-        {scene.visual_prompt}
-      </p>
-      <p className="mt-2 text-xs font-bold">المدة المستهدفة: {scene.duration_ms / 1000} ث</p>
+      <div className="mt-3 space-y-3">
+        <div>
+          <p className="mb-1 text-xs font-bold text-muted-foreground">النص السردي</p>
+          <Textarea
+            value={narrationDraft}
+            disabled={busy}
+            onChange={(event) => {
+              setNarrationDraft(event.target.value);
+              setDirty(true);
+            }}
+          />
+        </div>
+        <div>
+          <p className="mb-1 text-xs font-bold text-muted-foreground">وصف المشهد / البرومبت</p>
+          <Textarea
+            value={promptDraft}
+            disabled={busy}
+            onChange={(event) => {
+              setPromptDraft(event.target.value);
+              setDirty(true);
+            }}
+          />
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="text-xs font-bold text-muted-foreground">
+            المدة المستهدفة بالثواني
+            <Input
+              className="mt-1 w-28"
+              type="number"
+              min={1}
+              max={60}
+              value={durationSeconds}
+              disabled={busy}
+              onChange={(event) => {
+                setDurationSeconds(Number(event.target.value) || 1);
+                setDirty(true);
+              }}
+            />
+          </label>
+          <Button type="button" variant="outline" disabled={busy || !dirty} onClick={save}>
+            حفظ تعديلات المشهد
+          </Button>
+        </div>
+        {dirty && scene.clipUrl && (
+          <p className="text-xs font-bold text-amber-700">
+            تم تعديل وصف المشهد؛ يلزم إعادة توليد/رفع المقطع ثم اعتماده من جديد.
+          </p>
+        )}
+      </div>
       {scene.clipUrl && (
         <video controls src={scene.clipUrl} className="mt-3 max-h-80 w-full rounded-xl" />
       )}
