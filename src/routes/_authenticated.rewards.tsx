@@ -26,11 +26,9 @@ const REWARDS = [
 
 const EARN_RULES = [
   { icon: UserPlus, points: 50, label: "تسجيل حساب جديد" },
-  { icon: ShoppingBag, points: 100, label: "أول طلب" },
-  { icon: Sparkles, points: 1, label: "نقطة لكل جنيه تنفقه" },
-  { icon: Star, points: 20, label: "تقييم قصة" },
-  { icon: Users, points: 100, label: "دعوة صديق" },
-  { icon: Gift, points: 50, label: "هدية عيد ميلاد" },
+  { icon: ShoppingBag, points: 30, label: "إتمام قصة واستلامها" },
+  { icon: Star, points: 30, label: "كتابة تقييم بعد الاستلام" },
+  { icon: Users, points: 100, label: "دعوة صديق بعد أول طلب مؤكّد له" },
 ];
 
 function txTypeLabel(t: string) {
@@ -39,6 +37,8 @@ function txTypeLabel(t: string) {
     purchase: "طلب جديد",
     first_purchase: "أول طلب",
     review: "تقييم قصة",
+    review_submitted: "تقييم قصة",
+    story_completed: "إتمام قصة",
     referral: "دعوة صديق",
     birthday: "عيد ميلاد",
     redeem: "استبدال",
@@ -172,8 +172,8 @@ function RewardsPage() {
                   <div className="text-sm text-muted-foreground">{r.desc}</div>
                   <div className="mt-3 flex items-center justify-between">
                     <span className="font-bold">{r.points} نقطة</span>
-                    <Button size="sm" disabled={!can} variant={can ? "default" : "outline"}>
-                      {can ? "استبدل" : "غير متاح"}
+                    <Button size="sm" disabled variant="outline">
+                      {can ? "الاستبدال قريباً" : "غير متاح"}
                     </Button>
                   </div>
                 </div>
@@ -181,7 +181,7 @@ function RewardsPage() {
             })}
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            * الاستبدال قريباً — تواصل مع الدعم لتطبيق المكافأة يدوياً.
+            * الاستبدال الإلكتروني لم يُفعّل بعد. الرصيد وسجل النقاط حقيقيان، ولن تُخصم نقاطك قبل إطلاق الاستبدال.
           </p>
         </section>
 
