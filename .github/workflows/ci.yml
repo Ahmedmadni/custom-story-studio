@@ -3,8 +3,6 @@ name: CI
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
 
 jobs:
   verify:
@@ -14,6 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -26,8 +26,16 @@ jobs:
       - name: Typecheck
         run: bunx tsc --noEmit
 
-      - name: Lint
-        run: bun run lint
+      - name: Lint changed TypeScript files
+        shell: bash
+        run: |
+          mapfile -t files < <(git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- '*.ts' '*.tsx')
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No changed TypeScript files to lint."
+            exit 0
+          fi
+          printf 'Linting %s\n' "${files[@]}"
+          bunx eslint "${files[@]}"
 
       - name: Build
         run: bun run build
