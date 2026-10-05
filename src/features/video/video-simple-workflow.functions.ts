@@ -13,6 +13,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Json } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { activeVideoJobStatuses, videoStoryboardSchema } from "@/features/video/video-production-core";
+import {
+  fitNarrationToDuration,
+  sceneDirection,
+  storyArcRole,
+} from "@/features/video/video-storyboard-adapter";
 
 const orderInput = z.object({ videoOrderId: z.string().uuid() }).strict();
 const projectInput = z.object({ projectId: z.string().uuid() }).strict();
@@ -140,22 +145,37 @@ async function buildStoryboard(admin: Admin, project: VideoProject) {
   }
 
   const sceneCount = Math.min(8, Math.max(2, sceneSource.length));
-  const targetDuration = Math.min(10, Math.max(5, Math.floor(54 / sceneCount)));
+  const targetDuration = Math.min(10, Math.max(6, Math.floor(54 / sceneCount)));
   const scenes = sceneSource.slice(0, 8).map((page, index) => {
     const text = pageTextFor(page, language, childName).primary;
     const title = pageTitleFor(page, language).primary ?? `المشهد ${index + 1}`;
+    const fallbackNarration =
+      language === "en"
+        ? `${childName} continues the adventure with courage and kindness.`
+        : `يواصل ${childName} مغامرته بشجاعة ولطف.`;
+    const role = storyArcRole(index, sceneCount);
+    const direction = sceneDirection(role);
+    const baseVisual = personalize(page.scene || "", childName).trim();
+    const visual = baseVisual
+      ? `${direction} ${baseVisual}`
+      : `${direction} Cinematic child-safe 3D animated scene featuring ${childName}, consistent character design, warm expressive lighting.`;
+
     return {
       sequence: index + 1,
       title: bounded(personalize(title, childName), 120, `المشهد ${index + 1}`),
       duration_seconds: targetDuration,
-      narration: bounded(text, 1_500, `يواصل ${childName} مغامرته الممتعة.`),
-      visual_prompt: bounded(
-        personalize(page.scene || "", childName),
-        4_000,
-        `Cinematic child-safe 3D animated scene featuring ${childName}, consistent character design, warm expressive lighting.`,
+      narration: bounded(
+        fitNarrationToDuration(text, targetDuration, language, fallbackNarration),
+        1_500,
+        fallbackNarration,
       ),
+      visual_prompt: bounded(visual, 4_000, direction),
       motion_prompt:
-        "Gentle cinematic camera movement, natural child-safe character motion, preserve the exact same child hero and visual identity.",
+        role === "climax"
+          ? "Purposeful cinematic movement with one clear child-safe action; keep the same child identity, outfit and proportions."
+          : role === "resolution"
+            ? "Gentle settling camera movement and warm closing expression; preserve the exact same child hero and visual identity."
+            : "Gentle cinematic camera movement, one readable child-safe action, preserve the exact same child hero and visual identity.",
     };
   });
 
