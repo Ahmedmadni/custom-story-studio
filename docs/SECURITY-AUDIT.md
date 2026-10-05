@@ -125,45 +125,38 @@ order by tablename, cmd;
 لا واجهة في التطبيق تعرض هذا للمدعو). يُوصى بإضافة سياسة SELECT للمدعو أيضاً عند تنفيذ
 Phase 2 (حماية الإحالة من إساءة الاستخدام) لأن الحالة `pending` الجديدة قد تحتاج عرضها له.
 
-### 3.5 🔴 حرج / ⚠️ يتطلب تحقق مباشر — bucket التخزين `child-photos`
-**لم يُعثر على أي سياسة تخزين لـ `child-photos` في أي ملف هجرة على الإطلاق** — لا
-`CREATE POLICY ... ON storage.objects ... bucket_id = 'child-photos'` ولا حتى إشارة
-واحدة لاسم الـ bucket. هذا أخطر ما وُجد في هذا التدقيق: هذا الـ bucket يحوي **صور أطفال
-حقيقيين**، وهو المذكور صراحةً في `CLAUDE.md` نفسه: *"Storage bucket `child-photos` must
-stay owner-scoped via RLS"* — لكن لا دليل في الكود يثبت أن هذا صحيح فعلياً اليوم.
+### 3.5 ✅ أُصلح — bucket التخزين `child-photos`
+كان سجل الهجرات لا يحتوي أي سياسة مرئية للـ bucket الذي يحفظ صور الأطفال، رغم أن
+المسارات في التطبيق تتبع بصورة ثابتة `${user.id}/<uuid>.<ext>`.
 
-تأكّدنا من نمط المسارات المستخدم في **كل** نقاط الرفع الأربع (`checkout.tsx`,
-`create.tsx`, `OrderEditDialog.tsx`, `request-story.tsx` عبر `uploadToBucket`) — جميعها
-تتّبع `${user.id}/<uuid>.<ext>` بشكل متّسق تماماً، وهذا يطابق تماماً النمط المستخدم فعلياً
-مع bucket `reference-children` (الذي **له** سياسة مرئية في الكود). لذا لو كانت هناك
-سياسة owner-scoped مُعرَّفة خارج الهجرات، فبنية المسارات ستدعمها بشكل صحيح.
+**الإصلاح الحالي**: الهجرة
+`supabase/migrations/20261006003500_harden_child_photos_rls.sql` تقوم بأمرين:
 
-**لماذا لم أُصلح هذا من الكود**: لا يمكنني معرفة ما إذا كانت هناك سياسة موجودة بالفعل
-(ربما مُعدّة من لوحة Supabase مباشرة) واسمها، لذا لا أستطيع كتابة `DROP POLICY` آمن، وأي
-`CREATE POLICY` إضافية لن تُلغي سياسة فضفاضة موجودة مسبقاً (تُجمَع بـ OR في RLS
-PERMISSIVE). إصلاح أعمى هنا قد يعطي ثقة زائفة.
+1. تفرض `public = false` على bucket `child-photos`.
+2. تضيف سياسات `AS RESTRICTIVE` منفصلة لـ SELECT / INSERT / UPDATE / DELETE
+   على `storage.objects`. بالنسبة إلى `child-photos` يجب أن يكون أول جزء من المسار
+   مساويًا لـ `auth.uid()`، مع سماح للأدمن. خارج هذا الـ bucket تكون الشروط `true`
+   فلا تتداخل مع سياسات buckets الأخرى.
 
-**إجراء مطلوب فوراً قبل أي إطلاق عام** (SQL editor في Supabase):
+اختيار `RESTRICTIVE` مقصود: هذه السياسات **لا تمنح صلاحية بحد ذاتها**، بل تُجمع
+منطقياً بـ AND مع أي سياسات PERMISSIVE موجودة مسبقاً. لذلك حتى لو وُجدت في المشروع
+الحي سياسة قديمة واسعة أنشئت من لوحة Supabase، فلن تستطيع تجاوز شرط ملكية مجلد
+`child-photos` بعد تطبيق هذه الهجرة.
+
+**تحقق بعد النشر**:
 ```sql
-select policyname, cmd, roles, qual, with_check
+select policyname, permissive, cmd, roles, qual, with_check
 from pg_policies
-where schemaname = 'storage' and tablename = 'objects'
-  and qual::text ilike '%child-photos%' or with_check::text ilike '%child-photos%';
-```
-لو لم تُرجع أي صف → **الـ bucket غير محمي بأي سياسة RLS إطلاقاً** (قد يكون معتمداً فقط
-على كون الـ bucket "private" افتراضياً بلا Signed URL عام — تحقّق أيضاً من إعداد
-`public` للـ bucket نفسه في Storage settings). في هذه الحالة نفّذ فوراً (بعد التأكد من
-التسمية لا تتعارض مع أي شيء موجود):
-```sql
-create policy "Users manage own child photos"
-on storage.objects for all to authenticated
-using (bucket_id = 'child-photos' and (storage.foldername(name))[1] = auth.uid()::text)
-with check (bucket_id = 'child-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+where schemaname = 'storage'
+  and tablename = 'objects'
+  and policyname like 'child_photos_%_restrictive'
+order by policyname;
 
-create policy "Admins manage all child photos"
-on storage.objects for all to authenticated
-using (bucket_id = 'child-photos' and public.has_role(auth.uid(), 'admin'));
+select id, public
+from storage.buckets
+where id = 'child-photos';
 ```
+المتوقع: أربع سياسات `RESTRICTIVE` و`public = false`.
 
 ### 3.6 🔵 معلوماتي — أدوات أخرى تحققنا منها وهي سليمة
 - **buckets الأخرى موثّقة بالكامل في الكود** وتتبع نمطاً صحيحاً: `payment-receipts`
