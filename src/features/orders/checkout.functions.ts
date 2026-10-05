@@ -40,6 +40,23 @@ const CheckoutInput = z.object({
   couponCode: z.string().trim().max(30).nullable().optional(),
 });
 
+type RpcErrorLike = { code?: string | null; message?: string | null };
+
+type UntypedRpcClient = {
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{ data: unknown; error: RpcErrorLike | null }>;
+};
+
+function missingAtomicCouponRpc(error: RpcErrorLike | null) {
+  return Boolean(
+    error &&
+      (error.code === "PGRST202" ||
+        (error.message ?? "").includes("consume_coupon_redemption")),
+  );
+}
+
 /**
  * ينشئ صفّ طلب لكل عنصر في السلة بنفس إيصال الدفع.
  * payment_status = receipt_uploaded حتى يؤكدها المدير.
@@ -176,21 +193,60 @@ export const submitCheckout = createServerFn({ method: "POST" })
     if (error) throw new Error("تعذر إرسال الطلب، حاول مرة أخرى");
 
     if (couponId && couponDiscount > 0) {
-      await supabaseAdmin.from("coupon_redemptions").insert({
-        coupon_id: couponId,
-        user_id: context.userId,
-        order_id: inserted?.[0]?.id ?? null,
-        discount_egp: couponDiscount,
+      const firstOrderId = inserted?.[0]?.id;
+      if (!firstOrderId) {
+        throw new Error("تعذر تسجيل استخدام كود الخصم");
+      }
+
+      const rpcClient = supabaseAdmin as unknown as UntypedRpcClient;
+      const redemption = await rpcClient.rpc("consume_coupon_redemption", {
+        _coupon_id: couponId,
+        _user_id: context.userId,
+        _order_id: firstOrderId,
+        _discount_egp: couponDiscount,
       });
-      const { data: current } = await supabaseAdmin
-        .from("coupons")
-        .select("used_count")
-        .eq("id", couponId)
-        .single();
-      await supabaseAdmin
-        .from("coupons")
-        .update({ used_count: (current?.used_count ?? 0) + 1 })
-        .eq("id", couponId);
+
+      if (redemption.error && missingAtomicCouponRpc(redemption.error)) {
+        // Compatibility only until the production migration is applied.
+        const { error: redemptionError } = await supabaseAdmin.from("coupon_redemptions").insert({
+          coupon_id: couponId,
+          user_id: context.userId,
+          order_id: firstOrderId,
+          discount_egp: couponDiscount,
+        });
+        if (redemptionError) {
+          await supabaseAdmin
+            .from("orders")
+            .delete()
+            .in(
+              "id",
+              (inserted ?? []).map((row) => row.id),
+            );
+          throw new Error("تعذر تطبيق كود الخصم، حاول مرة أخرى");
+        }
+
+        const { data: current } = await supabaseAdmin
+          .from("coupons")
+          .select("used_count")
+          .eq("id", couponId)
+          .single();
+        const { error: counterError } = await supabaseAdmin
+          .from("coupons")
+          .update({ used_count: (current?.used_count ?? 0) + 1 })
+          .eq("id", couponId);
+        if (counterError) {
+          console.error("legacy coupon counter update failed", counterError);
+        }
+      } else if (redemption.error) {
+        await supabaseAdmin
+          .from("orders")
+          .delete()
+          .in(
+            "id",
+            (inserted ?? []).map((row) => row.id),
+          );
+        throw new Error("تعذر تطبيق كود الخصم أو تم استنفاد الحد المسموح");
+      }
     }
 
     return {
