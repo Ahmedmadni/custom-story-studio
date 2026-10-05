@@ -21,6 +21,7 @@ async function assertAdmin(context: AuthedContext) {
 }
 
 const STUCK_GENERATING_HOURS = 6;
+const STUCK_VIDEO_JOB_MINUTES = 30;
 
 /**
  * لوحة صحة النظام (F10) — كلها من بيانات حقيقية في `orders`. لا يوجد نظام
@@ -39,38 +40,81 @@ export const adminGetHealth = createServerFn({ method: "POST" })
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const stuckBefore = new Date(now.getTime() - STUCK_GENERATING_HOURS * 3_600_000).toISOString();
 
-    const [pendingRes, generatingRes, stuckRes, revenueTodayRes, rejectedRecentRes, deliveredRes] =
-      await Promise.all([
-        supabaseAdmin
-          .from("orders")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "pending"),
-        supabaseAdmin
-          .from("orders")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "generating"),
-        supabaseAdmin
-          .from("orders")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "generating")
-          .lt("updated_at", stuckBefore),
-        supabaseAdmin
-          .from("orders")
-          .select("price_egp")
-          .eq("payment_status", "verified")
-          .gte("paid_at", todayStart),
-        supabaseAdmin
-          .from("orders")
-          .select("id", { count: "exact", head: true })
-          .eq("payment_status", "rejected")
-          .gte("updated_at", new Date(now.getTime() - 7 * 24 * 3_600_000).toISOString()),
-        supabaseAdmin
-          .from("orders")
-          .select("created_at, published_at")
-          .not("published_at", "is", null)
-          .order("published_at", { ascending: false })
-          .limit(50),
-      ]);
+    const videoJobStuckBefore = new Date(
+      now.getTime() - STUCK_VIDEO_JOB_MINUTES * 60_000,
+    ).toISOString();
+
+    const [
+      pendingRes,
+      generatingRes,
+      stuckRes,
+      revenueTodayRes,
+      rejectedRecentRes,
+      deliveredRes,
+      videoPendingPaymentRes,
+      videoProcessingRes,
+      videoReadyRes,
+      videoFailedJobsRes,
+      videoStuckJobsRes,
+      videoOverdueRes,
+    ] = await Promise.all([
+      supabaseAdmin
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending"),
+      supabaseAdmin
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "generating"),
+      supabaseAdmin
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "generating")
+        .lt("updated_at", stuckBefore),
+      supabaseAdmin
+        .from("orders")
+        .select("price_egp")
+        .eq("payment_status", "verified")
+        .gte("paid_at", todayStart),
+      supabaseAdmin
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("payment_status", "rejected")
+        .gte("updated_at", new Date(now.getTime() - 7 * 24 * 3_600_000).toISOString()),
+      supabaseAdmin
+        .from("orders")
+        .select("created_at, published_at")
+        .not("published_at", "is", null)
+        .order("published_at", { ascending: false })
+        .limit(50),
+      supabaseAdmin
+        .from("video_orders")
+        .select("id", { count: "exact", head: true })
+        .in("payment_status", ["unpaid", "pending"]),
+      supabaseAdmin
+        .from("video_projects")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["paid", "approved", "processing"]),
+      supabaseAdmin
+        .from("video_projects")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "ready"),
+      supabaseAdmin
+        .from("video_jobs")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["failed", "dead_letter"]),
+      supabaseAdmin
+        .from("video_jobs")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["queued", "running"])
+        .lt("updated_at", videoJobStuckBefore),
+      supabaseAdmin
+        .from("video_orders")
+        .select("id", { count: "exact", head: true })
+        .eq("delivery_status", "pending")
+        .eq("payment_status", "paid")
+        .lt("expected_delivery_at", now.toISOString()),
+    ]);
 
     const revenueToday = (revenueTodayRes.data ?? []).reduce(
       (sum, r) => sum + ((r as { price_egp?: number }).price_egp ?? 0),
@@ -124,5 +168,11 @@ export const adminGetHealth = createServerFn({ method: "POST" })
       activeUsersToday,
       conversionRatePct,
       rejectedPaymentsLast7d: rejectedRecentRes.count ?? 0,
+      videoPendingPayments: videoPendingPaymentRes.count ?? 0,
+      videoInProduction: videoProcessingRes.count ?? 0,
+      videoReadyForDelivery: videoReadyRes.count ?? 0,
+      videoFailedJobs: videoFailedJobsRes.count ?? 0,
+      videoStuckJobs: videoStuckJobsRes.count ?? 0,
+      videoOverdueOrders: videoOverdueRes.count ?? 0,
     };
   });
