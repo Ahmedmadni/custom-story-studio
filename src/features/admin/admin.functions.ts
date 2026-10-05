@@ -519,14 +519,14 @@ async function assertOrderEditable(
 ) {
   const { data: order, error } = await supabaseAdmin
     .from("orders")
-    .select("id, user_id, status, payment_status, child_photo_path, receipt_path")
+    .select("id, user_id, status, payment_status, child_photo_path, receipt_path, pages_count, print_copy, delivery_address")
     .eq("id", orderId)
     .single();
   if (error || !order) throw new Error("الطلب غير موجود");
   if (order.user_id !== userId) throw new Error("غير مصرح");
   if ((order.payment_status as string) === "verified")
     throw new Error("لا يمكن التعديل بعد اعتماد الدفع من الإدارة");
-  if (!["pending"].includes(order.status as string))
+  if (!["pending", "rejected"].includes(order.status as string))
     throw new Error("لا يمكن التعديل بعد بدء معالجة الطلب");
   const { count } = await supabaseAdmin
     .from("generated_pages")
@@ -540,6 +540,9 @@ async function assertOrderEditable(
     payment_status: string;
     child_photo_path: string | null;
     receipt_path: string | null;
+    pages_count: number;
+    print_copy: boolean;
+    delivery_address: string | null;
   };
 }
 
@@ -573,22 +576,46 @@ export const updateMyOrder = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const existing = await assertOrderEditable(supabaseAdmin, data.orderId, context.userId);
 
-    // إعادة احتساب السعر حسب نوع القالب
-    const { data: orderTpl } = await supabaseAdmin
-      .from("orders")
-      .select("template_id, story_templates!template_id(is_custom)")
-      .eq("id", data.orderId)
-      .single();
-    const isCustom = Boolean(
-      (orderTpl as { story_templates?: { is_custom?: boolean } } | null)?.story_templates
-        ?.is_custom,
-    );
-    const { pricePerPages, PRINT_COPY_PRICE_EGP } = await import("@/features/cart/pricing");
-    const base = pricePerPages(data.pagesCount, isCustom);
-    const priceEgp = base + (data.printCopy ? PRINT_COPY_PRICE_EGP : 0);
+    // الشروط التجارية (عدد الصفحات/الطباعة) تُقفل بعد إنشاء الطلب.
+    // تعديلها هنا كان يمكن أن يفصل السعر عن خصومات الباقة/الكوبون أو عن قيمة
+    // الإيصال المرفوع. لتغيير الباقة يحذف العميل الطلب قبل الاعتماد وينشئه من جديد.
+    if (
+      data.pagesCount !== existing.pages_count ||
+      data.printCopy !== Boolean(existing.print_copy)
+    ) {
+      throw new Error("لا يمكن تغيير باقة الصفحات أو الطباعة بعد إنشاء الطلب");
+    }
 
-    if (data.printCopy && !(data.deliveryAddress ?? "").trim()) {
-      throw new Error("اكتب عنوان التوصيل لطلب نسخة مطبوعة");
+    if (existing.print_copy && !(data.deliveryAddress ?? "").trim()) {
+      throw new Error("اكتب عنوان التوصيل لطلب النسخة المطبوعة");
+    }
+
+    const verifyOwnedStorageObject = async (
+      bucket: "child-photos" | "payment-receipts",
+      path: string,
+      label: string,
+    ) => {
+      if (!path.startsWith(`${context.userId}/`)) {
+        throw new Error(`${label} غير صالح لهذا الحساب`);
+      }
+      const name = path.slice(context.userId.length + 1);
+      const { data: files, error } = await supabaseAdmin.storage
+        .from(bucket)
+        .list(context.userId, { limit: 20, search: name });
+      if (error || !(files ?? []).some((file) => file.name === name)) {
+        throw new Error(`${label} غير موجود أو لا يخص هذا الحساب`);
+      }
+    };
+
+    if (data.newChildPhotoPath) {
+      await verifyOwnedStorageObject("child-photos", data.newChildPhotoPath, "صورة الطفل");
+    }
+    if (data.newReceiptPath) {
+      await verifyOwnedStorageObject(
+        "payment-receipts",
+        data.newReceiptPath,
+        "إيصال التحويل",
+      );
     }
 
     const patch: Record<string, unknown> = {
@@ -600,12 +627,11 @@ export const updateMyOrder = createServerFn({ method: "POST" })
       notes: data.notes?.trim() || null,
       language: data.language,
       photo_mode: data.photoMode,
-      pages_count: data.pagesCount,
-      print_copy: data.printCopy,
-      delivery_address: data.printCopy ? (data.deliveryAddress ?? "").trim() : null,
+      delivery_address: existing.print_copy
+        ? (data.deliveryAddress ?? "").trim()
+        : null,
       gifted_by_name: data.gifterName?.trim() || null,
       gifted_by_relation: data.gifterRelation?.trim() || null,
-      price_egp: priceEgp,
     };
     if (data.publishConsent !== undefined) patch.publish_consent = data.publishConsent;
     if (data.newChildPhotoPath) patch.child_photo_path = data.newChildPhotoPath;
@@ -613,6 +639,7 @@ export const updateMyOrder = createServerFn({ method: "POST" })
       patch.receipt_path = data.newReceiptPath;
       patch.payment_status = "receipt_uploaded";
       patch.payment_rejection_reason = null;
+      patch.status = "pending";
     }
 
     const { error } = await supabaseAdmin
@@ -628,14 +655,18 @@ export const updateMyOrder = createServerFn({ method: "POST" })
       existing.child_photo_path &&
       existing.child_photo_path !== data.newChildPhotoPath
     ) {
-      removals.push({ bucket: "child-photos", path: existing.child_photo_path });
+      if (existing.child_photo_path.startsWith(`${context.userId}/`)) {
+        removals.push({ bucket: "child-photos", path: existing.child_photo_path });
+      }
     }
     if (
       data.newReceiptPath &&
       existing.receipt_path &&
       existing.receipt_path !== data.newReceiptPath
     ) {
-      removals.push({ bucket: "payment-receipts", path: existing.receipt_path });
+      if (existing.receipt_path.startsWith(`${context.userId}/`)) {
+        removals.push({ bucket: "payment-receipts", path: existing.receipt_path });
+      }
     }
     await Promise.all(removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])));
 
@@ -655,10 +686,18 @@ export const deleteMyOrder = createServerFn({ method: "POST" })
     if (error) throw new Error("تعذر حذف الطلب");
     // نظافة ملفات
     const removals: Array<{ bucket: string; path: string }> = [];
-    if (existing.child_photo_path)
+    if (
+      existing.child_photo_path &&
+      existing.child_photo_path.startsWith(`${context.userId}/`)
+    ) {
       removals.push({ bucket: "child-photos", path: existing.child_photo_path });
-    if (existing.receipt_path)
+    }
+    if (
+      existing.receipt_path &&
+      existing.receipt_path.startsWith(`${context.userId}/`)
+    ) {
       removals.push({ bucket: "payment-receipts", path: existing.receipt_path });
+    }
     await Promise.all(removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])));
     return { ok: true };
   });
