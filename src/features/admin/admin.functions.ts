@@ -522,7 +522,7 @@ async function assertOrderEditable(
 ) {
   const { data: order, error } = await supabaseAdmin
     .from("orders")
-    .select("id, user_id, status, payment_status, child_photo_path, receipt_path, pages_count, print_copy, delivery_address")
+    .select("id, user_id, status, payment_status, child_photo_path, receipt_path, pages_count, print_copy, delivery_address, discount_egp, coupon_code")
     .eq("id", orderId)
     .single();
   if (error || !order) throw new Error("الطلب غير موجود");
@@ -546,6 +546,8 @@ async function assertOrderEditable(
     pages_count: number;
     print_copy: boolean;
     delivery_address: string | null;
+    discount_egp: number;
+    coupon_code: string | null;
   };
 }
 
@@ -688,6 +690,11 @@ export const deleteMyOrder = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const existing = await assertOrderEditable(supabaseAdmin, data.orderId, context.userId);
+    if ((existing.discount_egp ?? 0) > 0 || existing.coupon_code) {
+      throw new Error(
+        "هذا الطلب مرتبط بخصم باقة أو كوبون؛ لا يمكن حذف عنصر واحد منه بشكل منفصل",
+      );
+    }
     const { error } = await supabaseAdmin.from("orders").delete().eq("id", data.orderId);
     if (error) throw new Error("تعذر حذف الطلب");
     // نظافة ملفات
