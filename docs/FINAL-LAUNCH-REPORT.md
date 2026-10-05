@@ -49,7 +49,7 @@ quality. These are runtime/visual concerns a code trace cannot verify.
 | Rewards cannot be manipulated          | ✅ Pass                                    | `reward_accounts`/`reward_transactions` have `GRANT UPDATE/INSERT` to `authenticated` at the table level, but **no RLS `UPDATE` policy exists for either table** — Postgres RLS defaults to deny when no policy matches, so the grant is inert; the only way to change a balance is `award_points()` (`SECURITY DEFINER`, revoked from `authenticated`), callable only server-side via `supabaseAdmin`.                                                                                                          |
 | Referrals cannot be abused             | ✅ Pass                                    | Hardened last sprint (pending → reward-after-first-verified-order); re-verified the wiring is intact in both `adminVerifyPayment` and the Kashier webhook.                                                                                                                                                                                                                                                                                                                                                       |
 | Admin routes are protected             | ✅ Pass                                    | Two layers: client-side UX guard (`isAdmin` check in `_authenticated.admin.tsx`, purely cosmetic) plus the real boundary — every admin server function calls `assertAdmin()`/`has_role()` server-side, and RLS has an admin-override policy on every table. SSR never renders authenticated/admin content prematurely, since the outer `_authenticated.tsx` gate always renders a loading spinner (not `<Outlet/>`) while `loading` is true, which it always is during SSR (auth state is client-hydrated only). |
-| Storage permissions are correct        | ✅ Pass (one item needs live confirmation) | `story-pdfs`, `story-pages`, `reference-children`, `payment-receipts` all confirmed owner/order-scoped. `child-photos` bucket policies predate migration history in this repo — same gap already flagged in `docs/SECURITY-AUDIT.md`, re-confirmed here, still needs a live Supabase-dashboard check before launch.                                                                                                                                                                                              |
+| Storage permissions are correct        | ✅ Pass after migration                    | `story-pdfs`, `story-pages`, `reference-children`, and `payment-receipts` are owner/order-scoped. `child-photos` is now hardened by migration `20261006003500_harden_child_photos_rls.sql`, which forces the bucket private and adds RESTRICTIVE owner-folder policies that constrain even older broad permissive policies. Verify deployment on the live project. |
 
 ## Phase 3 — Mobile Responsiveness (static review — no real device/browser available)
 
@@ -57,12 +57,8 @@ quality. These are runtime/visual concerns a code trace cannot verify.
 - Spot-checked `checkout.tsx` (a core user-facing flow): correctly
   mobile-first (`grid gap-4 md:grid-cols-2` pattern — single column by
   default, multi-column only at larger breakpoints).
-- **Minor finding, not fixed**: `OrdersManager.tsx`'s orders table wraps
-  in `overflow-hidden`, not `overflow-x-auto` — on a narrow viewport,
-  wide table columns would be clipped rather than horizontally
-  scrollable. Admin-only, desktop-oriented page, low severity; not
-  touched given the "no refactoring" constraint and the low blast radius
-  (internal admin tool, not a customer-facing page).
+- **Fixed**: `OrdersManager.tsx` now uses horizontal overflow on narrow
+  screens, so the admin order table no longer clips wide columns on mobile.
 - **Not performed**: actual rendering on iPhone Safari, Android Chrome,
   or a tablet — no device or browser available in this environment. This
   gap was already flagged in `docs/LAUNCH-CHECKLIST.md` from the prior
@@ -153,10 +149,10 @@ All three fixes verified with `tsc --noEmit` and `eslint` — both clean.
 | --- | -------------------------------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------- |
 | 1   | No admin UI for reward-balance management                                              | Missing feature  | Sprint scope excludes new features                                               |
 | 2   | No admin UI for coupon management                                                      | Missing feature  | Same                                                                             |
-| 3   | Coupon `used_count`/per-user-redemption check has a TOCTOU race under true concurrency | Edge case        | Proper fix needs an atomic RPC — a schema change, not a patch                    |
+| 3   | Coupon redemption concurrency race                                                     | ✅ Fixed          | `consume_coupon_redemption` now locks the coupon row and performs limits + ledger insert + counter increment atomically |
 | 4   | Per-story `<title>`/OpenGraph tags are static, not dynamic                             | SEO gap          | Needs converting the route to a `loader`-based pattern — an architectural change |
-| 5   | `OrdersManager.tsx` table clips instead of scrolling on narrow viewports               | Minor mobile UX  | Admin-only, low severity, low priority                                           |
-| 6   | `child-photos` bucket RLS policies unverifiable from repo (predate migration history)  | Needs live check | Same gap flagged in `docs/SECURITY-AUDIT.md`/`docs/LAUNCH-CHECKLIST.md`          |
+| 5   | Admin orders table mobile clipping                                                     | ✅ Fixed          | Wrapper now uses horizontal scrolling                                            |
+| 6   | `child-photos` owner isolation                                                       | ✅ Fixed in code  | Restrictive RLS + private bucket migration added; only deployment verification remains |
 | 7   | No real browser/device testing performed anywhere in this QA pass                      | Testing gap      | No staging environment or browser/device available in this sandboxed session     |
 
 ## Launch Blockers
@@ -170,9 +166,8 @@ code bugs:
   done anywhere, by anyone, on this codebase, in any session. Code
   correctness does not guarantee visual/interaction correctness across
   Safari/Chrome/Firefox/mobile.
-- **Item 6 (child-photos bucket RLS)** — a live 5-minute dashboard check,
-  not a code change; treat as a hard pre-launch checklist item, not
-  optional.
+- **Child-photo storage** now has a code-level restrictive RLS migration.
+  The remaining action is only to confirm that migration is deployed on the live Supabase project.
 
 ## Risk Assessment
 
@@ -210,10 +205,9 @@ in this environment. Before flipping this to a clean READY:
 1. Do one real pass through `docs/QA-CHECKLIST.md` in an actual browser
    (Chrome at minimum) and on one real phone (either OS) — this is the
    single highest-value remaining action.
-2. Spend five minutes in the Supabase dashboard confirming RLS on
-   `orders`, `user_roles`, `story_templates`, `generated_pages`, and the
-   `child-photos` bucket (all pre-date this repo's migration history and
-   have never been visually confirmed against the live project).
+2. Deploy/verify the latest migrations, then confirm RLS on the legacy
+   `orders`, `user_roles`, `story_templates`, and `generated_pages` tables.
+   For `child-photos`, verify the four restrictive policies and private bucket flag added by the new migration.
 3. Decide, as a business/product call rather than an engineering one,
    whether launching without admin coupon/reward-management tooling is
    acceptable for the beta cohort size, or whether it needs to be
