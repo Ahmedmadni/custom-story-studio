@@ -30,6 +30,23 @@ async function authorize(context: AdminContext) {
   return supabaseAdmin;
 }
 
+async function auditVideoAction(
+  context: { userId: string },
+  action: string,
+  targetType: "video_order" | "video_project" | "video_scene" | "video_render",
+  targetId: string,
+  metadata?: Record<string, unknown>,
+) {
+  const { logAdminAction } = await import("@/lib/audit/logAdminAction.server");
+  await logAdminAction({
+    actorId: context.userId,
+    action,
+    targetType,
+    targetId,
+    metadata,
+  });
+}
+
 const idInput = z.object({ videoOrderId: z.string().uuid() }).strict();
 const projectInput = z.object({ projectId: z.string().uuid() }).strict();
 const textField = z.string().trim().max(20_000);
@@ -387,6 +404,10 @@ export const updateVideoPaymentStatus = createServerFn({ method: "POST" })
         .eq("id", data.videoOrderId)
         .eq("payment_status", order.payment_status);
       if (error) throw new Error("تعذر رفض إيصال التحويل");
+      await auditVideoAction(context, "video_payment_rejected", "video_order", data.videoOrderId, {
+        reason:
+          data.reason?.trim() || "تعذر اعتماد إيصال التحويل. يرجى رفع إيصال جديد واضح.",
+      });
       return { ok: true as const, paymentStatus: "failed" as const };
     }
 
@@ -416,6 +437,10 @@ export const updateVideoPaymentStatus = createServerFn({ method: "POST" })
       .eq("id", project.id)
       .eq("status", "awaiting_payment");
     if (projectError) throw new Error("تعذر تحديث المشروع بعد الدفع");
+    await auditVideoAction(context, "video_payment_approved", "video_order", data.videoOrderId, {
+      project_id: project.id,
+      expected_delivery_at: expectedDeliveryAt,
+    });
 
     return {
       ok: true as const,
@@ -730,6 +755,7 @@ export const resetVideoStoryboard = createServerFn({ method: "POST" })
       .eq("id", project.id);
     if (error) throw new Error("تعذر إعادة بناء لوحة المشاهد");
     await invalidateCurrentRenders(admin, project.id);
+    await auditVideoAction(context, "video_storyboard_reset", "video_project", project.id);
     return { ok: true };
   });
 
@@ -818,6 +844,11 @@ export const finalizeVideoSceneClipUpload = createServerFn({ method: "POST" })
       .update({ quality_approved_at: null, quality_approved_by: null })
       .eq("id", project.id);
     await invalidateCurrentRenders(admin, project.id);
+    await auditVideoAction(context, "video_scene_clip_uploaded", "video_scene", scene.id, {
+      project_id: project.id,
+      size_bytes: data.sizeBytes,
+      mime_type: data.mimeType,
+    });
     return { ok: true as const };
   });
 
@@ -914,6 +945,15 @@ export const finalizeVideoFinalRenderUpload = createServerFn({ method: "POST" })
       .from("video_projects")
       .update({ quality_approved_at: null, quality_approved_by: null })
       .eq("id", project.id);
+    await auditVideoAction(context, "video_final_render_uploaded", "video_render", project.id, {
+      project_id: project.id,
+      version,
+      size_bytes: stored.sizeBytes,
+      mime_type: data.mimeType,
+      duration_ms: data.durationMs,
+      width: data.width,
+      height: data.height,
+    });
     return { ok: true as const, version };
   });
 
@@ -1093,6 +1133,9 @@ export const approveVideoScene = createServerFn({ method: "POST" })
       .eq("id", scene.id)
       .eq("status", "review");
     if (error) throw new Error("تعذر اعتماد المشهد");
+    await auditVideoAction(context, "video_scene_approved", "video_scene", scene.id, {
+      project_id: project.id,
+    });
     return { ok: true };
   });
 
@@ -1122,6 +1165,9 @@ export const markVideoProjectReady = createServerFn({ method: "POST" })
       .eq("id", project.id)
       .eq("status", "processing");
     if (error) throw new Error("تعذر إكمال المشروع");
+    await auditVideoAction(context, "video_project_ready", "video_project", project.id, {
+      render_id: render.id,
+    });
     return { ok: true };
   });
 
@@ -1153,5 +1199,9 @@ export const markVideoDelivered = createServerFn({ method: "POST" })
       .eq("id", data.videoOrderId)
       .eq("delivery_status", "pending");
     if (error) throw new Error("تعذر تسجيل التسليم");
+    await auditVideoAction(context, "video_delivered", "video_order", data.videoOrderId, {
+      project_id: project.id,
+      render_id: render.id,
+    });
     return { ok: true };
   });
