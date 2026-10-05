@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Clock3, Film, ShoppingCart } from "lucide-react";
+import { Clock3, Film, Loader2, Receipt, ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
 
 import { EmptyState } from "@/components/EmptyState";
 import { Footer } from "@/components/Footer";
@@ -10,7 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isKidzyVideoEnabled } from "@/features/video/config";
 import { VideoUnavailable } from "@/features/video/VideoUnavailable";
-import { listMyVideoOrders } from "@/features/video/video-order.functions";
+import {
+  listMyVideoOrders,
+  replaceVideoPaymentReceipt,
+} from "@/features/video/video-order.functions";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { optimizeImage } from "@/lib/imageOptimize";
 
 export const Route = createFileRoute("/_authenticated/my-videos")({
   head: () => ({ meta: [{ title: "طلبات الفيديو — كيدزي" }] }),
@@ -19,7 +26,33 @@ export const Route = createFileRoute("/_authenticated/my-videos")({
 
 function MyVideosPage() {
   const enabled = isKidzyVideoEnabled();
+  const { user } = useAuth();
+  const qc = useQueryClient();
   const listFn = useServerFn(listMyVideoOrders);
+  const replaceReceiptFn = useServerFn(replaceVideoPaymentReceipt);
+  const replaceReceipt = useMutation({
+    mutationFn: async ({ orderId, file }: { orderId: string; file: File }) => {
+      if (!user) throw new Error("سجّل الدخول أولاً");
+      if (!file.type.startsWith("image/")) throw new Error("اختر صورة صالحة لإيصال التحويل");
+      if (file.size > 8 * 1024 * 1024) throw new Error("حجم الإيصال يجب ألا يتجاوز 8 ميجابايت");
+
+      const optimized = await optimizeImage(file, { maxWidth: 1800, quality: 0.85 });
+      const ext = optimized.file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const paymentReceiptPath = `${user.id}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("payment-receipts")
+        .upload(paymentReceiptPath, optimized.file, { contentType: optimized.file.type });
+      if (error) throw new Error("تعذر رفع إيصال التحويل");
+
+      return replaceReceiptFn({ data: { orderId, paymentReceiptPath } });
+    },
+    onSuccess: () => {
+      toast.success("تم رفع الإيصال الجديد — عاد الطلب لمراجعة الإدارة");
+      void qc.invalidateQueries({ queryKey: ["my-video-orders"] });
+    },
+    onError: (error: Error) => toast.error(error.message || "تعذر تحديث الإيصال"),
+  });
+
   const { data: orders, isLoading } = useQuery({
     queryKey: ["my-video-orders"],
     queryFn: () => listFn(),
@@ -86,6 +119,32 @@ function MyVideosPage() {
                     التسليم المتوقع:{" "}
                     {new Date(order.expectedDeliveryAt).toLocaleDateString("ar-EG")}
                   </p>
+                )}
+                {order.paymentNeedsAction && (
+                  <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
+                    <p className="font-bold text-amber-800">
+                      تعذر اعتماد الإيصال السابق. ارفع إيصالاً جديداً واضحاً لإعادة المراجعة.
+                    </p>
+                    <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">
+                      {replaceReceipt.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Receipt className="h-4 w-4" />
+                      )}
+                      رفع إيصال جديد
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={replaceReceipt.isPending}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) replaceReceipt.mutate({ orderId: order.id, file });
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
                 )}
                 {order.finalDeliveryAvailable && order.finalVideoUrl ? (
                   <video
