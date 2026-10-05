@@ -305,12 +305,13 @@ export const approveVideoPaymentAndPrepareScenes = createServerFn({ method: "POS
       throw new Error("إيصال التحويل غير موجود");
 
     const now = new Date().toISOString();
-    if (order.payment_status !== "paid") {
+    const paymentJustApproved = order.payment_status !== "paid";
+    const expectedDeliveryAt =
+      order.expected_delivery_at ??
+      new Date(Date.now() + 48 * 60 * 60 * 1_000).toISOString();
+    if (paymentJustApproved) {
       if (!["unpaid", "pending"].includes(order.payment_status))
         throw new Error("حالة الدفع الحالية لا تسمح بالاعتماد");
-      const expectedDeliveryAt =
-        order.expected_delivery_at ??
-        new Date(Date.now() + 48 * 60 * 60 * 1_000).toISOString();
       const options = objectValue(order.order_options_snapshot);
       const { error } = await admin
         .from("video_orders")
@@ -340,6 +341,23 @@ export const approveVideoPaymentAndPrepareScenes = createServerFn({ method: "POS
       data.videoOrderId,
       { project_id: project.id, scene_count: storyboard.scenes.length },
     );
+
+    if (paymentJustApproved) {
+      const child = objectValue(project.child_snapshot);
+      const [{ sendVideoCustomerEmail }, { videoPaymentConfirmedEmail }] = await Promise.all([
+        import("@/features/video/video-notifications.server"),
+        import("@/features/notifications/videoEmailTemplates"),
+      ]);
+      await sendVideoCustomerEmail({
+        userId: order.user_id,
+        template: videoPaymentConfirmedEmail({
+          childName: String(child.name ?? "طفلك"),
+          storyTitle: project.title,
+          expectedDeliveryAt,
+        }),
+      });
+    }
+
     return { ok: true as const, sceneCount: storyboard.scenes.length };
   });
 

@@ -472,9 +472,23 @@ export const updateVideoPaymentStatus = createServerFn({ method: "POST" })
         .eq("id", data.videoOrderId)
         .eq("payment_status", order.payment_status);
       if (error) throw new Error("تعذر رفض إيصال التحويل");
+      const rejectionReason =
+        data.reason?.trim() || "تعذر اعتماد إيصال التحويل. يرجى رفع إيصال جديد واضح.";
       await auditVideoAction(context, "video_payment_rejected", "video_order", data.videoOrderId, {
-        reason:
-          data.reason?.trim() || "تعذر اعتماد إيصال التحويل. يرجى رفع إيصال جديد واضح.",
+        reason: rejectionReason,
+      });
+      const child = objectValue(project.child_snapshot);
+      const [{ sendVideoCustomerEmail }, { videoPaymentIssueEmail }] = await Promise.all([
+        import("@/features/video/video-notifications.server"),
+        import("@/features/notifications/videoEmailTemplates"),
+      ]);
+      await sendVideoCustomerEmail({
+        userId: project.user_id,
+        template: videoPaymentIssueEmail({
+          childName: String(child.name ?? "طفلك"),
+          storyTitle: project.title,
+          reason: rejectionReason,
+        }),
       });
       return { ok: true as const, paymentStatus: "failed" as const };
     }
@@ -508,6 +522,19 @@ export const updateVideoPaymentStatus = createServerFn({ method: "POST" })
     await auditVideoAction(context, "video_payment_approved", "video_order", data.videoOrderId, {
       project_id: project.id,
       expected_delivery_at: expectedDeliveryAt,
+    });
+    const child = objectValue(project.child_snapshot);
+    const [{ sendVideoCustomerEmail }, { videoPaymentConfirmedEmail }] = await Promise.all([
+      import("@/features/video/video-notifications.server"),
+      import("@/features/notifications/videoEmailTemplates"),
+    ]);
+    await sendVideoCustomerEmail({
+      userId: project.user_id,
+      template: videoPaymentConfirmedEmail({
+        childName: String(child.name ?? "طفلك"),
+        storyTitle: project.title,
+        expectedDeliveryAt,
+      }),
     });
 
     return {
@@ -1357,6 +1384,18 @@ export const markVideoDelivered = createServerFn({ method: "POST" })
     await auditVideoAction(context, "video_delivered", "video_order", data.videoOrderId, {
       project_id: project.id,
       render_id: render.id,
+    });
+    const child = objectValue(project.child_snapshot);
+    const [{ sendVideoCustomerEmail }, { videoDeliveredEmail }] = await Promise.all([
+      import("@/features/video/video-notifications.server"),
+      import("@/features/notifications/videoEmailTemplates"),
+    ]);
+    await sendVideoCustomerEmail({
+      userId: project.user_id,
+      template: videoDeliveredEmail({
+        childName: String(child.name ?? "طفلك"),
+        storyTitle: project.title,
+      }),
     });
     return { ok: true };
   });
