@@ -21,7 +21,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { GENDER_OPTIONS, LANGUAGE_OPTIONS } from "@/features/ai/storyTypes";
 import { updateMyOrder } from "@/features/admin/admin.functions";
-import { pagesOptionsFor } from "@/features/cart/pricing";
 import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
 import { optimizeImage } from "@/lib/imageOptimize";
 
@@ -82,8 +81,8 @@ export function OrderEditDialog({
   const [language, setLanguage] = useState<"ar" | "en" | "bilingual">("ar");
   const [photoMode, setPhotoMode] = useState<"cartoon" | "real">("cartoon");
   const [pagesCount, setPagesCount] = useState<10 | 16>(10);
-  const printCopy = false;
-  const deliveryAddress = "";
+  const printCopy = Boolean(order?.print_copy);
+  const deliveryAddress = order?.delivery_address ?? "";
   const [gifterName, setGifterName] = useState("");
   const [gifterRelation, setGifterRelation] = useState("");
   const [publishConsent, setPublishConsent] = useState(false);
@@ -177,8 +176,6 @@ export function OrderEditDialog({
   });
 
   if (!order) return null;
-  const pagesOpts = pagesOptionsFor(order.isCustom);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
@@ -267,18 +264,11 @@ export function OrderEditDialog({
 
           <div>
             <Label>عدد الصفحات</Label>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {pagesOpts.map((opt) => (
-                <button
-                  key={opt.pages}
-                  type="button"
-                  onClick={() => setPagesCount(opt.pages)}
-                  className={`rounded-xl border-2 p-2 text-start ${pagesCount === opt.pages ? "border-primary bg-primary/10" : "border-border"}`}
-                >
-                  <span className="block font-bold">{opt.pages} صفحة</span>
-                  <span className="text-xs font-extrabold text-primary">{opt.price} ج</span>
-                </button>
-              ))}
+            <div className="mt-2 rounded-xl border-2 border-border bg-secondary/30 p-3">
+              <span className="font-bold">{pagesCount} صفحة</span>
+              <p className="mt-1 text-xs text-muted-foreground">
+                الباقة والسعر مقفلان بعد إنشاء الطلب. لتغيير عدد الصفحات احذف الطلب قبل الاعتماد وأنشئه من جديد.
+              </p>
             </div>
           </div>
 

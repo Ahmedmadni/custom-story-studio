@@ -58,13 +58,45 @@ export const createKashierCheckout = createServerFn({ method: "POST" })
 
     // pricing — same logic as vodafone-cash checkout
     const templateIds = Array.from(new Set(data.items.map((i) => i.templateId)));
-    const { data: tplRows } = await context.supabase
+    const { data: tplRows, error: templateError } = await context.supabase
       .from("story_templates")
       .select("id, is_custom")
       .in("id", templateIds);
+    if (templateError || (tplRows ?? []).length !== templateIds.length) {
+      throw new Error("إحدى القصص غير متاحة للطلب");
+    }
     const isCustomById = new Map<string, boolean>(
-      (tplRows ?? []).map((r) => [r.id as string, Boolean((r as { is_custom?: boolean }).is_custom)]),
+      (tplRows ?? []).map((r) => [
+        r.id as string,
+        Boolean((r as { is_custom?: boolean }).is_custom),
+      ]),
     );
+
+    for (const item of data.items) {
+      if (!item.childPhotoPath.startsWith(`${context.userId}/`)) {
+        throw new Error("إحدى صور الأطفال لا تخص هذا الحساب");
+      }
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const photoNames = data.items.map((item) =>
+      item.childPhotoPath.slice(context.userId.length + 1),
+    );
+    const photoResults = await Promise.all(
+      photoNames.map((photoName) =>
+        supabaseAdmin.storage
+          .from("child-photos")
+          .list(context.userId, { limit: 20, search: photoName }),
+      ),
+    );
+    photoResults.forEach((result, index) => {
+      const photoName = photoNames[index];
+      if (
+        result.error ||
+        !(result.data ?? []).some((file) => file.name === photoName)
+      ) {
+        throw new Error("إحدى صور الأطفال غير موجودة أو لا تخص هذا الحساب");
+      }
+    });
 
     // single grouping id used as Kashier merchantOrderId
     const kashierOrderId = `KZ-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

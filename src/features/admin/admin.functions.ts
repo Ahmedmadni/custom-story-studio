@@ -225,25 +225,37 @@ export const adminVerifyPayment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context as unknown as AuthedContext);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: current, error: currentError } = await supabaseAdmin
+      .from("orders")
+      .select("id, user_id, payment_status")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (currentError || !current) throw new Error("الطلب غير موجود");
+    if (current.payment_status === "verified") {
+      return { ok: true, alreadyVerified: true };
+    }
+
+    const verifiedAt = new Date().toISOString();
     const { data: order, error } = await supabaseAdmin
       .from("orders")
       .update({
         payment_status: "verified",
         payment_verified_by: context.userId,
-        payment_verified_at: new Date().toISOString(),
-        // للطلبات المرسَلة بإيصال (Vodafone Cash)، paid_at كان يُضبط عند رفع
-        // الإيصال لا عند التأكيد الفعلي — ما يجعل تقرير "إيرادات اليوم" في
-        // /admin/health (يُصفّي على paid_at) يُفوّت طلبات أُكِّدت اليوم لكن
-        // رُفع إيصالها يوماً سابقاً. نضبطها هنا لتطابق سلوك Kashier/الطلبات
-        // المعتمدة مباشرة من الأدمن (paid_at = لحظة التأكيد الفعلية دائماً).
-        paid_at: new Date().toISOString(),
+        payment_verified_at: verifiedAt,
+        paid_at: verifiedAt,
         payment_rejection_reason: null,
         status: "approved",
       })
       .eq("id", data.orderId)
+      .neq("payment_status", "verified")
       .select("user_id")
-      .single();
+      .maybeSingle();
     if (error) throw new Error("تعذر تأكيد الدفع");
+    if (!order) {
+      // Another admin may have verified the same order between the read and update.
+      return { ok: true, alreadyVerified: true };
+    }
 
     // مكافأة الإحالة (إن وُجدت) بعد أول طلب مؤكَّد — لا تُفشل تأكيد الدفع لو حدث خطأ هنا
     try {
@@ -260,9 +272,10 @@ export const adminVerifyPayment = createServerFn({ method: "POST" })
       action: "verify_payment",
       targetType: "order",
       targetId: data.orderId,
+      metadata: { verified_at: verifiedAt },
     });
 
-    return { ok: true };
+    return { ok: true, alreadyVerified: false };
   });
 
 const RejectInput = z.object({
@@ -276,11 +289,27 @@ export const adminRejectPayment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context as unknown as AuthedContext);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: current, error: currentError } = await supabaseAdmin
+      .from("orders")
+      .select("id, status, payment_status")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (currentError || !current) throw new Error("الطلب غير موجود");
+    if (["generating", "ready", "sent"].includes(current.status)) {
+      throw new Error("لا يمكن رفض الدفع بعد بدء إنتاج أو تسليم الطلب");
+    }
+    if (current.payment_status === "rejected" && current.status === "rejected") {
+      return { ok: true, alreadyRejected: true };
+    }
+
     const { error } = await supabaseAdmin
       .from("orders")
       .update({
         payment_status: "rejected",
         payment_rejection_reason: data.reason,
+        payment_verified_by: null,
+        payment_verified_at: null,
+        paid_at: null,
         status: "rejected",
       })
       .eq("id", data.orderId);
@@ -295,7 +324,7 @@ export const adminRejectPayment = createServerFn({ method: "POST" })
       metadata: { reason: data.reason },
     });
 
-    return { ok: true };
+    return { ok: true, alreadyRejected: false };
   });
 
 const SetStatusInput = z.object({
@@ -310,6 +339,27 @@ export const adminSetStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context as unknown as AuthedContext);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: current, error: currentError } = await supabaseAdmin
+      .from("orders")
+      .select("id, status, payment_status")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (currentError || !current) throw new Error("الطلب غير موجود");
+
+    if (
+      ["approved", "generating", "ready", "sent"].includes(data.status) &&
+      current.payment_status !== "verified"
+    ) {
+      throw new Error("يجب اعتماد الدفع قبل نقل الطلب إلى مرحلة الإنتاج أو التسليم");
+    }
+
+    if (
+      current.status === data.status &&
+      data.adminNotes === undefined
+    ) {
+      return { ok: true };
+    }
+
     const { error } = await supabaseAdmin
       .from("orders")
       .update({
@@ -318,6 +368,16 @@ export const adminSetStatus = createServerFn({ method: "POST" })
       })
       .eq("id", data.orderId);
     if (error) throw new Error("تعذر تحديث الطلب");
+
+    const { logAdminAction } = await import("@/lib/audit/logAdminAction.server");
+    await logAdminAction({
+      actorId: context.userId,
+      action: "set_order_status",
+      targetType: "order",
+      targetId: data.orderId,
+      metadata: { from: current.status, to: data.status },
+    });
+
     return { ok: true };
   });
 
@@ -462,14 +522,14 @@ async function assertOrderEditable(
 ) {
   const { data: order, error } = await supabaseAdmin
     .from("orders")
-    .select("id, user_id, status, payment_status, child_photo_path, receipt_path")
+    .select("id, user_id, status, payment_status, child_photo_path, receipt_path, pages_count, print_copy, delivery_address, discount_egp, coupon_code")
     .eq("id", orderId)
     .single();
   if (error || !order) throw new Error("الطلب غير موجود");
   if (order.user_id !== userId) throw new Error("غير مصرح");
   if ((order.payment_status as string) === "verified")
     throw new Error("لا يمكن التعديل بعد اعتماد الدفع من الإدارة");
-  if (!["pending"].includes(order.status as string))
+  if (!["pending", "rejected"].includes(order.status as string))
     throw new Error("لا يمكن التعديل بعد بدء معالجة الطلب");
   const { count } = await supabaseAdmin
     .from("generated_pages")
@@ -483,6 +543,11 @@ async function assertOrderEditable(
     payment_status: string;
     child_photo_path: string | null;
     receipt_path: string | null;
+    pages_count: number;
+    print_copy: boolean;
+    delivery_address: string | null;
+    discount_egp: number;
+    coupon_code: string | null;
   };
 }
 
@@ -516,22 +581,46 @@ export const updateMyOrder = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const existing = await assertOrderEditable(supabaseAdmin, data.orderId, context.userId);
 
-    // إعادة احتساب السعر حسب نوع القالب
-    const { data: orderTpl } = await supabaseAdmin
-      .from("orders")
-      .select("template_id, story_templates!template_id(is_custom)")
-      .eq("id", data.orderId)
-      .single();
-    const isCustom = Boolean(
-      (orderTpl as { story_templates?: { is_custom?: boolean } } | null)?.story_templates
-        ?.is_custom,
-    );
-    const { pricePerPages, PRINT_COPY_PRICE_EGP } = await import("@/features/cart/pricing");
-    const base = pricePerPages(data.pagesCount, isCustom);
-    const priceEgp = base + (data.printCopy ? PRINT_COPY_PRICE_EGP : 0);
+    // الشروط التجارية (عدد الصفحات/الطباعة) تُقفل بعد إنشاء الطلب.
+    // تعديلها هنا كان يمكن أن يفصل السعر عن خصومات الباقة/الكوبون أو عن قيمة
+    // الإيصال المرفوع. لتغيير الباقة يحذف العميل الطلب قبل الاعتماد وينشئه من جديد.
+    if (
+      data.pagesCount !== existing.pages_count ||
+      data.printCopy !== Boolean(existing.print_copy)
+    ) {
+      throw new Error("لا يمكن تغيير باقة الصفحات أو الطباعة بعد إنشاء الطلب");
+    }
 
-    if (data.printCopy && !(data.deliveryAddress ?? "").trim()) {
-      throw new Error("اكتب عنوان التوصيل لطلب نسخة مطبوعة");
+    if (existing.print_copy && !(data.deliveryAddress ?? "").trim()) {
+      throw new Error("اكتب عنوان التوصيل لطلب النسخة المطبوعة");
+    }
+
+    const verifyOwnedStorageObject = async (
+      bucket: "child-photos" | "payment-receipts",
+      path: string,
+      label: string,
+    ) => {
+      if (!path.startsWith(`${context.userId}/`)) {
+        throw new Error(`${label} غير صالح لهذا الحساب`);
+      }
+      const name = path.slice(context.userId.length + 1);
+      const { data: files, error } = await supabaseAdmin.storage
+        .from(bucket)
+        .list(context.userId, { limit: 20, search: name });
+      if (error || !(files ?? []).some((file) => file.name === name)) {
+        throw new Error(`${label} غير موجود أو لا يخص هذا الحساب`);
+      }
+    };
+
+    if (data.newChildPhotoPath) {
+      await verifyOwnedStorageObject("child-photos", data.newChildPhotoPath, "صورة الطفل");
+    }
+    if (data.newReceiptPath) {
+      await verifyOwnedStorageObject(
+        "payment-receipts",
+        data.newReceiptPath,
+        "إيصال التحويل",
+      );
     }
 
     const patch: Record<string, unknown> = {
@@ -543,12 +632,11 @@ export const updateMyOrder = createServerFn({ method: "POST" })
       notes: data.notes?.trim() || null,
       language: data.language,
       photo_mode: data.photoMode,
-      pages_count: data.pagesCount,
-      print_copy: data.printCopy,
-      delivery_address: data.printCopy ? (data.deliveryAddress ?? "").trim() : null,
+      delivery_address: existing.print_copy
+        ? (data.deliveryAddress ?? "").trim()
+        : null,
       gifted_by_name: data.gifterName?.trim() || null,
       gifted_by_relation: data.gifterRelation?.trim() || null,
-      price_egp: priceEgp,
     };
     if (data.publishConsent !== undefined) patch.publish_consent = data.publishConsent;
     if (data.newChildPhotoPath) patch.child_photo_path = data.newChildPhotoPath;
@@ -556,6 +644,10 @@ export const updateMyOrder = createServerFn({ method: "POST" })
       patch.receipt_path = data.newReceiptPath;
       patch.payment_status = "receipt_uploaded";
       patch.payment_rejection_reason = null;
+      patch.payment_verified_by = null;
+      patch.payment_verified_at = null;
+      patch.paid_at = null;
+      patch.status = "pending";
     }
 
     const { error } = await supabaseAdmin
@@ -571,14 +663,18 @@ export const updateMyOrder = createServerFn({ method: "POST" })
       existing.child_photo_path &&
       existing.child_photo_path !== data.newChildPhotoPath
     ) {
-      removals.push({ bucket: "child-photos", path: existing.child_photo_path });
+      if (existing.child_photo_path.startsWith(`${context.userId}/`)) {
+        removals.push({ bucket: "child-photos", path: existing.child_photo_path });
+      }
     }
     if (
       data.newReceiptPath &&
       existing.receipt_path &&
       existing.receipt_path !== data.newReceiptPath
     ) {
-      removals.push({ bucket: "payment-receipts", path: existing.receipt_path });
+      if (existing.receipt_path.startsWith(`${context.userId}/`)) {
+        removals.push({ bucket: "payment-receipts", path: existing.receipt_path });
+      }
     }
     await Promise.all(removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])));
 
@@ -594,14 +690,27 @@ export const deleteMyOrder = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const existing = await assertOrderEditable(supabaseAdmin, data.orderId, context.userId);
+    if ((existing.discount_egp ?? 0) > 0 || existing.coupon_code) {
+      throw new Error(
+        "هذا الطلب مرتبط بخصم باقة أو كوبون؛ لا يمكن حذف عنصر واحد منه بشكل منفصل",
+      );
+    }
     const { error } = await supabaseAdmin.from("orders").delete().eq("id", data.orderId);
     if (error) throw new Error("تعذر حذف الطلب");
     // نظافة ملفات
     const removals: Array<{ bucket: string; path: string }> = [];
-    if (existing.child_photo_path)
+    if (
+      existing.child_photo_path &&
+      existing.child_photo_path.startsWith(`${context.userId}/`)
+    ) {
       removals.push({ bucket: "child-photos", path: existing.child_photo_path });
-    if (existing.receipt_path)
+    }
+    if (
+      existing.receipt_path &&
+      existing.receipt_path.startsWith(`${context.userId}/`)
+    ) {
       removals.push({ bucket: "payment-receipts", path: existing.receipt_path });
+    }
     await Promise.all(removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])));
     return { ok: true };
   });

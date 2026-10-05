@@ -46,6 +46,38 @@ export const submitCustomStoryRequest = createServerFn({ method: "POST" })
       .join("\n");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    if (!data.receiptPath.startsWith(`${context.userId}/`)) {
+      throw new Error("إيصال التحويل غير صالح لهذا الحساب");
+    }
+    if (data.childPhotoPath && !data.childPhotoPath.startsWith(`${context.userId}/`)) {
+      throw new Error("صورة الطفل غير صالحة لهذا الحساب");
+    }
+
+    const receiptName = data.receiptPath.slice(context.userId.length + 1);
+    const { data: receiptFiles, error: receiptListError } = await supabaseAdmin.storage
+      .from("payment-receipts")
+      .list(context.userId, { limit: 20, search: receiptName });
+    if (
+      receiptListError ||
+      !(receiptFiles ?? []).some((file) => file.name === receiptName)
+    ) {
+      throw new Error("إيصال التحويل غير موجود أو لا يخص هذا الحساب");
+    }
+
+    if (data.childPhotoPath) {
+      const photoName = data.childPhotoPath.slice(context.userId.length + 1);
+      const { data: photoFiles, error: photoListError } = await supabaseAdmin.storage
+        .from("child-photos")
+        .list(context.userId, { limit: 20, search: photoName });
+      if (
+        photoListError ||
+        !(photoFiles ?? []).some((file) => file.name === photoName)
+      ) {
+        throw new Error("صورة الطفل غير موجودة أو لا تخص هذا الحساب");
+      }
+    }
+
     const { data: inserted, error } = await supabaseAdmin
       .from("orders")
       .insert({
