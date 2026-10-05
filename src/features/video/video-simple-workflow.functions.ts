@@ -40,6 +40,23 @@ async function authorize(context: AdminContext): Promise<Admin> {
   return supabaseAdmin;
 }
 
+async function auditVideoAction(
+  context: { userId: string },
+  action: string,
+  targetType: "video_order" | "video_project",
+  targetId: string,
+  metadata?: Record<string, unknown>,
+) {
+  const { logAdminAction } = await import("@/lib/audit/logAdminAction.server");
+  await logAdminAction({
+    actorId: context.userId,
+    action,
+    targetType,
+    targetId,
+    metadata,
+  });
+}
+
 function objectValue(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -296,6 +313,13 @@ export const approveVideoPaymentAndPrepareScenes = createServerFn({ method: "POS
       throw new Error("حالة مشروع الفيديو لا تسمح ببدء الإنتاج");
 
     const storyboard = await prepareScenes(admin, project, context.userId);
+    await auditVideoAction(
+      context,
+      "video_payment_approved_and_scenes_prepared",
+      "video_order",
+      data.videoOrderId,
+      { project_id: project.id, scene_count: storyboard.scenes.length },
+    );
     return { ok: true as const, sceneCount: storyboard.scenes.length };
   });
 
@@ -312,6 +336,9 @@ export const prepareVideoScenesAutomatically = createServerFn({ method: "POST" }
       .single();
     if (order?.payment_status !== "paid") throw new Error("يجب اعتماد السداد أولاً");
     const storyboard = await prepareScenes(admin, project, context.userId);
+    await auditVideoAction(context, "video_scenes_prepared", "video_project", project.id, {
+      scene_count: storyboard.scenes.length,
+    });
     return { ok: true as const, sceneCount: storyboard.scenes.length };
   });
 
@@ -334,6 +361,9 @@ export const beginVideoFinalization = createServerFn({ method: "POST" })
       .update({ production_stage: "quality_review", quality_approved_at: null, quality_approved_by: null })
       .eq("id", project.id);
     if (error) throw new Error("تعذر بدء المرحلة النهائية");
+    await auditVideoAction(context, "video_finalization_started", "video_project", project.id, {
+      scene_count: scenes.length,
+    });
     return { ok: true as const };
   });
 
@@ -371,5 +401,9 @@ export const approveFinalVideoAndMarkReady = createServerFn({ method: "POST" })
       })
       .eq("id", project.id);
     if (error) throw new Error("تعذر اعتماد وإصدار الفيديو");
+    await auditVideoAction(context, "video_final_approved", "video_project", project.id, {
+      render_id: render.id,
+      completed_at: now,
+    });
     return { ok: true as const };
   });
