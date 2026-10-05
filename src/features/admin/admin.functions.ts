@@ -225,25 +225,37 @@ export const adminVerifyPayment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context as unknown as AuthedContext);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: current, error: currentError } = await supabaseAdmin
+      .from("orders")
+      .select("id, user_id, payment_status")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (currentError || !current) throw new Error("الطلب غير موجود");
+    if (current.payment_status === "verified") {
+      return { ok: true, alreadyVerified: true };
+    }
+
+    const verifiedAt = new Date().toISOString();
     const { data: order, error } = await supabaseAdmin
       .from("orders")
       .update({
         payment_status: "verified",
         payment_verified_by: context.userId,
-        payment_verified_at: new Date().toISOString(),
-        // للطلبات المرسَلة بإيصال (Vodafone Cash)، paid_at كان يُضبط عند رفع
-        // الإيصال لا عند التأكيد الفعلي — ما يجعل تقرير "إيرادات اليوم" في
-        // /admin/health (يُصفّي على paid_at) يُفوّت طلبات أُكِّدت اليوم لكن
-        // رُفع إيصالها يوماً سابقاً. نضبطها هنا لتطابق سلوك Kashier/الطلبات
-        // المعتمدة مباشرة من الأدمن (paid_at = لحظة التأكيد الفعلية دائماً).
-        paid_at: new Date().toISOString(),
+        payment_verified_at: verifiedAt,
+        paid_at: verifiedAt,
         payment_rejection_reason: null,
         status: "approved",
       })
       .eq("id", data.orderId)
+      .neq("payment_status", "verified")
       .select("user_id")
-      .single();
+      .maybeSingle();
     if (error) throw new Error("تعذر تأكيد الدفع");
+    if (!order) {
+      // Another admin may have verified the same order between the read and update.
+      return { ok: true, alreadyVerified: true };
+    }
 
     // مكافأة الإحالة (إن وُجدت) بعد أول طلب مؤكَّد — لا تُفشل تأكيد الدفع لو حدث خطأ هنا
     try {
@@ -260,9 +272,10 @@ export const adminVerifyPayment = createServerFn({ method: "POST" })
       action: "verify_payment",
       targetType: "order",
       targetId: data.orderId,
+      metadata: { verified_at: verifiedAt },
     });
 
-    return { ok: true };
+    return { ok: true, alreadyVerified: false };
   });
 
 const RejectInput = z.object({
@@ -276,6 +289,19 @@ export const adminRejectPayment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context as unknown as AuthedContext);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: current, error: currentError } = await supabaseAdmin
+      .from("orders")
+      .select("id, status, payment_status")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (currentError || !current) throw new Error("الطلب غير موجود");
+    if (["generating", "ready", "sent"].includes(current.status)) {
+      throw new Error("لا يمكن رفض الدفع بعد بدء إنتاج أو تسليم الطلب");
+    }
+    if (current.payment_status === "rejected" && current.status === "rejected") {
+      return { ok: true, alreadyRejected: true };
+    }
+
     const { error } = await supabaseAdmin
       .from("orders")
       .update({
@@ -295,7 +321,7 @@ export const adminRejectPayment = createServerFn({ method: "POST" })
       metadata: { reason: data.reason },
     });
 
-    return { ok: true };
+    return { ok: true, alreadyRejected: false };
   });
 
 const SetStatusInput = z.object({
@@ -310,6 +336,27 @@ export const adminSetStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context as unknown as AuthedContext);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: current, error: currentError } = await supabaseAdmin
+      .from("orders")
+      .select("id, status, payment_status")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (currentError || !current) throw new Error("الطلب غير موجود");
+
+    if (
+      ["approved", "generating", "ready", "sent"].includes(data.status) &&
+      current.payment_status !== "verified"
+    ) {
+      throw new Error("يجب اعتماد الدفع قبل نقل الطلب إلى مرحلة الإنتاج أو التسليم");
+    }
+
+    if (
+      current.status === data.status &&
+      data.adminNotes === undefined
+    ) {
+      return { ok: true };
+    }
+
     const { error } = await supabaseAdmin
       .from("orders")
       .update({
@@ -318,6 +365,16 @@ export const adminSetStatus = createServerFn({ method: "POST" })
       })
       .eq("id", data.orderId);
     if (error) throw new Error("تعذر تحديث الطلب");
+
+    const { logAdminAction } = await import("@/lib/audit/logAdminAction.server");
+    await logAdminAction({
+      actorId: context.userId,
+      action: "set_order_status",
+      targetType: "order",
+      targetId: data.orderId,
+      metadata: { from: current.status, to: data.status },
+    });
+
     return { ok: true };
   });
 
