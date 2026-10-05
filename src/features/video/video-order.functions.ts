@@ -193,7 +193,7 @@ export const submitVideoOrder = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: offering } = await supabaseAdmin
       .from("template_product_offerings")
-      .select("price_egp, story_templates!template_id(id, is_published)")
+      .select("price_egp, story_templates!template_id(id, title, is_published)")
       .eq("template_id", data.templateId)
       .eq("product_type", "personalized_video")
       .eq("is_enabled", true)
@@ -357,6 +357,20 @@ export const submitVideoOrder = createServerFn({ method: "POST" })
       },
     ]);
     if (!dto) throw new Error("تعذر قراءة طلب الفيديو بعد إنشائه");
+
+    const [{ sendVideoCustomerEmail }, { videoOrderReceivedEmail }] = await Promise.all([
+      import("@/features/video/video-notifications.server"),
+      import("@/features/notifications/videoEmailTemplates"),
+    ]);
+    await sendVideoCustomerEmail({
+      userId: context.userId,
+      template: videoOrderReceivedEmail({
+        childName: data.childName,
+        storyTitle: offering.story_templates.title,
+        priceEgp: offering.price_egp,
+      }),
+    });
+
     return dto;
   });
 
