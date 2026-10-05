@@ -23,6 +23,8 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
   const updatePayment = useServerFn(api.updateVideoPaymentStatus);
   const requestSceneClipUpload = useServerFn(api.requestVideoSceneClipUpload);
   const finalizeSceneClipUpload = useServerFn(api.finalizeVideoSceneClipUpload);
+  const requestSceneAudioUpload = useServerFn(api.requestVideoSceneAudioUpload);
+  const finalizeSceneAudioUpload = useServerFn(api.finalizeVideoSceneAudioUpload);
   const approveScene = useServerFn(api.approveVideoScene);
   const updateScene = useServerFn(api.updateVideoScene);
   const resetStoryboard = useServerFn(api.resetVideoStoryboard);
@@ -130,6 +132,33 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
     throw new Error("صيغة الفيديو غير مدعومة. استخدم MP4 أو WebM أو MOV");
   };
 
+  type AudioMime =
+    | "audio/mpeg"
+    | "audio/wav"
+    | "audio/x-wav"
+    | "audio/ogg"
+    | "audio/webm"
+    | "audio/mp4";
+
+  const audioMimeFor = (file: File): AudioMime => {
+    const supported: AudioMime[] = [
+      "audio/mpeg",
+      "audio/wav",
+      "audio/x-wav",
+      "audio/ogg",
+      "audio/webm",
+      "audio/mp4",
+    ];
+    if (supported.includes(file.type as AudioMime)) return file.type as AudioMime;
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    if (extension === "mp3") return "audio/mpeg";
+    if (extension === "wav") return "audio/wav";
+    if (extension === "ogg") return "audio/ogg";
+    if (extension === "webm") return "audio/webm";
+    if (extension === "m4a" || extension === "mp4") return "audio/mp4";
+    throw new Error("صيغة التعليق الصوتي غير مدعومة");
+  };
+
   const uploadSceneDirect = async (sceneId: string, file: File) => {
     const mimeType = videoMimeFor(file);
     const ticket = await requestSceneClipUpload({
@@ -140,6 +169,25 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
       .uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: mimeType });
     if (error) throw new Error("تعذر رفع مقطع المشهد مباشرة إلى التخزين");
     return finalizeSceneClipUpload({
+      data: {
+        sceneId,
+        path: ticket.path,
+        mimeType,
+        sizeBytes: file.size,
+      },
+    });
+  };
+
+  const uploadSceneAudioDirect = async (sceneId: string, file: File) => {
+    const mimeType = audioMimeFor(file);
+    const ticket = await requestSceneAudioUpload({
+      data: { sceneId, mimeType, sizeBytes: file.size },
+    });
+    const { error } = await supabase.storage
+      .from(ticket.bucket)
+      .uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: mimeType });
+    if (error) throw new Error("تعذر رفع التعليق الصوتي مباشرة إلى التخزين");
+    return finalizeSceneAudioUpload({
       data: {
         sceneId,
         path: ticket.path,
@@ -209,14 +257,17 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
       if (aspectRatio !== "16:9" && aspectRatio !== "9:16") {
         throw new Error("الدمج المحلي يدعم 16:9 و9:16 فقط");
       }
-      const sceneUrls = scenes
-        .sort((a, b) => a.scene_number - b.scene_number)
-        .map((scene) => scene.clipUrl)
-        .filter((url): url is string => Boolean(url));
-      if (sceneUrls.length !== scenes.length) {
+      const orderedScenes = [...scenes].sort((a, b) => a.scene_number - b.scene_number);
+      if (orderedScenes.some((scene) => !scene.clipUrl)) {
         throw new Error("كل المشاهد يجب أن تحتوي على مقطع فعلي قبل الدمج");
       }
-      const file = await composeKidzyFinalVideo({ sceneUrls, aspectRatio });
+      const file = await composeKidzyFinalVideo({
+        scenes: orderedScenes.map((scene) => ({
+          videoUrl: scene.clipUrl!,
+          audioUrl: scene.audioUrl,
+        })),
+        aspectRatio,
+      });
       const metadata = await readVideoMetadata(file);
       return uploadFinalDirect(file, metadata);
     });
@@ -406,6 +457,10 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                 uploadClip={(file) => {
                   if (!file) return;
                   run(() => uploadSceneDirect(scene.id, file));
+                }}
+                uploadAudio={(file) => {
+                  if (!file) return;
+                  run(() => uploadSceneAudioDirect(scene.id, file));
                 }}
               />
             ))
@@ -609,6 +664,7 @@ function SimpleScene({
   approve,
   saveEdits,
   uploadClip,
+  uploadAudio,
 }: {
   scene: {
     id: string;
@@ -618,6 +674,7 @@ function SimpleScene({
     duration_ms: number;
     status: string;
     clipUrl: string | null;
+    audioUrl: string | null;
   };
   busy: boolean;
   providerAvailable: boolean;
@@ -629,6 +686,7 @@ function SimpleScene({
     durationMs: number;
   }) => Promise<unknown>;
   uploadClip: (file: File | undefined) => void;
+  uploadAudio: (file: File | undefined) => void;
 }) {
   const complete = scene.status === "approved" && Boolean(scene.clipUrl);
   const [narrationDraft, setNarrationDraft] = useState(scene.narration_text ?? "");
@@ -717,6 +775,25 @@ function SimpleScene({
       {scene.clipUrl && (
         <video controls src={scene.clipUrl} className="mt-3 max-h-80 w-full rounded-xl" />
       )}
+      <div className="mt-3 rounded-xl border border-dashed p-3">
+        <p className="text-sm font-bold">التعليق الصوتي للمشهد — اختياري</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          إذا رفعت تعليقاً صوتياً فسيُدمج تلقائياً مع هذا المشهد في الفيديو النهائي.
+        </p>
+        {scene.audioUrl && (
+          <audio controls src={scene.audioUrl} className="mt-2 w-full" />
+        )}
+        <Input
+          className="mt-2"
+          type="file"
+          accept="audio/mpeg,audio/wav,audio/x-wav,audio/ogg,audio/webm,audio/mp4,.mp3,.wav,.ogg,.m4a"
+          disabled={busy}
+          onChange={(event) => {
+            uploadAudio(event.target.files?.[0]);
+            event.currentTarget.value = "";
+          }}
+        />
+      </div>
       <div className="mt-4 flex flex-wrap gap-2">
         <Button
           disabled={
