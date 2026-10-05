@@ -72,12 +72,17 @@ export const submitCheckout = createServerFn({ method: "POST" })
       throw new Error("اكتب عنوان التوصيل لطلب نسخة مطبوعة");
     }
 
-    // نجلب is_custom + التصنيف لكل قالب لتحديد التسعير وشرط تصنيف الكوبون
+    // نجلب is_custom + التصنيف لكل قالب لتحديد التسعير وشرط تصنيف الكوبون.
+    // نستخدم جلسة المستخدم هنا عمداً: أي قالب لا يستطيع المستخدم رؤيته لا يجوز
+    // تمريره يدوياً إلى checkout ثم إنشاؤه لاحقاً عبر service_role.
     const templateIds = Array.from(new Set(data.items.map((i) => i.templateId)));
-    const { data: tplRows } = await context.supabase
+    const { data: tplRows, error: templateError } = await context.supabase
       .from("story_templates")
       .select("id, is_custom, category")
       .in("id", templateIds);
+    if (templateError || (tplRows ?? []).length !== templateIds.length) {
+      throw new Error("إحدى القصص غير متاحة للطلب");
+    }
     const tplById = new Map<string, { isCustom: boolean; category: string | null }>(
       (tplRows ?? []).map((r) => [
         r.id as string,
@@ -97,6 +102,62 @@ export const submitCheckout = createServerFn({ method: "POST" })
     const packageDiscount = Math.round((subtotal * packageTier.discountPct) / 100);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    if (!data.receiptPath.startsWith(`${context.userId}/`)) {
+      throw new Error("إيصال التحويل غير صالح لهذا الحساب");
+    }
+
+    for (const item of data.items) {
+      if (!item.childPhotoPath.startsWith(`${context.userId}/`)) {
+        throw new Error("إحدى صور الأطفال لا تخص هذا الحساب");
+      }
+    }
+
+    const childIds = Array.from(
+      new Set(data.items.flatMap((item) => (item.childId ? [item.childId] : []))),
+    );
+    if (childIds.length) {
+      const { data: ownedChildren, error: childrenError } = await supabaseAdmin
+        .from("child_profiles")
+        .select("id")
+        .eq("user_id", context.userId)
+        .in("id", childIds);
+      if (childrenError || (ownedChildren ?? []).length !== childIds.length) {
+        throw new Error("أحد ملفات الأطفال غير موجود أو لا يخص هذا الحساب");
+      }
+    }
+
+    const receiptName = data.receiptPath.slice(context.userId.length + 1);
+    const photoNames = data.items.map((item) =>
+      item.childPhotoPath.slice(context.userId.length + 1),
+    );
+    const [{ data: receiptFiles, error: receiptListError }, ...photoResults] = await Promise.all([
+      supabaseAdmin.storage
+        .from("payment-receipts")
+        .list(context.userId, { limit: 20, search: receiptName }),
+      ...photoNames.map((photoName) =>
+        supabaseAdmin.storage
+          .from("child-photos")
+          .list(context.userId, { limit: 20, search: photoName }),
+      ),
+    ]);
+
+    if (
+      receiptListError ||
+      !(receiptFiles ?? []).some((file) => file.name === receiptName)
+    ) {
+      throw new Error("إيصال التحويل غير موجود أو لا يخص هذا الحساب");
+    }
+
+    photoResults.forEach((result, index) => {
+      const photoName = photoNames[index];
+      if (
+        result.error ||
+        !(result.data ?? []).some((file) => file.name === photoName)
+      ) {
+        throw new Error("إحدى صور الأطفال غير موجودة أو لا تخص هذا الحساب");
+      }
+    });
 
     let couponDiscount = 0;
     let couponId: string | null = null;
