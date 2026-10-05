@@ -66,6 +66,74 @@ const videoMimeExtensions = {
   "video/webm": "webm",
   "video/quicktime": "mov",
 } as const;
+const audioMimeExtensions = {
+  "audio/mpeg": "mp3",
+  "audio/wav": "wav",
+  "audio/x-wav": "wav",
+  "audio/ogg": "ogg",
+  "audio/webm": "webm",
+  "audio/mp4": "m4a",
+} as const;
+
+const directAudioUploadInput = z
+  .object({
+    mimeType: z.enum(["audio/mpeg", "audio/wav", "audio/x-wav", "audio/ogg", "audio/webm", "audio/mp4"]),
+    sizeBytes: z.number().int().positive(),
+  })
+  .strict();
+
+const finalizeStoredAudioInput = directAudioUploadInput.extend({
+  path: z.string().trim().min(20).max(700),
+});
+
+function audioExtensionFor(mimeType: keyof typeof audioMimeExtensions) {
+  return audioMimeExtensions[mimeType];
+}
+
+async function assertAudioSize(sizeBytes: number) {
+  const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
+  const maxAudioBytes = Math.min(getVideoProviderConfig().maxAssetBytes, 25 * 1024 * 1024);
+  if (sizeBytes > maxAudioBytes) throw new Error("حجم ملف التعليق الصوتي يتجاوز الحد المسموح");
+}
+
+async function verifyStoredAudio(
+  admin: Awaited<ReturnType<typeof authorize>>,
+  path: string,
+  mimeType: keyof typeof audioMimeExtensions,
+  expectedSize: number,
+) {
+  await assertAudioSize(expectedSize);
+  const slash = path.lastIndexOf("/");
+  if (slash < 1 || slash === path.length - 1) throw new Error("مسار ملف الصوت غير صالح");
+  const folder = path.slice(0, slash);
+  const name = path.slice(slash + 1);
+  const { data: objects, error } = await admin.storage
+    .from("video-assets")
+    .list(folder, { limit: 20, search: name });
+  if (error) throw new Error("تعذر التحقق من ملف التعليق الصوتي");
+  const object = (objects ?? []).find((item) => item.name === name);
+  if (!object) throw new Error("ملف التعليق الصوتي غير موجود");
+
+  const metadata =
+    object.metadata && typeof object.metadata === "object" && !Array.isArray(object.metadata)
+      ? (object.metadata as Record<string, unknown>)
+      : {};
+  const storedSize = Number(metadata.size ?? 0);
+  const storedMime =
+    typeof metadata.mimetype === "string"
+      ? metadata.mimetype
+      : typeof metadata.contentType === "string"
+        ? metadata.contentType
+        : "";
+
+  if (!Number.isFinite(storedSize) || storedSize <= 0) {
+    throw new Error("تعذر التحقق من حجم ملف التعليق الصوتي");
+  }
+  await assertAudioSize(storedSize);
+  if (storedSize !== expectedSize) throw new Error("حجم ملف التعليق الصوتي غير مطابق");
+  if (storedMime && storedMime !== mimeType) throw new Error("نوع ملف التعليق الصوتي غير مطابق");
+  return { sizeBytes: storedSize };
+}
 
 const directVideoUploadInput = z
   .object({
@@ -757,6 +825,93 @@ export const resetVideoStoryboard = createServerFn({ method: "POST" })
     await invalidateCurrentRenders(admin, project.id);
     await auditVideoAction(context, "video_storyboard_reset", "video_project", project.id);
     return { ok: true };
+  });
+
+export const requestVideoSceneAudioUpload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        sceneId: z.string().uuid(),
+        ...directAudioUploadInput.shape,
+      })
+      .strict()
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const admin = await authorize(context as unknown as AdminContext);
+    await assertAudioSize(data.sizeBytes);
+    const { data: scene } = await admin
+      .from("video_scenes")
+      .select("*")
+      .eq("id", data.sceneId)
+      .single();
+    if (!scene) throw new Error("المشهد غير موجود");
+    const project = await projectById(admin, scene.project_id);
+    if (
+      project.status !== "processing" ||
+      !["video_generation", "quality_review"].includes(project.production_stage ?? "")
+    ) {
+      throw new Error("مرحلة المشروع لا تسمح برفع التعليق الصوتي");
+    }
+
+    const extension = audioExtensionFor(data.mimeType);
+    const path = `projects/${project.id}/scenes/${scene.id}/audio/manual-${crypto.randomUUID()}.${extension}`;
+    return signedUpload(admin, "video-assets", path);
+  });
+
+export const finalizeVideoSceneAudioUpload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        sceneId: z.string().uuid(),
+        ...finalizeStoredAudioInput.shape,
+      })
+      .strict()
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const admin = await authorize(context as unknown as AdminContext);
+    const { data: scene } = await admin
+      .from("video_scenes")
+      .select("*")
+      .eq("id", data.sceneId)
+      .single();
+    if (!scene) throw new Error("المشهد غير موجود");
+    const project = await projectById(admin, scene.project_id);
+    if (
+      project.status !== "processing" ||
+      !["video_generation", "quality_review"].includes(project.production_stage ?? "")
+    ) {
+      throw new Error("مرحلة المشروع لا تسمح بربط التعليق الصوتي");
+    }
+
+    const extension = audioExtensionFor(data.mimeType);
+    const prefix = `projects/${project.id}/scenes/${scene.id}/audio/manual-`;
+    if (!data.path.startsWith(prefix) || !data.path.endsWith(`.${extension}`)) {
+      throw new Error("مسار ملف التعليق الصوتي غير صالح");
+    }
+
+    const stored = await verifyStoredAudio(admin, data.path, data.mimeType, data.sizeBytes);
+    const { error } = await admin
+      .from("video_scenes")
+      .update({ audio_path: data.path })
+      .eq("id", scene.id)
+      .eq("project_id", project.id);
+    if (error) throw new Error("تعذر ربط التعليق الصوتي بالمشهد");
+
+    await admin
+      .from("video_projects")
+      .update({ quality_approved_at: null, quality_approved_by: null })
+      .eq("id", project.id);
+    await invalidateCurrentRenders(admin, project.id);
+    await auditVideoAction(context, "video_scene_audio_uploaded", "video_scene", scene.id, {
+      project_id: project.id,
+      size_bytes: stored.sizeBytes,
+      mime_type: data.mimeType,
+    });
+    return { ok: true as const };
   });
 
 export const requestVideoSceneClipUpload = createServerFn({ method: "POST" })
