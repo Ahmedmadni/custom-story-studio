@@ -19,12 +19,12 @@ called out as **not performed** rather than assumed to pass.
 | --- | --------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Registration          | ✅ Pass                   | `supabase.auth.signUp` with `display_name` metadata; Supabase Auth handles its own confirmation email independently of this app's (currently mock) `EmailProvider`.                                                                                                                                                                                                                                                                                                                                                                                             |
 | 2   | Onboarding            | ✅ Pass                   | `OnboardingWizard` + `profiles.onboarding_completed_at`, `localStorage` mirror prevents flash-of-wizard on repeat visits.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| 3   | Create child profile  | ✅ Pass (minor gap)       | Direct client insert into `child_profiles`, RLS-scoped to `auth.uid()`. The immediately-following `child_story_universe` insert doesn't check its error — harmless because `complete_story_for_child()` self-heals with `ON CONFLICT (child_id) DO NOTHING` later. Not fixed (no user-visible failure mode).                                                                                                                                                                                                                                                    |
+| 3   | Create child profile  | ✅ Pass                   | Direct client insert into `child_profiles`, RLS-scoped to `auth.uid()`. The companion `child_story_universe` insert is now checked; if it fails, the just-created child profile is removed so the user is not left with a partially initialized record. |
 | 4   | Browse stories        | ✅ Pass                   | `/stories`, `/books` — public read via RLS-open `story_templates` SELECT grant.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | 5   | Add favorites         | ✅ Pass                   | `favorites` table, owner-scoped RLS, `UNIQUE(user_id, template_id)` prevents duplicates.                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | 6   | Select child          | ✅ Pass                   | Client-side selection, no server round-trip needed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | 7   | Create order          | ✅ Pass                   | `submitCheckout`/order routes validate via Zod, price computed server-side from `pricePerPages`/package tier — not client-supplied.                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| 8   | Apply coupon          | ✅ Pass (edge case found) | Full validation chain (active/window/min-order/category/per-user cap) is correct. **Edge case, not fixed**: `used_count` and per-user redemption checks are read-then-write (not atomic) — two truly simultaneous checkouts using the same near-exhausted coupon could both pass validation before either's increment lands, a TOCTOU race. Low real-world likelihood at this app's traffic scale; a proper fix needs an atomic RPC (a schema-level change, out of this sprint's "no refactor" scope) — documented as a known limitation, not silently patched. |
+| 8   | Apply coupon          | ✅ Pass                   | Validation remains server-side, and redemption now uses the deployed `consume_coupon_redemption` RPC. The coupon row is locked while global/per-user limits, ledger insertion, and `used_count` increment are applied atomically. |
 | 9   | Vodafone Cash payment | ✅ Pass                   | Receipt upload → `payment_status: "receipt_uploaded"`; order correctly blocked from proceeding until admin action.                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | 10  | Admin verification    | 🐛 **Bug found & fixed**  | `adminVerifyPayment` set `payment_verified_at` but never updated `paid_at` — see Fixes Applied #1.                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | 11  | Story completion      | ✅ Pass                   | Admin sets `status: "sent"` → `trg_orders_on_sent` trigger → `complete_story_for_child()`, idempotent (guarded by an existing `child_story_history` row check).                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -49,7 +49,7 @@ quality. These are runtime/visual concerns a code trace cannot verify.
 | Rewards cannot be manipulated          | ✅ Pass                                    | `reward_accounts`/`reward_transactions` have `GRANT UPDATE/INSERT` to `authenticated` at the table level, but **no RLS `UPDATE` policy exists for either table** — Postgres RLS defaults to deny when no policy matches, so the grant is inert; the only way to change a balance is `award_points()` (`SECURITY DEFINER`, revoked from `authenticated`), callable only server-side via `supabaseAdmin`.                                                                                                          |
 | Referrals cannot be abused             | ✅ Pass                                    | Hardened last sprint (pending → reward-after-first-verified-order); re-verified the wiring is intact in both `adminVerifyPayment` and the Kashier webhook.                                                                                                                                                                                                                                                                                                                                                       |
 | Admin routes are protected             | ✅ Pass                                    | Two layers: client-side UX guard (`isAdmin` check in `_authenticated.admin.tsx`, purely cosmetic) plus the real boundary — every admin server function calls `assertAdmin()`/`has_role()` server-side, and RLS has an admin-override policy on every table. SSR never renders authenticated/admin content prematurely, since the outer `_authenticated.tsx` gate always renders a loading spinner (not `<Outlet/>`) while `loading` is true, which it always is during SSR (auth state is client-hydrated only). |
-| Storage permissions are correct        | ✅ Pass after migration                    | `story-pdfs`, `story-pages`, `reference-children`, and `payment-receipts` are owner/order-scoped. `child-photos` is now hardened by migration `20261006003500_harden_child_photos_rls.sql`, which forces the bucket private and adds RESTRICTIVE owner-folder policies that constrain even older broad permissive policies. Verify deployment on the live project. |
+| Storage permissions are correct        | ✅ Pass — live verified                    | `story-pdfs`, `story-pages`, `reference-children`, and `payment-receipts` are owner/order-scoped. On the live Supabase project, `child-photos` is private and all four RESTRICTIVE owner-folder policies (SELECT/INSERT/UPDATE/DELETE) are present. |
 
 ## Phase 3 — Mobile Responsiveness (static review — no real device/browser available)
 
@@ -147,12 +147,12 @@ All three fixes verified with `tsc --noEmit` and `eslint` — both clean.
 
 | #   | Issue                                                                                  | Category         | Why not fixed now                                                                |
 | --- | -------------------------------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------- |
-| 1   | No admin UI for reward-balance management                                              | Missing feature  | Sprint scope excludes new features                                               |
-| 2   | No admin UI for coupon management                                                      | Missing feature  | Same                                                                             |
+| 1   | Admin reward-balance management                                                       | ✅ Fixed          | `/admin/commerce` now exposes balances and audited row-locked adjustments       |
+| 2   | Admin coupon management                                                               | ✅ Fixed          | `/admin/commerce` now supports create/edit/activate/deactivate and usage limits |
 | 3   | Coupon redemption concurrency race                                                     | ✅ Fixed          | `consume_coupon_redemption` now locks the coupon row and performs limits + ledger insert + counter increment atomically |
-| 4   | Per-story `<title>`/OpenGraph tags are static, not dynamic                             | SEO gap          | Needs converting the route to a `loader`-based pattern — an architectural change |
+| 4   | Per-story `<title>`/OpenGraph tags                                                   | ✅ Fixed          | `/stories/$slug` uses a loader + dynamic title/description/OG/Twitter/canonical metadata |
 | 5   | Admin orders table mobile clipping                                                     | ✅ Fixed          | Wrapper now uses horizontal scrolling                                            |
-| 6   | `child-photos` owner isolation                                                       | ✅ Fixed in code  | Restrictive RLS + private bucket migration added; only deployment verification remains |
+| 6   | `child-photos` owner isolation                                                       | ✅ Fixed + live verified | Restrictive RLS is deployed; bucket is private and all four restrictive policies are present |
 | 7   | No real browser/device testing performed anywhere in this QA pass                      | Testing gap      | No staging environment or browser/device available in this sandboxed session     |
 
 ## Launch Blockers
@@ -166,8 +166,7 @@ code bugs:
   done anywhere, by anyone, on this codebase, in any session. Code
   correctness does not guarantee visual/interaction correctness across
   Safari/Chrome/Firefox/mobile.
-- **Child-photo storage** now has a code-level restrictive RLS migration.
-  The remaining action is only to confirm that migration is deployed on the live Supabase project.
+- **Child-photo storage is now verified on the live database**: the bucket is private and the four restrictive policies are active.
 
 ## Risk Assessment
 
@@ -175,43 +174,45 @@ code bugs:
 | --------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Core user flow correctness (code-level) | Low         | All 17 traced steps check out; the one real functional bug found (revenue timestamp) is fixed and doesn't affect user-facing behavior, only an internal admin metric. |
 | Data isolation / permissions            | Low         | RLS is comprehensive and consistently owner-scoped + admin-override; the one UI bug found never exposed data, only got stuck.                                         |
-| Admin operability                       | Medium      | Reward and coupon management require direct database access — workable for a small team at launch, but a real operational gap as volume grows.                        |
-| SEO / social sharing                    | Medium      | Sitemap/robots/canonicals/JSON-LD are solid; per-story social sharing quality is undermined by static OG tags.                                                        |
+| Admin operability                       | Low         | Coupons and reward balances are now manageable from `/admin/commerce`, with audit logging and row-locked reward adjustments.                                         |
+| SEO / social sharing                    | Low         | Sitemap/robots/canonicals/JSON-LD are present and story pages now emit dynamic title/description/OG/Twitter/canonical metadata.                                      |
 | Visual/cross-browser/mobile correctness | **Unknown** | Never tested in any session on this codebase — this is a genuine unknown, not a "low risk," and should be treated as such.                                            |
 | Database backup/recovery posture        | Medium      | Documented in `docs/BACKUP-PLAN.md` — PITR/Storage backup coverage unconfirmed.                                                                                       |
 
 ## Production Readiness Score
 
-**7.5 / 10** — the codebase itself is in genuinely good shape: RLS is
-consistent, the business logic (rewards/referrals/achievements/coupons)
-is correctly implemented and was already hardened against the specific
-abuse vector this sprint was worried about, and this QA pass found and
-fixed two real (if narrow) bugs rather than zero. The score is held back
-by two things that are about _process_, not code quality: (1) no visual/
-device QA has ever actually happened, and (2) a small number of
-operational gaps (coupon/reward admin tooling, live RLS verification on
-tables predating migration history) require a human with dashboard
-access to close before this can be called fully launch-verified.
+**8.5 / 10** — the remaining risk is now concentrated outside the core
+application logic. The coupon race, child-photo isolation, coupon/reward
+admin tooling, and per-story social metadata gaps are closed; the relevant
+database migrations are deployed and the legacy `orders`, `user_roles`,
+`story_templates`, and `generated_pages` tables were read-only verified
+with RLS enabled on the live Supabase project. The main unresolved items are
+real browser/device QA, backup/PITR confirmation, and restoring the GitHub
+Actions runner that is currently failing before any CI step starts.
 
 ## Launch Recommendation
 
-## READY WITH WARNINGS
+## READY FOR CONTROLLED BETA — WITH EXTERNAL QA
 
-Ship-blocking from a _code_ perspective: nothing. The three bugs found
-this session are fixed, verified, and low-risk. But "ready" should not be
-read as "verified in a real browser" — it isn't, because it couldn't be
-in this environment. Before flipping this to a clean READY:
+From a code and live-database-permission perspective, the previously identified
+launch gaps are closed. Before calling the release fully verified for a broad
+public launch:
 
-1. Do one real pass through `docs/QA-CHECKLIST.md` in an actual browser
-   (Chrome at minimum) and on one real phone (either OS) — this is the
-   single highest-value remaining action.
-2. Deploy/verify the latest migrations, then confirm RLS on the legacy
-   `orders`, `user_roles`, `story_templates`, and `generated_pages` tables.
-   For `child-photos`, verify the four restrictive policies and private bucket flag added by the new migration.
-3. Decide, as a business/product call rather than an engineering one,
-   whether launching without admin coupon/reward-management tooling is
-   acceptable for the beta cohort size, or whether it needs to be
-   fast-followed immediately post-launch.
+1. Run `docs/QA-CHECKLIST.md` in a real desktop browser and on at least one
+   real phone. Visual/interaction behavior is the largest remaining unknown.
+2. Confirm the production backup/PITR and storage-backup posture described in
+   `docs/BACKUP-PLAN.md`.
+3. Restore GitHub Actions execution. Recent workflow jobs are failing before
+   the first step starts (no checkout/typecheck/test/build steps execute), so
+   that is currently a CI-infrastructure warning rather than an application
+   test failure.
+
+Live checks completed in this follow-up:
+- `consume_coupon_redemption(uuid,uuid,uuid,integer)` exists in production.
+- `admin_adjust_reward_points(uuid,integer,uuid,text)` exists in production.
+- `child-photos` is private with four RESTRICTIVE owner policies.
+- RLS is enabled on `orders`, `user_roles`, `story_templates`, and
+  `generated_pages`.
 
 ## Files changed
 
