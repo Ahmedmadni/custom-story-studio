@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Library, Package, ShieldCheck, Users } from "lucide-react";
+import { Gift, Library, Package, ShieldCheck, Users } from "lucide-react";
 
 import { UsagePanel } from "@/features/admin/UsagePanel";
 
@@ -17,11 +17,12 @@ function AdminIndex() {
 
       <UsagePanel />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <Shortcut to="/admin/orders" icon={Package} label="الطلبات" desc="إدارة طلبات العملاء" />
         <Shortcut to="/admin/approvals" icon={ShieldCheck} label="اعتماد المحتوى" desc="مراجعة قصص المستخدمين" />
         <Shortcut to="/admin/templates" icon={Library} label="القوالب" desc="قصص وكتب الموقع" />
         <Shortcut to="/admin/users" icon={Users} label="المستخدمون" desc="إدارة الحسابات" />
+        <Shortcut to="/admin/commerce" icon={Gift} label="العروض والمكافآت" desc="الكوبونات ونقاط العملاء" />
       </div>
     </div>
   );
