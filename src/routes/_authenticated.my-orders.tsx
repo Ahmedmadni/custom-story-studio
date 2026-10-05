@@ -104,7 +104,8 @@ function MyOrders() {
   });
 
   const canEdit = (o: { status: string; payment_status: string | null }) =>
-    o.status === "pending" && (o.payment_status ?? "unpaid") !== "verified";
+    ["pending", "rejected"].includes(o.status) &&
+    (o.payment_status ?? "unpaid") !== "verified";
 
   return (
     <div className="min-h-screen">
