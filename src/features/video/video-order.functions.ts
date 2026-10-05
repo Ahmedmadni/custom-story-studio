@@ -12,6 +12,12 @@ import type { Json } from "@/integrations/supabase/types";
 
 const TemplateIdInput = z.object({ templateId: z.string().uuid() }).strict();
 const VideoOrderIdInput = z.object({ orderId: z.string().uuid() }).strict();
+const ReplaceReceiptInput = z
+  .object({
+    orderId: z.string().uuid(),
+    paymentReceiptPath: z.string().trim().min(38).max(500),
+  })
+  .strict();
 
 type SafeOrderRow = {
   id: string;
@@ -106,6 +112,7 @@ async function toCustomerDtos(rows: SafeOrderRow[]): Promise<CustomerVideoOrderD
       deliveryStatus: row.delivery_status,
       status,
       statusLabel: CUSTOMER_VIDEO_STATUS_LABELS[status],
+      paymentNeedsAction: row.payment_status === "failed",
       finalDeliveryAvailable:
         row.delivery_status === "delivered" &&
         project?.status === "ready" &&
@@ -252,6 +259,60 @@ export const submitVideoOrder = createServerFn({ method: "POST" })
     ]);
     if (!dto) throw new Error("تعذر قراءة طلب الفيديو بعد إنشائه");
     return dto;
+  });
+
+/**
+ * Allows the owner to replace a rejected transfer receipt without creating a
+ * second order. The new object must already exist in the private receipt bucket
+ * under the authenticated user's folder.
+ */
+export const replaceVideoPaymentReceipt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ReplaceReceiptInput.parse(input))
+  .handler(async ({ data, context }) => {
+    if (!data.paymentReceiptPath.startsWith(`${context.userId}/`)) {
+      throw new Error("إيصال التحويل غير صالح لهذا الحساب");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const receiptName = data.paymentReceiptPath.slice(context.userId.length + 1);
+    const { data: receiptFiles } = await supabaseAdmin.storage
+      .from("payment-receipts")
+      .list(context.userId, { limit: 20, search: receiptName });
+    if (!(receiptFiles ?? []).some((file) => file.name === receiptName)) {
+      throw new Error("إيصال التحويل غير موجود أو لا يخص هذا الحساب");
+    }
+
+    const { data: order } = await supabaseAdmin
+      .from("video_orders")
+      .select("payment_status, order_options_snapshot")
+      .eq("id", data.orderId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (!order) throw new Error("طلب الفيديو غير موجود");
+    if (order.payment_status !== "failed") {
+      throw new Error("يمكن استبدال الإيصال فقط عندما تطلب الإدارة إيصالاً جديداً");
+    }
+
+    const options = objectValue(order.order_options_snapshot);
+    const { error } = await supabaseAdmin
+      .from("video_orders")
+      .update({
+        payment_status: "pending",
+        order_options_snapshot: {
+          ...options,
+          payment_receipt_path: data.paymentReceiptPath,
+          receipt_uploaded_at: new Date().toISOString(),
+          payment_rejected_at: null,
+          payment_rejection_reason: null,
+        } as Json,
+      })
+      .eq("id", data.orderId)
+      .eq("user_id", context.userId)
+      .eq("payment_status", "failed");
+    if (error) throw new Error("تعذر تحديث إيصال التحويل");
+
+    return { ok: true as const };
   });
 
 export const listMyVideoOrders = createServerFn({ method: "POST" })

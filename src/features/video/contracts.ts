@@ -95,6 +95,7 @@ export type VideoOrderInput = z.infer<typeof videoOrderInputSchema>;
 
 export const CUSTOMER_VIDEO_STATUS_KEYS = [
   "awaiting_payment",
+  "payment_issue",
   "in_production",
   "ready",
   "delivered",
@@ -112,6 +113,7 @@ export type CustomerVideoOrderDto = {
   deliveryStatus: VideoDeliveryStatus;
   status: CustomerVideoStatusKey;
   statusLabel: string;
+  paymentNeedsAction: boolean;
   finalDeliveryAvailable: boolean;
   finalVideoUrl: string | null;
 };

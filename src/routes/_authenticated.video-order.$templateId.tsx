@@ -53,7 +53,11 @@ function VideoOrderPage() {
                 اختر بيانات الطفل وخيارات الطلب، وسيتولى فريق كيدزي الإنتاج لاحقاً.
               </p>
             </div>
-            <VideoOrderForm templateId={templateId} templateTitle={offering.templateTitle} />
+            <VideoOrderForm
+              templateId={templateId}
+              templateTitle={offering.templateTitle}
+              priceEgp={offering.priceEgp}
+            />
           </>
         )}
       </main>

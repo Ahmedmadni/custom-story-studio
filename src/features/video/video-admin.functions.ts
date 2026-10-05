@@ -267,38 +267,89 @@ export const getAdminVideoProject = createServerFn({ method: "POST" })
 export const updateVideoPaymentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
-    idInput.extend({ paymentStatus: videoPaymentStatusSchema }).parse(input),
+    idInput
+      .extend({
+        paymentStatus: videoPaymentStatusSchema,
+        reason: z.string().trim().min(3).max(300).optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
-    if (data.paymentStatus !== "paid")
-      throw new Error("الانتقال الإداري المسموح للدفع هو إلى مدفوع فقط");
+    if (!["paid", "failed"].includes(data.paymentStatus)) {
+      throw new Error("حالة الدفع المطلوبة غير مسموح بها");
+    }
+
     const admin = await authorize(context as unknown as AdminContext);
     const project = await projectByOrder(admin, data.videoOrderId);
     const { data: order } = await admin
       .from("video_orders")
-      .select("payment_status")
+      .select("payment_status, order_options_snapshot, expected_delivery_at")
       .eq("id", data.videoOrderId)
       .single();
+
     if (
       !order ||
       !["unpaid", "pending"].includes(order.payment_status) ||
       project.status !== "awaiting_payment"
-    )
+    ) {
       throw new Error("انتقال حالة الدفع غير صالح");
+    }
+
     const now = new Date().toISOString();
+    const options = objectValue(order.order_options_snapshot);
+
+    if (data.paymentStatus === "failed") {
+      const { error } = await admin
+        .from("video_orders")
+        .update({
+          payment_status: "failed",
+          status: "submitted",
+          paid_at: null,
+          order_options_snapshot: {
+            ...options,
+            payment_rejected_at: now,
+            payment_rejection_reason:
+              data.reason?.trim() || "تعذر اعتماد إيصال التحويل. يرجى رفع إيصال جديد واضح.",
+          } as never,
+        })
+        .eq("id", data.videoOrderId)
+        .eq("payment_status", order.payment_status);
+      if (error) throw new Error("تعذر رفض إيصال التحويل");
+      return { ok: true as const, paymentStatus: "failed" as const };
+    }
+
+    const expectedDeliveryAt =
+      order.expected_delivery_at ??
+      new Date(Date.now() + 48 * 60 * 60 * 1_000).toISOString();
     const { error } = await admin
       .from("video_orders")
-      .update({ payment_status: "paid", status: "confirmed", paid_at: now })
+      .update({
+        payment_status: "paid",
+        status: "confirmed",
+        paid_at: now,
+        expected_delivery_at: expectedDeliveryAt,
+        order_options_snapshot: {
+          ...options,
+          payment_rejected_at: null,
+          payment_rejection_reason: null,
+        } as never,
+      })
       .eq("id", data.videoOrderId)
       .eq("payment_status", order.payment_status);
     if (error) throw new Error("تعذر تحديث الدفع");
+
     const { error: projectError } = await admin
       .from("video_projects")
       .update({ status: "paid" })
       .eq("id", project.id)
       .eq("status", "awaiting_payment");
     if (projectError) throw new Error("تعذر تحديث المشروع بعد الدفع");
-    return { ok: true };
+
+    return {
+      ok: true as const,
+      paymentStatus: "paid" as const,
+      expectedDeliveryAt,
+    };
   });
 
 export const approveVideoProduction = createServerFn({ method: "POST" })

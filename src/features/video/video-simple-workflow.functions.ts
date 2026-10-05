@@ -252,7 +252,7 @@ export const approveVideoPaymentAndPrepareScenes = createServerFn({ method: "POS
     const project = await projectByOrder(admin, data.videoOrderId);
     const { data: order } = await admin
       .from("video_orders")
-      .select("payment_status, status, user_id, order_options_snapshot")
+      .select("payment_status, status, user_id, order_options_snapshot, expected_delivery_at")
       .eq("id", data.videoOrderId)
       .single();
     if (!order) throw new Error("طلب الفيديو غير موجود");
@@ -271,9 +271,23 @@ export const approveVideoPaymentAndPrepareScenes = createServerFn({ method: "POS
     if (order.payment_status !== "paid") {
       if (!["unpaid", "pending"].includes(order.payment_status))
         throw new Error("حالة الدفع الحالية لا تسمح بالاعتماد");
+      const expectedDeliveryAt =
+        order.expected_delivery_at ??
+        new Date(Date.now() + 48 * 60 * 60 * 1_000).toISOString();
+      const options = objectValue(order.order_options_snapshot);
       const { error } = await admin
         .from("video_orders")
-        .update({ payment_status: "paid", status: "confirmed", paid_at: now })
+        .update({
+          payment_status: "paid",
+          status: "confirmed",
+          paid_at: now,
+          expected_delivery_at: expectedDeliveryAt,
+          order_options_snapshot: {
+            ...options,
+            payment_rejected_at: null,
+            payment_rejection_reason: null,
+          } as Json,
+        })
         .eq("id", data.videoOrderId);
       if (error) throw new Error("تعذر اعتماد التحويل");
     }
