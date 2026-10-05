@@ -39,10 +39,11 @@ fix, low priority, can ship without blocking launch.
 `(storage.foldername(name))[1] = auth.uid()::text` or an order-ownership
 `EXISTS` check, plus admin override (`docs/SECURITY-AUDIT.md` §5).
 
-☐ `child-photos` bucket policies predate migration history — **How**:
-confirm in the Supabase dashboard that it's owner-scoped the same way
-`reference-children` is (per `CLAUDE.md`'s own note that this bucket
-"must stay owner-scoped via RLS").
+☑ `child-photos` hardened in code by
+`20261006003500_harden_child_photos_rls.sql`: bucket forced private and
+RESTRICTIVE owner-folder policies applied to SELECT/INSERT/UPDATE/DELETE.
+After deploying the migration, verify the four policies exist in `pg_policies`
+and `storage.buckets.public = false`.
 
 ☑ Referral abuse hardened this sprint: signup → pending referral → reward
 only after first verified order (`docs/DATABASE-AUDIT.md`/Phase 2 commit).
