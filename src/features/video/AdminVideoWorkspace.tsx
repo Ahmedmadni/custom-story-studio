@@ -381,7 +381,7 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                 uploadClip={(file) => {
                   if (!file) return;
                   run(() => uploadSceneDirect(scene.id, file));
-                }
+                }}
               />
             ))
           ) : (
