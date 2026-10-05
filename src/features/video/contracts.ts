@@ -88,6 +88,7 @@ export const videoOrderInputSchema = z
     childGender: z.enum(["boy", "girl"]),
     childPhotoPath: z.string().trim().min(38).max(500),
     paymentReceiptPath: z.string().trim().min(38).max(500),
+    aiProcessingConsent: z.literal(true),
     language: videoLanguageSchema,
     aspectRatio: videoAspectRatioSchema,
   })
