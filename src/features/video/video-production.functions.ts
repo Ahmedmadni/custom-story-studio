@@ -314,7 +314,7 @@ function scriptPrompts(project: Awaited<ReturnType<typeof loadProject>>) {
   });
   const source = JSON.stringify(project.source_snapshot);
   return {
-    systemPrompt: `You are Kidzy's senior children's animation writer. Return JSON only. Create a safe coherent beginning/middle/end storyboard for separate short clips. Keep one consistent child hero. Total duration must be at most 60 seconds; prefer each newly generated clip to be 3-15 seconds. Schema: {"title":string,"narration":string,"scenes":[{"sequence":integer starting at 1,"title":string,"duration_seconds":integer,"narration":string,"visual_prompt":string,"motion_prompt":string}]}. No markdown.`,
+    systemPrompt: `You are Kidzy's senior children's animation writer. Return JSON only. Adapt the source into a clear four-beat arc: opening, development, climax, resolution. Keep one consistent child hero, outfit and visual identity. Each scene must advance the story with one readable action and must not repeat the previous scene. Total duration must be at most 60 seconds; prefer 4-8 clips of 6-10 seconds. Narration must actually fit the assigned duration: target roughly 1.7 words/second for Arabic, 2.1 for English, and keep bilingual narration especially concise. Schema: {"title":string,"narration":string,"scenes":[{"sequence":integer starting at 1,"title":string,"duration_seconds":integer,"narration":string,"visual_prompt":string,"motion_prompt":string}]}. No markdown.`,
     userPrompt: `Language: ${project.language}. Aspect ratio: ${project.aspect_ratio}. Project title: ${project.title}. Child snapshot: ${child}. Story source: ${source}. Reference image is approved and must define the same hero in every scene. Produce 4-8 concise scenes suitable for image-to-video generation.`,
   };
 }
