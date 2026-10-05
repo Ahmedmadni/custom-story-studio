@@ -19,6 +19,36 @@ const ReplaceReceiptInput = z
   })
   .strict();
 
+const CreatedVideoOrderSchema = z.object({
+  video_order_id: z.string().uuid(),
+  created_at: z.string(),
+});
+
+type RpcErrorLike = {
+  code?: string | null;
+  message?: string | null;
+};
+
+type UntypedRpcClient = {
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{ data: unknown; error: RpcErrorLike | null }>;
+};
+
+function missingAtomicReceiptRpc(error: RpcErrorLike | null): boolean {
+  if (!error) return false;
+  return (
+    error.code === "PGRST202" ||
+    (error.message ?? "").includes("create_video_order_and_project_v2")
+  );
+}
+
+function firstCreatedVideoOrder(data: unknown) {
+  const candidate = Array.isArray(data) ? data[0] : data;
+  return CreatedVideoOrderSchema.safeParse(candidate);
+}
+
 type SafeOrderRow = {
   id: string;
   user_id: string;
@@ -209,40 +239,69 @@ export const submitVideoOrder = createServerFn({ method: "POST" })
       _child_photo_path: data.childPhotoPath,
       _language: data.language,
       _aspect_ratio: data.aspectRatio,
-    } as unknown as Parameters<typeof supabaseAdmin.rpc<"create_video_order_and_project">>[1];
+    };
 
-    const { data: created, error } = await supabaseAdmin
-      .rpc("create_video_order_and_project", rpcArgs)
-      .single();
-    if (error || !created) {
-      console.error("submitVideoOrder RPC error", error);
+    let created: z.infer<typeof CreatedVideoOrderSchema>;
+    const atomicClient = supabaseAdmin as unknown as UntypedRpcClient;
+    const atomicResult = await atomicClient.rpc("create_video_order_and_project_v2", {
+      ...rpcArgs,
+      _payment_receipt_path: data.paymentReceiptPath,
+    });
+
+    if (!atomicResult.error) {
+      const parsed = firstCreatedVideoOrder(atomicResult.data);
+      if (!parsed.success) {
+        console.error("submitVideoOrder v2 returned an invalid payload");
+        throw new Error("تعذر إنشاء طلب الفيديو، حاول مرة أخرى");
+      }
+      created = parsed.data;
+    } else if (missingAtomicReceiptRpc(atomicResult.error)) {
+      // Compatibility path until the v2 migration is applied to every environment.
+      const legacyArgs =
+        rpcArgs as unknown as Parameters<
+          typeof supabaseAdmin.rpc<"create_video_order_and_project">
+        >[1];
+      const { data: legacyCreated, error: legacyError } = await supabaseAdmin
+        .rpc("create_video_order_and_project", legacyArgs)
+        .single();
+      if (legacyError || !legacyCreated) {
+        console.error("submitVideoOrder legacy RPC error", legacyError);
+        throw new Error("تعذر إنشاء طلب الفيديو، حاول مرة أخرى");
+      }
+      created = CreatedVideoOrderSchema.parse(legacyCreated);
+
+      const { error: updateError } = await supabaseAdmin
+        .from("video_orders")
+        .update({
+          payment_status: "pending",
+          order_options_snapshot: {
+            language: data.language,
+            aspect_ratio: data.aspectRatio,
+            payment_method: "vodafone_cash",
+            payment_receipt_path: data.paymentReceiptPath,
+            receipt_uploaded_at: new Date().toISOString(),
+          } as Json,
+        })
+        .eq("id", created.video_order_id)
+        .eq("user_id", context.userId);
+
+      if (updateError) {
+        // Best-effort compensation keeps the legacy path from leaving a half-created order.
+        await supabaseAdmin.from("video_projects").delete().eq("video_order_id", created.video_order_id);
+        await supabaseAdmin
+          .from("video_orders")
+          .delete()
+          .eq("id", created.video_order_id)
+          .eq("user_id", context.userId);
+        throw new Error("تعذر ربط إيصال التحويل بطلب الفيديو");
+      }
+    } else {
+      console.error("submitVideoOrder atomic RPC error", {
+        code: atomicResult.error.code,
+        message: atomicResult.error.message,
+      });
       throw new Error("تعذر إنشاء طلب الفيديو، حاول مرة أخرى");
     }
-
-    const { data: orderRow, error: readError } = await supabaseAdmin
-      .from("video_orders")
-      .select("order_options_snapshot")
-      .eq("id", created.video_order_id)
-      .eq("user_id", context.userId)
-      .single();
-    if (readError || !orderRow) throw new Error("تعذر استكمال بيانات طلب الفيديو");
-    const options = objectValue(orderRow.order_options_snapshot);
-    const { error: updateError } = await supabaseAdmin
-      .from("video_orders")
-      .update({
-        payment_status: "pending",
-        order_options_snapshot: {
-          ...options,
-          language: data.language,
-          aspect_ratio: data.aspectRatio,
-          payment_method: "vodafone_cash",
-          payment_receipt_path: data.paymentReceiptPath,
-          receipt_uploaded_at: new Date().toISOString(),
-        } as Json,
-      })
-      .eq("id", created.video_order_id)
-      .eq("user_id", context.userId);
-    if (updateError) throw new Error("تعذر ربط إيصال التحويل بطلب الفيديو");
 
     const [dto] = await toCustomerDtos([
       {
