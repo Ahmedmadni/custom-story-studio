@@ -25,6 +25,30 @@ import {
 
 import { parsePages, type StoryPage } from "@/features/ai/storyTypes";
 
+type AiAdminContext = {
+  userId: string;
+  supabase: {
+    rpc: (
+      fn: "has_role",
+      args: { _user_id: string; _role: "admin" | "user" },
+    ) => PromiseLike<{
+      data: boolean | null;
+      error?: { message?: string | null } | null;
+    }>;
+  };
+};
+
+async function assertAiAdmin(context: AiAdminContext) {
+  const { data, error } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "admin",
+  });
+  if (error || !data) {
+    throw new Error("توليد المحتوى بالذكاء الاصطناعي متاح للإدارة فقط");
+  }
+}
+
+
 const BookMetaInput = z.object({
   category: z.enum([
     "mathematics",
@@ -259,6 +283,7 @@ export const generateAiStory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => GenerateInput.parse(input))
   .handler(async ({ data, context }) => {
+    await assertAiAdmin(context as unknown as AiAdminContext);
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("خدمة الذكاء الاصطناعي غير مهيأة");
 
@@ -405,6 +430,7 @@ export const generatePageImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => PageImageInput.parse(input))
   .handler(async ({ data, context }) => {
+    await assertAiAdmin(context as unknown as AiAdminContext);
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("خدمة الذكاء الاصطناعي غير مهيأة");
 
