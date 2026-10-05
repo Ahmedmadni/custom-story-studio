@@ -26,6 +26,9 @@ jobs:
       - name: Typecheck
         run: bunx tsc --noEmit
 
+      - name: Regression tests
+        run: bun test
+
       - name: Lint changed TypeScript files
         shell: bash
         run: |
