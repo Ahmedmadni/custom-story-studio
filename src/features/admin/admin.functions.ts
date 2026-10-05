@@ -307,6 +307,9 @@ export const adminRejectPayment = createServerFn({ method: "POST" })
       .update({
         payment_status: "rejected",
         payment_rejection_reason: data.reason,
+        payment_verified_by: null,
+        payment_verified_at: null,
+        paid_at: null,
         status: "rejected",
       })
       .eq("id", data.orderId);
@@ -639,6 +642,9 @@ export const updateMyOrder = createServerFn({ method: "POST" })
       patch.receipt_path = data.newReceiptPath;
       patch.payment_status = "receipt_uploaded";
       patch.payment_rejection_reason = null;
+      patch.payment_verified_by = null;
+      patch.payment_verified_at = null;
+      patch.paid_at = null;
       patch.status = "pending";
     }
 
