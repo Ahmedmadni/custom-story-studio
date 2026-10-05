@@ -136,14 +136,15 @@ docstring) — no call sites would need to change.
 **What exists**:
 
 - `/admin/health` (`AdminHealthDashboard.tsx` + `health.functions.ts`,
-  Milestone 5) — a real, working operational dashboard: pending/generating/stuck
-  order counts, today's revenue, average delivery time, active users
-  today, conversion rate, rejected-payments-last-7-days. Its own code
-  comment is explicit about what it substitutes for: "لا يوجد نظام طوابير
-  مهام... لذا 'Failed jobs' هنا تعني طلبات علِقت... كذلك لا يوجد نظام
-  تسجيل أخطاء مركزي" (there's no job queue or centralized error-logging
-  system, so this dashboard's metrics are the best available proxies from
-  `orders` table state).
+  Milestone 5) — a real, working operational dashboard. It covers the original
+  story-order metrics (pending/generating/stuck orders, today's revenue,
+  average delivery time, active users, conversion rate, rejected payments)
+  and now also reads the real Kidzy Video production tables:
+  `video_orders`, `video_projects`, and `video_jobs`. The dashboard
+  surfaces video payments awaiting review, projects in production, videos
+  ready for delivery, failed/dead-letter jobs, queued/running jobs stuck for
+  more than 30 minutes, and paid video orders that have passed their expected
+  delivery time.
 - Browser-side: none of the Web Vitals (LCP/CLS/INP) are currently
   measured or reported anywhere in this codebase — Phase 5's performance
   audit was based on a one-off production build inspection, not
@@ -167,7 +168,7 @@ if real-user performance monitoring is wanted post-launch.
 | Payment logs        | Already existed (`payment_logs`), unchanged, confirmed solid                                                                                                 |
 | Admin actions       | **New**: wired into role grant/revoke + payment verify/reject; documented as an incremental-adoption pattern for the rest                                    |
 | Error tracking      | Already built in Phase 4 (`logError`); no server-side APM added this phase                                                                                   |
-| Performance metrics | `/admin/health` dashboard already exists; no field/Web-Vitals monitoring added this phase — recommended as a follow-up (Cloudflare Web Analytics, zero-code) |
+| Performance metrics | `/admin/health` now covers both story orders and the real Kidzy Video queue/production state; field Web-Vitals monitoring remains a separate follow-up |
 
 ## Files changed
 
@@ -190,9 +191,10 @@ if real-user performance monitoring is wanted post-launch.
   can't run `supabase gen types typescript` against a live database.
   **Verify** by regenerating types for real against the live database
   once this migration is applied, and diff against what's committed here.
-- Only 4 of ~22 admin server functions log to `admin_action_log` so far —
-  real audit coverage of the admin surface is partial, by design, pending
-  incremental follow-up.
+- The original story/admin surface still has partial audit coverage. Kidzy Video
+  now logs its critical payment, storyboard reset, scene upload/approval,
+  final-render/final-approval, readiness, and delivery actions to the same
+  append-only `admin_action_log`.
 - No external log aggregation, APM, or field performance monitoring is
   configured — everything currently relies on Cloudflare's built-in log
   viewer, Lovable's client-side error capture, and the existing
