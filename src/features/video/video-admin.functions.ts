@@ -49,6 +49,78 @@ const videoMimeExtensions = {
   "video/webm": "webm",
   "video/quicktime": "mov",
 } as const;
+
+const directVideoUploadInput = z
+  .object({
+    mimeType: z.enum(["video/mp4", "video/webm", "video/quicktime"]),
+    sizeBytes: z.number().int().positive(),
+  })
+  .strict();
+
+const finalizeStoredVideoInput = directVideoUploadInput.extend({
+  path: z.string().trim().min(20).max(700),
+});
+
+function videoExtensionFor(mimeType: keyof typeof videoMimeExtensions) {
+  return videoMimeExtensions[mimeType];
+}
+
+async function assertVideoSize(sizeBytes: number) {
+  const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
+  if (sizeBytes > getVideoProviderConfig().maxAssetBytes) {
+    throw new Error("حجم ملف الفيديو يتجاوز الحد المسموح");
+  }
+}
+
+async function verifyStoredVideo(
+  admin: Awaited<ReturnType<typeof authorize>>,
+  bucket: "video-assets" | "video-renders",
+  path: string,
+  mimeType: keyof typeof videoMimeExtensions,
+  expectedSize: number,
+) {
+  await assertVideoSize(expectedSize);
+  const slash = path.lastIndexOf("/");
+  if (slash < 1 || slash === path.length - 1) throw new Error("مسار ملف الفيديو غير صالح");
+  const folder = path.slice(0, slash);
+  const name = path.slice(slash + 1);
+  const { data: objects, error } = await admin.storage
+    .from(bucket)
+    .list(folder, { limit: 20, search: name });
+  if (error) throw new Error("تعذر التحقق من ملف الفيديو المرفوع");
+  const object = (objects ?? []).find((item) => item.name === name);
+  if (!object) throw new Error("ملف الفيديو المرفوع غير موجود");
+
+  const metadata =
+    object.metadata && typeof object.metadata === "object" && !Array.isArray(object.metadata)
+      ? (object.metadata as Record<string, unknown>)
+      : {};
+  const storedSize = Number(metadata.size ?? 0);
+  const storedMime =
+    typeof metadata.mimetype === "string"
+      ? metadata.mimetype
+      : typeof metadata.contentType === "string"
+        ? metadata.contentType
+        : "";
+
+  if (!Number.isFinite(storedSize) || storedSize <= 0) {
+    throw new Error("تعذر التحقق من حجم ملف الفيديو المرفوع");
+  }
+  await assertVideoSize(storedSize);
+  if (storedSize !== expectedSize) throw new Error("حجم ملف الفيديو المرفوع غير مطابق");
+  if (storedMime && storedMime !== mimeType) throw new Error("نوع ملف الفيديو المرفوع غير مطابق");
+  return { sizeBytes: storedSize };
+}
+
+async function signedUpload(
+  admin: Awaited<ReturnType<typeof authorize>>,
+  bucket: "video-assets" | "video-renders",
+  path: string,
+) {
+  const { data, error } = await admin.storage.from(bucket).createSignedUploadUrl(path);
+  if (error || !data?.token) throw new Error("تعذر إنشاء رابط رفع آمن");
+  return { bucket, path: data.path ?? path, token: data.token };
+}
 const STAGES = [
   "image_generation",
   "image_review",
@@ -659,6 +731,190 @@ export const resetVideoStoryboard = createServerFn({ method: "POST" })
     if (error) throw new Error("تعذر إعادة بناء لوحة المشاهد");
     await invalidateCurrentRenders(admin, project.id);
     return { ok: true };
+  });
+
+export const requestVideoSceneClipUpload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        sceneId: z.string().uuid(),
+        ...directVideoUploadInput.shape,
+      })
+      .strict()
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const admin = await authorize(context as unknown as AdminContext);
+    await assertVideoSize(data.sizeBytes);
+    const { data: scene } = await admin
+      .from("video_scenes")
+      .select("*")
+      .eq("id", data.sceneId)
+      .single();
+    if (!scene) throw new Error("المشهد غير موجود");
+    const project = await projectById(admin, scene.project_id);
+    if (project.production_stage !== "video_generation" || !project.script_approved_at) {
+      throw new Error("المشروع ليس جاهزاً لرفع مقاطع المشاهد");
+    }
+    const { data: activeJobs } = await admin
+      .from("video_jobs")
+      .select("id")
+      .eq("project_id", project.id)
+      .eq("scene_id", scene.id)
+      .in("status", [...activeVideoJobStatuses]);
+    if (activeJobs?.length) throw new Error("انتظر انتهاء توليد هذا المشهد أولاً");
+
+    const extension = videoExtensionFor(data.mimeType);
+    const path = `projects/${project.id}/scenes/${scene.id}/manual-${crypto.randomUUID()}.${extension}`;
+    return signedUpload(admin, "video-assets", path);
+  });
+
+export const finalizeVideoSceneClipUpload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        sceneId: z.string().uuid(),
+        ...finalizeStoredVideoInput.shape,
+      })
+      .strict()
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const admin = await authorize(context as unknown as AdminContext);
+    const { data: scene } = await admin
+      .from("video_scenes")
+      .select("*")
+      .eq("id", data.sceneId)
+      .single();
+    if (!scene) throw new Error("المشهد غير موجود");
+    const project = await projectById(admin, scene.project_id);
+    if (project.production_stage !== "video_generation" || !project.script_approved_at) {
+      throw new Error("المشروع ليس جاهزاً لربط مقطع المشهد");
+    }
+
+    const extension = videoExtensionFor(data.mimeType);
+    const prefix = `projects/${project.id}/scenes/${scene.id}/manual-`;
+    if (!data.path.startsWith(prefix) || !data.path.endsWith(`.${extension}`)) {
+      throw new Error("مسار مقطع المشهد غير صالح");
+    }
+
+    await verifyStoredVideo(admin, "video-assets", data.path, data.mimeType, data.sizeBytes);
+    const { error } = await admin
+      .from("video_scenes")
+      .update({
+        clip_path: data.path,
+        status: "review",
+        approved_at: null,
+        approved_by: null,
+      })
+      .eq("id", scene.id)
+      .eq("project_id", project.id);
+    if (error) throw new Error("تعذر ربط المقطع بالمشهد");
+
+    await admin
+      .from("video_projects")
+      .update({ quality_approved_at: null, quality_approved_by: null })
+      .eq("id", project.id);
+    await invalidateCurrentRenders(admin, project.id);
+    return { ok: true as const };
+  });
+
+export const requestVideoFinalRenderUpload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    projectInput.extend(directVideoUploadInput.shape).strict().parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const admin = await authorize(context as unknown as AdminContext);
+    await assertVideoSize(data.sizeBytes);
+    const project = await projectById(admin, data.projectId);
+    if (
+      !["quality_review", "final_render"].includes(project.production_stage ?? "") ||
+      project.status !== "processing"
+    ) {
+      throw new Error("المشروع ليس في مرحلة تسمح برفع الفيديو النهائي");
+    }
+    const scenes = await scenesFor(admin, project.id);
+    if (!scenes.length || scenes.some((scene) => scene.status !== "approved" || !scene.clip_path)) {
+      throw new Error("يجب اعتماد كل مقاطع المشاهد أولاً");
+    }
+
+    const extension = videoExtensionFor(data.mimeType);
+    const path = `projects/${project.id}/final/manual-${crypto.randomUUID()}.${extension}`;
+    return signedUpload(admin, "video-renders", path);
+  });
+
+export const finalizeVideoFinalRenderUpload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    projectInput
+      .extend({
+        ...finalizeStoredVideoInput.shape,
+        durationMs: z.number().int().min(1).max(MAX_VIDEO_DURATION_MS),
+        width: z.number().int().min(1).max(10_000),
+        height: z.number().int().min(1).max(10_000),
+      })
+      .strict()
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const admin = await authorize(context as unknown as AdminContext);
+    const project = await projectById(admin, data.projectId);
+    if (
+      !["quality_review", "final_render"].includes(project.production_stage ?? "") ||
+      project.status !== "processing"
+    ) {
+      throw new Error("المشروع ليس في مرحلة تسمح بربط الفيديو النهائي");
+    }
+    const scenes = await scenesFor(admin, project.id);
+    if (!scenes.length || scenes.some((scene) => scene.status !== "approved" || !scene.clip_path)) {
+      throw new Error("يجب اعتماد كل مقاطع المشاهد أولاً");
+    }
+
+    const extension = videoExtensionFor(data.mimeType);
+    const prefix = `projects/${project.id}/final/manual-`;
+    if (!data.path.startsWith(prefix) || !data.path.endsWith(`.${extension}`)) {
+      throw new Error("مسار الفيديو النهائي غير صالح");
+    }
+
+    const stored = await verifyStoredVideo(
+      admin,
+      "video-renders",
+      data.path,
+      data.mimeType,
+      data.sizeBytes,
+    );
+    const { data: latest } = await admin
+      .from("video_renders")
+      .select("version")
+      .eq("project_id", project.id)
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const version = (latest?.version ?? 0) + 1;
+
+    await invalidateCurrentRenders(admin, project.id);
+    const { error } = await admin.from("video_renders").insert({
+      project_id: project.id,
+      render_type: "final",
+      is_current: true,
+      storage_path: data.path,
+      version,
+      mime_type: data.mimeType,
+      size_bytes: stored.sizeBytes,
+      duration_ms: data.durationMs,
+      width: data.width,
+      height: data.height,
+    });
+    if (error) throw new Error("تعذر تسجيل الفيديو النهائي");
+
+    await admin
+      .from("video_projects")
+      .update({ quality_approved_at: null, quality_approved_by: null })
+      .eq("id", project.id);
+    return { ok: true as const, version };
   });
 
 export const uploadVideoSceneClip = createServerFn({ method: "POST" })
