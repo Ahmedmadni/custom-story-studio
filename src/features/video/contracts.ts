@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ASPECT_RATIOS, type AspectRatio } from "@/features/ai/storyStyle";
+import type { AspectRatio } from "@/features/ai/storyStyle";
 
 export const VIDEO_PRODUCT_TYPES = ["illustrated_story", "personalized_video"] as const;
 export const VIDEO_PROJECT_STATUSES = [
@@ -49,6 +49,7 @@ export const VIDEO_SCENE_STATUSES = [
   "failed",
 ] as const;
 export const VIDEO_LANGUAGES = ["ar", "en", "bilingual"] as const;
+export const VIDEO_ASPECT_RATIOS = ["16:9", "9:16"] as const satisfies readonly AspectRatio[];
 
 export const videoProductTypeSchema = z.enum(VIDEO_PRODUCT_TYPES);
 export const videoProjectStatusSchema = z.enum(VIDEO_PROJECT_STATUSES);
@@ -61,7 +62,7 @@ export const videoPaymentStatusSchema = z.enum(VIDEO_PAYMENT_STATUSES);
 export const videoOrderStatusSchema = z.enum(VIDEO_ORDER_STATUSES);
 export const videoSceneStatusSchema = z.enum(VIDEO_SCENE_STATUSES);
 export const videoLanguageSchema = z.enum(VIDEO_LANGUAGES);
-export const videoAspectRatioSchema: z.ZodType<AspectRatio> = z.enum(ASPECT_RATIOS);
+export const videoAspectRatioSchema = z.enum(VIDEO_ASPECT_RATIOS);
 
 export type VideoProductType = z.infer<typeof videoProductTypeSchema>;
 export type VideoProjectStatus = z.infer<typeof videoProjectStatusSchema>;
@@ -74,6 +75,7 @@ export type VideoPaymentStatus = z.infer<typeof videoPaymentStatusSchema>;
 export type VideoOrderStatus = z.infer<typeof videoOrderStatusSchema>;
 export type VideoSceneStatus = z.infer<typeof videoSceneStatusSchema>;
 export type VideoLanguage = z.infer<typeof videoLanguageSchema>;
+export type VideoAspectRatio = z.infer<typeof videoAspectRatioSchema>;
 
 export const MAX_VIDEO_DURATION_MS = 60_000;
 

@@ -15,6 +15,7 @@ import {
   type LanguageMode,
 } from "@/features/ai/storyTypes";
 import type { AspectRatio } from "@/features/ai/storyStyle";
+import { VIDEO_ASPECT_RATIOS } from "@/features/video/contracts";
 import { ChildPicker, type ChildPickerProfile } from "@/features/children/ChildPicker";
 import { AspectRatioPicker } from "@/features/orders/AspectRatioPicker";
 import { submitVideoOrder } from "@/features/video/video-order.functions";

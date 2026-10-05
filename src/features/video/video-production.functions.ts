@@ -505,10 +505,20 @@ export const generateVideoReferenceImage = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => projectInput.parse(input))
   .handler(async ({ data, context }) => {
     const admin = await authorize(context as unknown as Context);
+    const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
+    const providerConfig = getVideoProviderConfig();
+    const referenceProvider = providerConfig.reference.lovable.apiKey
+      ? "lovable"
+      : providerConfig.reference.gemini.apiKey
+        ? "gemini"
+        : null;
+    if (!referenceProvider) {
+      throw new Error("توليد الصورة المرجعية غير مفعّل حالياً");
+    }
     const acquired = await acquireJob(admin, {
       projectId: data.projectId,
       jobType: "reference_image",
-      provider: "gemini",
+      provider: referenceProvider,
     });
     let target = acquired.job;
     if (!acquired.acquired) {
@@ -536,6 +546,10 @@ export const generateVideoScript = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => projectInput.parse(input))
   .handler(async ({ data, context }) => {
     const admin = await authorize(context as unknown as Context);
+    const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
+    if (!getVideoProviderConfig().script.apiKey) {
+      throw new Error("توليد السيناريو بالذكاء الاصطناعي غير مفعّل حالياً");
+    }
     const acquired = await acquireJob(admin, {
       projectId: data.projectId,
       jobType: "script",
@@ -565,12 +579,21 @@ export const generateVideoScene = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => sceneInput.parse(input))
   .handler(async ({ data, context }) => {
     const admin = await authorize(context as unknown as Context);
+    const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
+    const providerConfig = getVideoProviderConfig();
+    if (!providerConfig.scene.replicate.apiKey || !providerConfig.scene.replicate.lovableKey) {
+      throw new Error("توليد مشاهد الفيديو التلقائي غير مفعّل حالياً");
+    }
     const { data: scene } = await admin
       .from("video_scenes")
       .select("project_id")
       .eq("id", data.sceneId)
       .single();
     if (!scene) throw new Error("المشهد غير موجود");
+    const project = await loadProject(admin, scene.project_id);
+    if (project.aspect_ratio === "1:1") {
+      throw new Error("التوليد التلقائي لا يدعم الفيديو المربع؛ استخدم 16:9 أو 9:16");
+    }
     const acquired = await acquireJob(admin, {
       projectId: scene.project_id,
       sceneId: data.sceneId,
