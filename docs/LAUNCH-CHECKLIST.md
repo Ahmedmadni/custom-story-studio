@@ -39,11 +39,9 @@ fix, low priority, can ship without blocking launch.
 `(storage.foldername(name))[1] = auth.uid()::text` or an order-ownership
 `EXISTS` check, plus admin override (`docs/SECURITY-AUDIT.md` §5).
 
-☑ `child-photos` hardened in code by
-`20261006003500_harden_child_photos_rls.sql`: bucket forced private and
-RESTRICTIVE owner-folder policies applied to SELECT/INSERT/UPDATE/DELETE.
-After deploying the migration, verify the four policies exist in `pg_policies`
-and `storage.buckets.public = false`.
+☑ `child-photos` hardened and **verified live**: bucket is private and
+`child_photos_owner_{select,insert,update,delete}_restrictive` are present as
+RESTRICTIVE policies on `storage.objects`.
 
 ☑ Referral abuse hardened this sprint: signup → pending referral → reward
 only after first verified order (`docs/DATABASE-AUDIT.md`/Phase 2 commit).
@@ -174,12 +172,12 @@ and the portfolio gallery's star ratings.
 
 | Category    | Action needed                                                                                                                                                          |
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Security    | Manually verify RLS on `orders`, `user_roles`, `story_templates`, `generated_pages`, `child-photos` bucket in the Supabase dashboard (these predate migration history) |
+| Security    | ✅ Live verification complete: RLS enabled on `orders`, `user_roles`, `story_templates`, `generated_pages`; `child-photos` private + restrictive policies active |
 | Performance | Decide on an image pipeline for cover photos (deferred, not urgent)                                                                                                    |
 | SEO         | Spot-check canonical URLs resolve to the live domain post-deploy                                                                                                       |
 | Browser     | Run `docs/QA-CHECKLIST.md` manually in Chrome, Edge, Firefox, Safari — not performed in this environment                                                               |
 | Mobile      | Run through the same checklist on a real Android and iPhone device — not performed in this environment                                                                 |
-| Business    | Confirm with the team whether reward-points checkout redemption is expected at launch; it does not appear wired yet                                                    |
+| Business    | Reward-point redemption remains intentionally marked “قريباً”; current balances/history/admin adjustments are active, but checkout redemption is not part of this beta scope |
 
 ## Files changed
 
