@@ -10,6 +10,7 @@ const baseOrder = {
   childGender: "boy" as const,
   childPhotoPath: "11111111-1111-4111-8111-111111111111/child-photo.jpg",
   paymentReceiptPath: "11111111-1111-4111-8111-111111111111/payment-receipt.jpg",
+  aiProcessingConsent: true as const,
   language: "ar" as const,
 };
 
@@ -27,5 +28,22 @@ describe("Kidzy Video launch aspect ratios", () => {
     expect(videoOrderInputSchema.safeParse({ ...baseOrder, aspectRatio: "1:1" }).success).toBe(
       false,
     );
+  });
+});
+
+describe("Kidzy Video child-image consent", () => {
+  it("rejects an order when explicit processing consent is missing or false", () => {
+    const { aiProcessingConsent: _consent, ...withoutConsent } = baseOrder;
+
+    expect(
+      videoOrderInputSchema.safeParse({ ...withoutConsent, aspectRatio: "16:9" }).success,
+    ).toBe(false);
+    expect(
+      videoOrderInputSchema.safeParse({
+        ...baseOrder,
+        aiProcessingConsent: false,
+        aspectRatio: "16:9",
+      }).success,
+    ).toBe(false);
   });
 });
