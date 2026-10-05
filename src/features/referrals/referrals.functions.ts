@@ -34,6 +34,25 @@ export const getMyReferralInfo = createServerFn({ method: "GET" })
 
 const ClaimInput = z.object({ code: z.string().trim().min(3).max(20) });
 
+type AtomicReferralRpcClient = {
+  rpc: (
+    fn: "claim_referral_atomic" | "reward_pending_referral_after_verified_order",
+    args: Record<string, unknown>,
+  ) => PromiseLike<{
+    data: unknown;
+    error: { code?: string | null; message?: string | null } | null;
+  }>;
+};
+
+function referralRpcErrorMessage(message?: string | null) {
+  const text = message ?? "";
+  if (text.includes("invalid referral code")) return "كود الإحالة غير صحيح";
+  if (text.includes("self referral")) return "لا يمكنك استخدام كودك الخاص";
+  if (text.includes("already claimed")) return "تم ربط هذا الحساب بإحالة من قبل";
+  if (text.includes("invited user not found")) return "الحساب غير موجود";
+  return "تعذر تسجيل الإحالة";
+}
+
 /**
  * يُستدعى تلقائياً أول مرة يظهر فيها مستخدم مسجّل دخوله ولديه كود إحالة
  * غير مُطالَب به محفوظاً محلياً (F5) — انظر ReferralCapture.
@@ -54,70 +73,30 @@ export const claimReferral = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ClaimInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const code = data.code.trim().toUpperCase();
-    const { data: inviterProfile } = await supabaseAdmin
-      .from("profiles")
-      .select("id")
-      .eq("referral_code", code)
-      .maybeSingle();
-    if (!inviterProfile) throw new Error("كود الإحالة غير صحيح");
-    if (inviterProfile.id === context.userId) throw new Error("لا يمكنك استخدام كودك الخاص");
-
-    const { data: existing } = await supabaseAdmin
-      .from("referrals")
-      .select("id")
-      .eq("invited_user_id", context.userId)
-      .maybeSingle();
-    if (existing) throw new Error("تم ربط هذا الحساب بإحالة من قبل");
-
-    const couponCode = `REF-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-    const { error: couponErr } = await supabaseAdmin.from("coupons").insert({
-      code: couponCode,
-      discount_type: "percent",
-      discount_value: 10,
-      max_uses: 1,
-      max_uses_per_user: 1,
-      is_active: true,
+    const rpc = supabaseAdmin as unknown as AtomicReferralRpcClient;
+    const { data: couponCode, error } = await rpc.rpc("claim_referral_atomic", {
+      _invited_user_id: context.userId,
+      _referral_code: data.code.trim().toUpperCase(),
     });
-    if (couponErr) throw new Error("تعذر إصدار كود الخصم");
 
-    const { error: refErr } = await supabaseAdmin.from("referrals").insert({
-      inviter_id: inviterProfile.id,
-      invited_user_id: context.userId,
-      coupon_code: couponCode,
-      status: "pending",
-    });
-    if (refErr) throw new Error("تعذر تسجيل الإحالة");
+    if (error || typeof couponCode !== "string" || !couponCode) {
+      throw new Error(referralRpcErrorMessage(error?.message));
+    }
 
     return { ok: true, couponCode };
   });
 
 /**
- * يُستدعى من adminVerifyPayment عند تأكيد دفع أي طلب. لو كان هذا المستخدم
- * مدعوّاً بإحالة لا تزال `pending`، يمنح المُحيل 100 نقطة الآن ويقفل
- * الإحالة إلى `rewarded`. آمن عند التكرار: يعتمد على
- * `UPDATE ... WHERE status = 'pending'` فلا يُمنح المُحيل أكثر من مرة حتى
- * لو تكرّر الاستدعاء أو تحقّقت عدة طلبات للمستخدم نفسه لاحقاً.
+ * يُستدعى من adminVerifyPayment عند تأكيد دفع أي طلب. التنفيذ الفعلي أصبح
+ * داخل PostgreSQL: تُقفل الإحالة pending، ثم تُمنح النقاط، وبعد نجاح المنح
+ * فقط تتحول إلى rewarded. أي فشل يعيد المعاملة بالكامل ويُبقيها قابلة لإعادة
+ * المحاولة بدون فقد أو تكرار للنقاط.
  */
 export async function rewardReferralAfterFirstVerifiedOrder(invitedUserId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  const { data: referral } = await supabaseAdmin
-    .from("referrals")
-    .update({ status: "rewarded" })
-    .eq("invited_user_id", invitedUserId)
-    .eq("status", "pending")
-    .select("inviter_id")
-    .maybeSingle();
-
-  if (!referral) return;
-
-  await supabaseAdmin.rpc("award_points", {
-    _user_id: referral.inviter_id,
-    _points: 100,
-    _type: "referral",
-    _reference_id: invitedUserId,
-    _note: "مكافأة إحالة صديق ناجحة (بعد أول طلب مؤكَّد)",
+  const rpc = supabaseAdmin as unknown as AtomicReferralRpcClient;
+  const { error } = await rpc.rpc("reward_pending_referral_after_verified_order", {
+    _invited_user_id: invitedUserId,
   });
+  if (error) throw new Error("تعذر إكمال مكافأة الإحالة");
 }
