@@ -103,10 +103,13 @@ export const adminSaveCoupon = createServerFn({ method: "POST" })
     if (data.id) {
       const { data: current, error: currentError } = await supabaseAdmin
         .from("coupons")
-        .select("id, used_count")
+        .select("id, code, used_count")
         .eq("id", data.id)
         .single();
       if (currentError || !current) throw new Error("كود الخصم غير موجود");
+      if (current.used_count > 0 && data.code !== current.code) {
+        throw new Error("لا يمكن تغيير نص الكود بعد استخدامه");
+      }
       if (data.maxUses != null && data.maxUses < current.used_count) {
         throw new Error("الحد الإجمالي لا يمكن أن يكون أقل من عدد الاستخدامات الحالية");
       }
