@@ -32,44 +32,50 @@ const SubmitReviewInput = z.object({
  * لصاحب الطلب بعد وصول القصة (status='sent'). يمنح 30 نقطة مكافأة عبر
  * award_points (نفس الوعد الوارد في خطة النقاط بالميلستون 2).
  */
+type SubmitReviewRpcClient = {
+  rpc: (
+    fn: "submit_review_and_reward",
+    args: {
+      _user_id: string;
+      _order_id: string;
+      _rating: number;
+      _body: string | null;
+    },
+  ) => PromiseLike<{
+    data: string | null;
+    error: { message?: string | null } | null;
+  }>;
+};
+
 export const submitReview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SubmitReviewInput.parse(input))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { data: order, error: orderErr } = await supabaseAdmin
-      .from("orders")
-      .select("id, user_id, status, child_age, template_id, story_templates!template_id(category)")
-      .eq("id", data.orderId)
-      .single();
-    if (orderErr || !order) throw new Error("الطلب غير موجود");
-    if (order.user_id !== context.userId) throw new Error("غير مصرح");
-    if (order.status !== "sent") throw new Error("يمكن التقييم بعد استلام القصة فقط");
-
-    const { error } = await supabaseAdmin.from("reviews").insert({
-      user_id: context.userId,
-      order_id: data.orderId,
-      template_id: order.template_id,
-      rating: data.rating,
-      body: data.body?.trim() || null,
-      child_age: order.child_age,
-      category: (order.story_templates as { category?: string } | null)?.category ?? null,
+    const rpc = supabaseAdmin as unknown as SubmitReviewRpcClient;
+    const { error } = await rpc.rpc("submit_review_and_reward", {
+      _user_id: context.userId,
+      _order_id: data.orderId,
+      _rating: data.rating,
+      _body: data.body?.trim() || null,
     });
+
     if (error) {
-      if ((error as { code?: string }).code === "23505") {
+      const message = error.message ?? "";
+      if (message.includes("review already exists")) {
         throw new Error("لقد قيّمت هذا الطلب من قبل");
+      }
+      if (message.includes("order is not delivered")) {
+        throw new Error("يمكن التقييم بعد استلام القصة فقط");
+      }
+      if (
+        message.includes("order not found") ||
+        message.includes("does not belong to user")
+      ) {
+        throw new Error("الطلب غير موجود أو غير مصرح");
       }
       throw new Error("تعذر إرسال التقييم");
     }
-
-    await supabaseAdmin.rpc("award_points", {
-      _user_id: context.userId,
-      _points: 30,
-      _type: "review_submitted",
-      _reference_id: data.orderId,
-      _note: "مكافأة كتابة تقييم",
-    });
 
     return { ok: true };
   });
