@@ -64,7 +64,7 @@ function MyOrders() {
       const { data } = await supabase
         .from("orders")
         .select(
-          "id, status, payment_status, payment_rejection_reason, child_name, child_name_en, child_age, gender, whatsapp, notes, language, photo_mode, pages_count, print_copy, delivery_address, gifted_by_name, gifted_by_relation, publish_consent, created_at, story_templates!template_id(title, cover_url, slug, is_custom)",
+          "id, status, payment_status, payment_rejection_reason, child_name, child_name_en, child_age, gender, whatsapp, notes, language, photo_mode, pages_count, print_copy, delivery_address, gifted_by_name, gifted_by_relation, publish_consent, discount_egp, coupon_code, created_at, story_templates!template_id(title, cover_url, slug, is_custom)",
         )
         .order("created_at", { ascending: false });
       return data ?? [];
@@ -279,14 +279,21 @@ function MyOrders() {
                         <Pencil className="ms-1 h-4 w-4" />
                         تعديل
                       </Button>
-                      <Button
-                        variant="outline"
-                        className="rounded-full font-bold text-destructive hover:bg-destructive/10"
-                        onClick={() => setDeletingId(o.id)}
-                      >
-                        <Trash2 className="ms-1 h-4 w-4" />
-                        حذف
-                      </Button>
+                      {(Number((o as { discount_egp?: number | null }).discount_egp ?? 0) === 0 &&
+                        !(o as { coupon_code?: string | null }).coupon_code) ? (
+                        <Button
+                          variant="outline"
+                          className="rounded-full font-bold text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeletingId(o.id)}
+                        >
+                          <Trash2 className="ms-1 h-4 w-4" />
+                          حذف
+                        </Button>
+                      ) : (
+                        <span className="text-xs font-bold text-muted-foreground">
+                          مرتبط بخصم — لا يُحذف منفرداً
+                        </span>
+                      )}
                     </>
                   )}
                 </div>
