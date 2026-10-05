@@ -181,12 +181,29 @@ export const submitCheckout = createServerFn({ method: "POST" })
       const remainingAfterPackage = subtotal - packageDiscount;
       if (coupon.min_order_egp != null && remainingAfterPackage < coupon.min_order_egp)
         throw new Error(`الحد الأدنى لهذا الكود ${coupon.min_order_egp} ج`);
+      if (coupon.discount_type === "percent") {
+        const pct = Number(coupon.discount_value);
+        if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
+          throw new Error("إعداد نسبة الخصم غير صالح");
+        }
+      } else {
+        const fixed = Number(coupon.discount_value);
+        if (!Number.isFinite(fixed) || fixed <= 0) {
+          throw new Error("إعداد قيمة الخصم غير صالح");
+        }
+      }
+
       if (coupon.category) {
-        const categories = data.items
-          .map((it) => tplById.get(it.templateId)?.category)
-          .filter(Boolean);
-        if (!categories.includes(coupon.category))
-          throw new Error("هذا الكود غير صالح لهذا التصنيف من القصص");
+        const categories = data.items.map(
+          (it) => tplById.get(it.templateId)?.category ?? null,
+        );
+        if (
+          categories.some(
+            (category) => category === null || category !== coupon.category,
+          )
+        ) {
+          throw new Error("هذا الكود صالح فقط عندما تكون كل قصص السلة من التصنيف المحدد");
+        }
       }
 
       const { count: userUses } = await supabaseAdmin
