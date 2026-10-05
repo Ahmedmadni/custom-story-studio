@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
 const Input = z.object({
   engine: z.enum(["logic", "cause_effect", "sorting_category", "sequence_order"]),
-  count: z.number().int().min(1).max(20).default(8),
+  count: z.number().int().min(1).max(8).default(8),
 });
 
 export type AiRound = {
@@ -33,8 +35,15 @@ function extractJson(raw: string): { rounds: AiRound[] } {
 }
 
 export const generateExtraRounds = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => Input.parse(input))
   .handler(async ({ data }) => {
+    // Static puzzle banks are the default production path. AI augmentation must
+    // be explicitly enabled to avoid silently consuming provider credits.
+    if (process.env.PUZZLE_AI_ENABLED !== "true") {
+      return { rounds: [] as AiRound[] };
+    }
+
     const key = process.env.LOVABLE_API_KEY;
     if (!key) return { rounds: [] as AiRound[] };
 
