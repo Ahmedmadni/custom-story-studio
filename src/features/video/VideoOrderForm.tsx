@@ -1,11 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Camera, Copy, Loader2, Receipt, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -49,6 +50,7 @@ export function VideoOrderForm({
   const [preview, setPreview] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [aiProcessingConsent, setAiProcessingConsent] = useState(false);
 
   const chooseChild = (child: ChildPickerProfile | null) => {
     setSelectedChild(child);
@@ -83,36 +85,55 @@ export function VideoOrderForm({
       if (!user) throw new Error("سجّل الدخول أولاً");
       if (!photo) throw new Error("ارفع صورة واضحة للطفل");
       if (!receipt) throw new Error("ارفع صورة إيصال التحويل قبل إرسال الطلب");
+      if (!aiProcessingConsent) {
+        throw new Error("يلزم الموافقة على معالجة صورة الطفل لإنشاء الفيديو");
+      }
 
-      const receiptOpt = await optimizeImage(receipt, { maxWidth: 1800, quality: 0.85 });
-      const receiptExt = receiptOpt.file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const paymentReceiptPath = `${user.id}/${crypto.randomUUID()}.${receiptExt}`;
-      const { error: receiptError } = await supabase.storage
-        .from("payment-receipts")
-        .upload(paymentReceiptPath, receiptOpt.file, { contentType: receiptOpt.file.type });
-      if (receiptError) throw new Error("تعذر رفع إيصال التحويل");
+      let paymentReceiptPath: string | null = null;
+      let childPhotoPath: string | null = null;
 
-      const { file: optimized } = await optimizeImage(photo, { maxWidth: 1600, quality: 0.85 });
-      const ext = optimized.name.split(".").pop()?.toLowerCase() || "jpg";
-      const childPhotoPath = `${user.id}/${crypto.randomUUID()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("child-photos")
-        .upload(childPhotoPath, optimized, { contentType: optimized.type });
-      if (uploadError) throw new Error("تعذر رفع صورة الطفل");
+      try {
+        const receiptOpt = await optimizeImage(receipt, { maxWidth: 1800, quality: 0.85 });
+        const receiptExt = receiptOpt.file.name.split(".").pop()?.toLowerCase() || "jpg";
+        paymentReceiptPath = `${user.id}/${crypto.randomUUID()}.${receiptExt}`;
+        const { error: receiptError } = await supabase.storage
+          .from("payment-receipts")
+          .upload(paymentReceiptPath, receiptOpt.file, { contentType: receiptOpt.file.type });
+        if (receiptError) throw new Error("تعذر رفع إيصال التحويل");
 
-      return submitFn({
-        data: {
-          templateId,
-          childId: selectedChild?.id ?? null,
-          childName: childName.trim(),
-          childAge: childAge ? Number(childAge) : null,
-          childGender: gender,
-          childPhotoPath,
-          paymentReceiptPath,
-          language,
-          aspectRatio,
-        },
-      });
+        const { file: optimized } = await optimizeImage(photo, { maxWidth: 1600, quality: 0.85 });
+        const ext = optimized.name.split(".").pop()?.toLowerCase() || "jpg";
+        childPhotoPath = `${user.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("child-photos")
+          .upload(childPhotoPath, optimized, { contentType: optimized.type });
+        if (uploadError) throw new Error("تعذر رفع صورة الطفل");
+
+        return await submitFn({
+          data: {
+            templateId,
+            childId: selectedChild?.id ?? null,
+            childName: childName.trim(),
+            childAge: childAge ? Number(childAge) : null,
+            childGender: gender,
+            childPhotoPath,
+            paymentReceiptPath,
+            aiProcessingConsent: true,
+            language,
+            aspectRatio,
+          },
+        });
+      } catch (error) {
+        const cleanup: PromiseLike<unknown>[] = [];
+        if (paymentReceiptPath) {
+          cleanup.push(supabase.storage.from("payment-receipts").remove([paymentReceiptPath]));
+        }
+        if (childPhotoPath) {
+          cleanup.push(supabase.storage.from("child-photos").remove([childPhotoPath]));
+        }
+        await Promise.allSettled(cleanup);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast.success("تم إرسال طلب الفيديو وإيصال التحويل — بانتظار مراجعة الإدارة");
@@ -261,13 +282,38 @@ export function VideoOrderForm({
         </label>
       </div>
 
+      <div className="rounded-2xl border border-border bg-background p-4">
+        <label className="flex cursor-pointer items-start gap-3">
+          <Checkbox
+            checked={aiProcessingConsent}
+            onCheckedChange={(checked) => setAiProcessingConsent(checked === true)}
+            className="mt-1"
+          />
+          <span className="text-sm leading-7 text-muted-foreground">
+            أقرّ بأنني ولي أمر الطفل أو مخوّل باستخدام صورته، وأوافق على معالجة صورة الطفل
+            لتخصيص الفيديو، بما في ذلك إرسالها إلى مزودي الذكاء الاصطناعي عند تفعيل خدمات
+            التوليد. قرأت{" "}
+            <Link to="/privacy" className="font-bold text-primary hover:underline">
+              سياسة الخصوصية
+            </Link>{" "}
+            و
+            <Link to="/terms" className="font-bold text-primary hover:underline">
+              شروط الاستخدام
+            </Link>
+            .
+          </span>
+        </label>
+      </div>
+
       <div className="rounded-2xl bg-secondary/60 p-4 text-sm text-muted-foreground">
         بعد إرسال الطلب ستراجع الإدارة إيصال التحويل، ثم تُجهَّز نصوص المشاهد تلقائياً ويبدأ إنتاج كل مشهد على حدة.
       </div>
       <Button
         size="lg"
         className="w-full rounded-full font-bold"
-        disabled={submit.isPending || !childName.trim() || !photo || !receipt}
+        disabled={
+          submit.isPending || !childName.trim() || !photo || !receipt || !aiProcessingConsent
+        }
         onClick={() => submit.mutate()}
       >
         {submit.isPending ? <Loader2 className="ms-2 h-5 w-5 animate-spin" /> : <Send className="ms-2 h-5 w-5" />}
