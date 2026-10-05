@@ -25,7 +25,7 @@ BEGIN
     RAISE EXCEPTION 'user and actor are required';
   END IF;
 
-  IF _points = 0 OR abs(_points) > 10000 THEN
+  IF _points = 0 OR _points < -10000 OR _points > 10000 THEN
     RAISE EXCEPTION 'adjustment must be between -10000 and 10000 and not zero';
   END IF;
 
@@ -44,13 +44,13 @@ BEGIN
     RAISE EXCEPTION 'reward balance cannot be negative';
   END IF;
 
-  UPDATE public.reward_accounts
+  UPDATE public.reward_accounts AS ra
   SET
     balance = next_balance,
-    lifetime_points = lifetime_points + GREATEST(_points, 0),
+    lifetime_points = ra.lifetime_points + GREATEST(_points, 0),
     updated_at = now()
-  WHERE user_id = _user_id
-  RETURNING balance, public.reward_accounts.lifetime_points
+  WHERE ra.user_id = _user_id
+  RETURNING ra.balance, ra.lifetime_points
   INTO new_balance, lifetime_points;
 
   INSERT INTO public.reward_transactions (
