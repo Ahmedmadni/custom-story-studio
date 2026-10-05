@@ -3,6 +3,11 @@ export const KIDZY_VIDEO_LOGO_URL =
 
 export type SupportedVideoAspectRatio = "16:9" | "9:16";
 
+export type BrowserCompositionScene = {
+  videoUrl: string;
+  audioUrl?: string | null;
+};
+
 export function finalCanvasSize(aspectRatio: string) {
   if (aspectRatio === "16:9") return { width: 1280, height: 720 };
   if (aspectRatio === "9:16") return { width: 720, height: 1280 };
@@ -31,6 +36,8 @@ export function coverRect(
 
 function bestRecorderMimeType() {
   const candidates = [
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
     "video/webm;codecs=vp9",
     "video/webm;codecs=vp8",
     "video/webm",
@@ -38,9 +45,9 @@ function bestRecorderMimeType() {
   return candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
 }
 
-async function fetchPrivateBlob(url: string) {
+async function fetchPrivateBlob(url: string, label: string) {
   const response = await fetch(url);
-  if (!response.ok) throw new Error("تعذر تحميل أحد مقاطع الفيديو المعتمدة");
+  if (!response.ok) throw new Error(`تعذر تحميل ${label}`);
   return response.blob();
 }
 
@@ -96,6 +103,15 @@ async function videoFromBlob(blob: Blob) {
   };
 }
 
+async function audioBufferFromUrl(url: string, context: AudioContext) {
+  const blob = await fetchPrivateBlob(url, "التعليق الصوتي");
+  try {
+    return await context.decodeAudioData(await blob.arrayBuffer());
+  } catch {
+    throw new Error("تعذر قراءة ملف التعليق الصوتي");
+  }
+}
+
 function drawLogo(
   context: CanvasRenderingContext2D,
   logo: HTMLImageElement,
@@ -123,6 +139,9 @@ async function renderScene(
   canvas: HTMLCanvasElement,
   video: HTMLVideoElement,
   logo: HTMLImageElement,
+  narration: AudioBuffer | null,
+  audioContext: AudioContext | null,
+  audioDestination: MediaStreamAudioDestinationNode | null,
 ) {
   const draw = () => {
     context.fillStyle = "#000000";
@@ -135,29 +154,53 @@ async function renderScene(
   draw();
   await video.play();
 
-  await new Promise<void>((resolve, reject) => {
-    let raf = 0;
-    const finish = () => {
-      cancelAnimationFrame(raf);
-      draw();
-      resolve();
-    };
-    const fail = () => {
-      cancelAnimationFrame(raf);
-      reject(new Error("تعذر تشغيل أحد مقاطع الفيديو أثناء الدمج"));
-    };
-    const tick = () => {
-      draw();
-      if (!video.ended) raf = requestAnimationFrame(tick);
-    };
-    video.addEventListener("ended", finish, { once: true });
-    video.addEventListener("error", fail, { once: true });
-    raf = requestAnimationFrame(tick);
-  });
+  let narrationSource: AudioBufferSourceNode | null = null;
+  if (narration && audioContext && audioDestination) {
+    narrationSource = audioContext.createBufferSource();
+    narrationSource.buffer = narration;
+    narrationSource.connect(audioDestination);
+    narrationSource.start();
+  }
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      let raf = 0;
+      const cleanup = () => {
+        cancelAnimationFrame(raf);
+        video.removeEventListener("ended", finish);
+        video.removeEventListener("error", fail);
+      };
+      const finish = () => {
+        cleanup();
+        draw();
+        resolve();
+      };
+      const fail = () => {
+        cleanup();
+        reject(new Error("تعذر تشغيل أحد مقاطع الفيديو أثناء الدمج"));
+      };
+      const tick = () => {
+        draw();
+        if (!video.ended) raf = requestAnimationFrame(tick);
+      };
+      video.addEventListener("ended", finish, { once: true });
+      video.addEventListener("error", fail, { once: true });
+      raf = requestAnimationFrame(tick);
+    });
+  } finally {
+    if (narrationSource) {
+      try {
+        narrationSource.stop();
+      } catch {
+        // The source may already have ended naturally.
+      }
+      narrationSource.disconnect();
+    }
+  }
 }
 
 export async function composeKidzyFinalVideo(input: {
-  sceneUrls: string[];
+  scenes: BrowserCompositionScene[];
   aspectRatio: SupportedVideoAspectRatio;
   logoUrl?: string;
 }) {
@@ -167,7 +210,7 @@ export async function composeKidzyFinalVideo(input: {
   if (typeof MediaRecorder === "undefined") {
     throw new Error("المتصفح الحالي لا يدعم دمج الفيديو المحلي");
   }
-  if (!input.sceneUrls.length) throw new Error("لا توجد مقاطع معتمدة للدمج");
+  if (!input.scenes.length) throw new Error("لا توجد مقاطع معتمدة للدمج");
 
   const { width, height } = finalCanvasSize(input.aspectRatio);
   const canvas = document.createElement("canvas");
@@ -176,7 +219,16 @@ export async function composeKidzyFinalVideo(input: {
   const context = canvas.getContext("2d", { alpha: false });
   if (!context) throw new Error("تعذر تهيئة محرك دمج الفيديو");
 
+  const hasNarration = input.scenes.some((scene) => Boolean(scene.audioUrl));
+  const audioContext = hasNarration ? new AudioContext() : null;
+  if (audioContext) await audioContext.resume();
+  const audioDestination = audioContext?.createMediaStreamDestination() ?? null;
+
   const stream = canvas.captureStream(30);
+  if (audioDestination) {
+    audioDestination.stream.getAudioTracks().forEach((track) => stream.addTrack(track));
+  }
+
   const mimeType = bestRecorderMimeType();
   const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
   const chunks: BlobPart[] = [];
@@ -201,26 +253,50 @@ export async function composeKidzyFinalVideo(input: {
   });
 
   const logo = await imageFromUrl(input.logoUrl ?? KIDZY_VIDEO_LOGO_URL);
-  const loadedVideos: Awaited<ReturnType<typeof videoFromBlob>>[] = [];
+  const loadedScenes: {
+    video: Awaited<ReturnType<typeof videoFromBlob>>;
+    narration: AudioBuffer | null;
+  }[] = [];
+
   try {
-    for (const url of input.sceneUrls) {
-      loadedVideos.push(await videoFromBlob(await fetchPrivateBlob(url)));
+    for (const scene of input.scenes) {
+      const [videoBlob, narration] = await Promise.all([
+        fetchPrivateBlob(scene.videoUrl, "أحد مقاطع الفيديو المعتمدة"),
+        scene.audioUrl && audioContext ? audioBufferFromUrl(scene.audioUrl, audioContext) : null,
+      ]);
+      loadedScenes.push({
+        video: await videoFromBlob(videoBlob),
+        narration,
+      });
     }
 
     recorder.start(1_000);
-    for (const item of loadedVideos) {
-      await renderScene(context, canvas, item.video, logo.image);
+    for (const item of loadedScenes) {
+      await renderScene(
+        context,
+        canvas,
+        item.video.video,
+        logo.image,
+        item.narration,
+        audioContext,
+        audioDestination,
+      );
     }
     await new Promise((resolve) => window.setTimeout(resolve, 120));
     recorder.stop();
 
     const blob = await stopped;
-    return new File([blob], `kidzy-final-${Date.now()}.webm`, {
-      type: blob.type || "video/webm",
+    const outputType = blob.type || recorder.mimeType || "video/webm";
+    const extension = outputType.includes("mp4") ? "mp4" : "webm";
+    return new File([blob], `kidzy-final-${Date.now()}.${extension}`, {
+      type: outputType,
     });
   } finally {
-    loadedVideos.forEach((item) => item.dispose());
+    loadedScenes.forEach((item) => item.video.dispose());
     logo.dispose();
     stream.getTracks().forEach((track) => track.stop());
+    if (audioContext && audioContext.state !== "closed") {
+      await audioContext.close().catch(() => undefined);
+    }
   }
 }
