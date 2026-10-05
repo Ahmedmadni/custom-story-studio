@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import * as api from "@/features/video/video-admin.functions";
+import { composeKidzyFinalVideo } from "@/features/video/browser-final-composer";
 import * as production from "@/features/video/video-production.functions";
 import * as simple from "@/features/video/video-simple-workflow.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -175,26 +176,50 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
     });
   };
 
+  const readVideoMetadata = (file: File) =>
+    new Promise<{ durationMs: number; width: number; height: number }>((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const video = document.createElement("video");
+      const cleanup = () => URL.revokeObjectURL(objectUrl);
+      video.preload = "metadata";
+      video.onerror = () => {
+        cleanup();
+        reject(new Error("تعذر قراءة بيانات الفيديو"));
+      };
+      video.onloadedmetadata = () => {
+        const metadata = {
+          durationMs: Math.max(1, Math.round(video.duration * 1_000)),
+          width: video.videoWidth,
+          height: video.videoHeight,
+        };
+        cleanup();
+        resolve(metadata);
+      };
+      video.src = objectUrl;
+    });
+
   const uploadFinal = (file: File | undefined) => {
     if (!file) return;
-    const objectUrl = URL.createObjectURL(file);
-    const video = document.createElement("video");
-    video.preload = "metadata";
-    video.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      toast.error("تعذر قراءة بيانات الفيديو");
-    };
-    video.onloadedmetadata = () => {
-      const metadata = {
-        durationMs: Math.max(1, Math.round(video.duration * 1_000)),
-        width: video.videoWidth,
-        height: video.videoHeight,
-      };
-      URL.revokeObjectURL(objectUrl);
-      run(() => uploadFinalDirect(file, metadata));
-    };
-    video.src = objectUrl;
+    run(async () => uploadFinalDirect(file, await readVideoMetadata(file)));
   };
+
+  const composeFinal = () =>
+    run(async () => {
+      const aspectRatio = project.aspect_ratio;
+      if (aspectRatio !== "16:9" && aspectRatio !== "9:16") {
+        throw new Error("الدمج المحلي يدعم 16:9 و9:16 فقط");
+      }
+      const sceneUrls = scenes
+        .sort((a, b) => a.scene_number - b.scene_number)
+        .map((scene) => scene.clipUrl)
+        .filter((url): url is string => Boolean(url));
+      if (sceneUrls.length !== scenes.length) {
+        throw new Error("كل المشاهد يجب أن تحتوي على مقطع فعلي قبل الدمج");
+      }
+      const file = await composeKidzyFinalVideo({ sceneUrls, aspectRatio });
+      const metadata = await readVideoMetadata(file);
+      return uploadFinalDirect(file, metadata);
+    });
 
   const refreshRunning = () =>
     run(async () => {
@@ -418,15 +443,30 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
 
           {["quality_review", "final_render"].includes(project.production_stage ?? "") && (
             <div className="space-y-3 rounded-2xl border p-4">
-              <Button disabled className="w-full">
-                دمج المشاهد وإصدار الفيديو تلقائياً — سيتم تفعيله قبل الإطلاق
+              <Button
+                className="w-full"
+                disabled={
+                  mutation.isPending ||
+                  !allScenesApproved ||
+                  !["16:9", "9:16"].includes(project.aspect_ratio)
+                }
+                onClick={composeFinal}
+              >
+                {mutation.isPending && <Loader2 className="ms-2 h-4 w-4 animate-spin" />}
+                دمج المشاهد ووضع شعار Kidzy
               </Button>
               <p className="text-sm text-muted-foreground">
-                عند ربط مزود الدمج سيُدمج ترتيب المشاهد المعتمدة فقط، وسيُطبع شعار كيدزي فعلياً أعلى الفيديو النهائي.
+                يتم الدمج محلياً داخل متصفح المشرف بدون استهلاك API، وبترتيب المشاهد المعتمدة فقط.
+                شعار Kidzy يُحرق داخل بكسلات الفيديو أعلى المنتصف، ثم يُرفع الناتج مباشرة إلى التخزين الخاص.
               </p>
+              {!["16:9", "9:16"].includes(project.aspect_ratio) && (
+                <p className="text-sm font-bold text-amber-700">
+                  هذا طلب قديم بنسبة أبعاد غير مدعومة للدمج المحلي. استخدم الرفع اليدوي النهائي لهذا الطلب فقط.
+                </p>
+              )}
               <details className="rounded-xl bg-secondary/40 p-3">
                 <summary className="cursor-pointer font-bold">
-                  اختبار بدون API — رفع فيديو نهائي جاهز مباشرة
+                  بديل يدوي — رفع فيديو نهائي جاهز مباشرة
                 </summary>
                 <div className="mt-3 space-y-2">
                   <Input
@@ -439,7 +479,7 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    هذا المسار للاختبار فقط. الملف النهائي التجاري سيحصل على شعار كيدزي أثناء عملية الدمج نفسها.
+                    استخدم هذا المسار فقط إذا أردت رفع نسخة مركبة خارج كيدزي.
                   </p>
                 </div>
               </details>
