@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import * as api from "@/features/video/video-admin.functions";
 import * as production from "@/features/video/video-production.functions";
 import * as simple from "@/features/video/video-simple-workflow.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 const VIDEO_RECEIPT_ROLLOUT_AT = Date.parse("2026-09-07T04:54:57Z");
 
@@ -19,12 +20,14 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
   const qc = useQueryClient();
   const getProject = useServerFn(api.getAdminVideoProject);
   const updatePayment = useServerFn(api.updateVideoPaymentStatus);
-  const uploadSceneClip = useServerFn(api.uploadVideoSceneClip);
+  const requestSceneClipUpload = useServerFn(api.requestVideoSceneClipUpload);
+  const finalizeSceneClipUpload = useServerFn(api.finalizeVideoSceneClipUpload);
   const approveScene = useServerFn(api.approveVideoScene);
   const updateScene = useServerFn(api.updateVideoScene);
   const resetStoryboard = useServerFn(api.resetVideoStoryboard);
   const delivered = useServerFn(api.markVideoDelivered);
-  const uploadFinalRender = useServerFn(api.uploadVideoFinalRender);
+  const requestFinalRenderUpload = useServerFn(api.requestVideoFinalRenderUpload);
+  const finalizeFinalRenderUpload = useServerFn(api.finalizeVideoFinalRenderUpload);
   const generateScene = useServerFn(production.generateVideoScene);
   const refreshJobs = useServerFn(production.refreshVideoProductionJobs);
   const retryJob = useServerFn(production.retryVideoProductionJob);
@@ -113,19 +116,63 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
       return approvePaymentAndPrepare({ data: { videoOrderId } });
     });
 
-  const upload = (
-    file: File | undefined,
-    action: (asset: { dataBase64: string; mimeType: string }) => Promise<unknown>,
+  type VideoMime = "video/mp4" | "video/webm" | "video/quicktime";
+
+  const videoMimeFor = (file: File): VideoMime => {
+    if (file.type === "video/mp4" || file.type === "video/webm" || file.type === "video/quicktime") {
+      return file.type;
+    }
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    if (extension === "webm") return "video/webm";
+    if (extension === "mov") return "video/quicktime";
+    if (extension === "mp4") return "video/mp4";
+    throw new Error("صيغة الفيديو غير مدعومة. استخدم MP4 أو WebM أو MOV");
+  };
+
+  const uploadSceneDirect = async (sceneId: string, file: File) => {
+    const mimeType = videoMimeFor(file);
+    const ticket = await requestSceneClipUpload({
+      data: { sceneId, mimeType, sizeBytes: file.size },
+    });
+    const { error } = await supabase.storage
+      .from(ticket.bucket)
+      .uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: mimeType });
+    if (error) throw new Error("تعذر رفع مقطع المشهد مباشرة إلى التخزين");
+    return finalizeSceneClipUpload({
+      data: {
+        sceneId,
+        path: ticket.path,
+        mimeType,
+        sizeBytes: file.size,
+      },
+    });
+  };
+
+  const uploadFinalDirect = async (
+    file: File,
+    metadata: { durationMs: number; width: number; height: number },
   ) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onerror = () => toast.error("تعذر قراءة الملف");
-    reader.onload = () => {
-      const encoded = typeof reader.result === "string" ? reader.result.split(",")[1] : null;
-      if (!encoded) return toast.error("بيانات الملف غير صالحة");
-      run(() => action({ dataBase64: encoded, mimeType: file.type }));
-    };
-    reader.readAsDataURL(file);
+    const mimeType = videoMimeFor(file);
+    const ticket = await requestFinalRenderUpload({
+      data: {
+        projectId: project.id,
+        mimeType,
+        sizeBytes: file.size,
+      },
+    });
+    const { error } = await supabase.storage
+      .from(ticket.bucket)
+      .uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: mimeType });
+    if (error) throw new Error("تعذر رفع الفيديو النهائي مباشرة إلى التخزين");
+    return finalizeFinalRenderUpload({
+      data: {
+        projectId: project.id,
+        path: ticket.path,
+        mimeType,
+        sizeBytes: file.size,
+        ...metadata,
+      },
+    });
   };
 
   const uploadFinal = (file: File | undefined) => {
@@ -144,9 +191,7 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
         height: video.videoHeight,
       };
       URL.revokeObjectURL(objectUrl);
-      upload(file, (asset) =>
-        uploadFinalRender({ data: { projectId: project.id, ...asset, ...metadata } }),
-      );
+      run(() => uploadFinalDirect(file, metadata));
     };
     video.src = objectUrl;
   };
@@ -333,10 +378,9 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
                     }),
                   )
                 }
-                uploadClip={(file) =>
-                  upload(file, (asset) =>
-                    uploadSceneClip({ data: { sceneId: scene.id, ...asset } }),
-                  )
+                uploadClip={(file) => {
+                  if (!file) return;
+                  run(() => uploadSceneDirect(scene.id, file));
                 }
               />
             ))
@@ -382,7 +426,7 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
               </p>
               <details className="rounded-xl bg-secondary/40 p-3">
                 <summary className="cursor-pointer font-bold">
-                  اختبار بدون API — رفع فيديو نهائي جاهز
+                  اختبار بدون API — رفع فيديو نهائي جاهز مباشرة
                 </summary>
                 <div className="mt-3 space-y-2">
                   <Input
@@ -657,7 +701,7 @@ function SimpleScene({
       )}
       <details className="mt-3 rounded-xl bg-secondary/30 p-3">
         <summary className="cursor-pointer text-sm font-bold">
-          اختبار بدون API — رفع مقطع جاهز
+          اختبار بدون API — رفع مقطع جاهز مباشرة
         </summary>
         <div className="mt-3">
           <Input
