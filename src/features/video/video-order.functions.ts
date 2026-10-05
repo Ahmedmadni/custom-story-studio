@@ -303,6 +303,46 @@ export const submitVideoOrder = createServerFn({ method: "POST" })
       throw new Error("تعذر إنشاء طلب الفيديو، حاول مرة أخرى");
     }
 
+    const consentAt = new Date().toISOString();
+    const { data: consentOrder, error: consentReadError } = await supabaseAdmin
+      .from("video_orders")
+      .select("order_options_snapshot")
+      .eq("id", created.video_order_id)
+      .eq("user_id", context.userId)
+      .single();
+    if (consentReadError || !consentOrder) {
+      await supabaseAdmin.from("video_projects").delete().eq("video_order_id", created.video_order_id);
+      await supabaseAdmin
+        .from("video_orders")
+        .delete()
+        .eq("id", created.video_order_id)
+        .eq("user_id", context.userId);
+      throw new Error("تعذر تسجيل موافقة معالجة صورة الطفل");
+    }
+
+    const consentOptions = objectValue(consentOrder.order_options_snapshot);
+    const { error: consentUpdateError } = await supabaseAdmin
+      .from("video_orders")
+      .update({
+        order_options_snapshot: {
+          ...consentOptions,
+          ai_processing_consent: true,
+          ai_processing_consent_at: consentAt,
+          ai_processing_consent_version: "video-ai-consent-2026-10-05",
+        } as Json,
+      })
+      .eq("id", created.video_order_id)
+      .eq("user_id", context.userId);
+    if (consentUpdateError) {
+      await supabaseAdmin.from("video_projects").delete().eq("video_order_id", created.video_order_id);
+      await supabaseAdmin
+        .from("video_orders")
+        .delete()
+        .eq("id", created.video_order_id)
+        .eq("user_id", context.userId);
+      throw new Error("تعذر تسجيل موافقة معالجة صورة الطفل");
+    }
+
     const [dto] = await toCustomerDtos([
       {
         id: created.video_order_id,
