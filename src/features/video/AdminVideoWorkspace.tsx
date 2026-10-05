@@ -11,6 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import * as api from "@/features/video/video-admin.functions";
 import { composeKidzyFinalVideo } from "@/features/video/browser-final-composer";
+import {
+  normalizeAudioUploadMime,
+  normalizeVideoUploadMime,
+} from "@/features/video/media-mime";
 import * as production from "@/features/video/video-production.functions";
 import * as simple from "@/features/video/video-simple-workflow.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -119,48 +123,8 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
       return approvePaymentAndPrepare({ data: { videoOrderId } });
     });
 
-  type VideoMime = "video/mp4" | "video/webm" | "video/quicktime";
-
-  const videoMimeFor = (file: File): VideoMime => {
-    if (file.type === "video/mp4" || file.type === "video/webm" || file.type === "video/quicktime") {
-      return file.type;
-    }
-    const extension = file.name.split(".").pop()?.toLowerCase();
-    if (extension === "webm") return "video/webm";
-    if (extension === "mov") return "video/quicktime";
-    if (extension === "mp4") return "video/mp4";
-    throw new Error("صيغة الفيديو غير مدعومة. استخدم MP4 أو WebM أو MOV");
-  };
-
-  type AudioMime =
-    | "audio/mpeg"
-    | "audio/wav"
-    | "audio/x-wav"
-    | "audio/ogg"
-    | "audio/webm"
-    | "audio/mp4";
-
-  const audioMimeFor = (file: File): AudioMime => {
-    const supported: AudioMime[] = [
-      "audio/mpeg",
-      "audio/wav",
-      "audio/x-wav",
-      "audio/ogg",
-      "audio/webm",
-      "audio/mp4",
-    ];
-    if (supported.includes(file.type as AudioMime)) return file.type as AudioMime;
-    const extension = file.name.split(".").pop()?.toLowerCase();
-    if (extension === "mp3") return "audio/mpeg";
-    if (extension === "wav") return "audio/wav";
-    if (extension === "ogg") return "audio/ogg";
-    if (extension === "webm") return "audio/webm";
-    if (extension === "m4a" || extension === "mp4") return "audio/mp4";
-    throw new Error("صيغة التعليق الصوتي غير مدعومة");
-  };
-
   const uploadSceneDirect = async (sceneId: string, file: File) => {
-    const mimeType = videoMimeFor(file);
+    const mimeType = normalizeVideoUploadMime(file);
     const ticket = await requestSceneClipUpload({
       data: { sceneId, mimeType, sizeBytes: file.size },
     });
@@ -179,7 +143,7 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
   };
 
   const uploadSceneAudioDirect = async (sceneId: string, file: File) => {
-    const mimeType = audioMimeFor(file);
+    const mimeType = normalizeAudioUploadMime(file);
     const ticket = await requestSceneAudioUpload({
       data: { sceneId, mimeType, sizeBytes: file.size },
     });
@@ -201,7 +165,7 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
     file: File,
     metadata: { durationMs: number; width: number; height: number },
   ) => {
-    const mimeType = videoMimeFor(file);
+    const mimeType = normalizeVideoUploadMime(file);
     const ticket = await requestFinalRenderUpload({
       data: {
         projectId: project.id,
