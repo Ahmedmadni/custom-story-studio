@@ -51,6 +51,7 @@ import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated.admin.orders'
 import { Route as AuthenticatedAdminHealthRouteImport } from './routes/_authenticated.admin.health'
 import { Route as AuthenticatedAdminApprovalsRouteImport } from './routes/_authenticated.admin.approvals'
+import { Route as AuthenticatedAdminCommerceRouteImport } from './routes/_authenticated.admin.commerce'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated.admin.analytics'
 import { Route as ApiPublicKashierWebhookRouteImport } from './routes/api/public/kashier.webhook'
 import { Route as AuthenticatedChildrenIdEditRouteImport } from './routes/_authenticated.children.$id.edit'
@@ -276,6 +277,12 @@ const AuthenticatedAdminApprovalsRoute =
     path: '/approvals',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminCommerceRoute =
+  AuthenticatedAdminCommerceRouteImport.update({
+    id: '/commerce',
+    path: '/commerce',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminAnalyticsRoute =
   AuthenticatedAdminAnalyticsRouteImport.update({
     id: '/analytics',
@@ -330,6 +337,7 @@ export interface FileRoutesByFullPath {
   '/stories/': typeof StoriesIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
+  '/admin/commerce': typeof AuthenticatedAdminCommerceRoute
   '/admin/health': typeof AuthenticatedAdminHealthRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
@@ -376,6 +384,7 @@ export interface FileRoutesByTo {
   '/stories': typeof StoriesIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
+  '/admin/commerce': typeof AuthenticatedAdminCommerceRoute
   '/admin/health': typeof AuthenticatedAdminHealthRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
@@ -425,6 +434,7 @@ export interface FileRoutesById {
   '/stories/': typeof StoriesIndexRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/approvals': typeof AuthenticatedAdminApprovalsRoute
+  '/_authenticated/admin/commerce': typeof AuthenticatedAdminCommerceRoute
   '/_authenticated/admin/health': typeof AuthenticatedAdminHealthRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
@@ -474,6 +484,7 @@ export interface FileRouteTypes {
     | '/stories/'
     | '/admin/analytics'
     | '/admin/approvals'
+    | '/admin/commerce'
     | '/admin/health'
     | '/admin/orders'
     | '/admin/payments'
@@ -520,6 +531,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/admin/analytics'
     | '/admin/approvals'
+    | '/admin/commerce'
     | '/admin/health'
     | '/admin/orders'
     | '/admin/payments'
@@ -568,6 +580,7 @@ export interface FileRouteTypes {
     | '/stories/'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/approvals'
+    | '/_authenticated/admin/commerce'
     | '/_authenticated/admin/health'
     | '/_authenticated/admin/orders'
     | '/_authenticated/admin/payments'
@@ -905,6 +918,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminApprovalsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/commerce': {
+      id: '/_authenticated/admin/commerce'
+      path: '/commerce'
+      fullPath: '/admin/commerce'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/analytics': {
       id: '/_authenticated/admin/analytics'
       path: '/analytics'
@@ -939,6 +959,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminApprovalsRoute: typeof AuthenticatedAdminApprovalsRoute
+  AuthenticatedAdminCommerceRoute: typeof AuthenticatedAdminCommerceRoute
   AuthenticatedAdminHealthRoute: typeof AuthenticatedAdminHealthRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
   AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
@@ -953,6 +974,7 @@ interface AuthenticatedAdminRouteChildren {
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
   AuthenticatedAdminApprovalsRoute: AuthenticatedAdminApprovalsRoute,
+  AuthenticatedAdminCommerceRoute: AuthenticatedAdminCommerceRoute,
   AuthenticatedAdminHealthRoute: AuthenticatedAdminHealthRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
   AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
