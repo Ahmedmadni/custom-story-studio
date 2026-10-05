@@ -72,6 +72,7 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
     (render) => render.render_type === "final" && render.is_current,
   );
   const paymentReviewed = order.paymentStatus === "paid";
+  const paymentRejected = order.paymentStatus === "failed";
   const scenesPrepared = scenes.length > 0 && Boolean(project.script_approved_at);
   const receiptUrl = receiptQuery.data?.receiptUrl ?? null;
   const createdAt = Date.parse(order.createdAt);
@@ -192,16 +193,44 @@ export function AdminVideoWorkspace({ videoOrderId }: { videoOrderId: string }) 
             </div>
           </div>
           {!paymentReviewed ? (
-            <Button
-              size="lg"
-              disabled={mutation.isPending || (!receiptUrl && !legacyWithoutReceipt)}
-              onClick={approvePayment}
-            >
-              {mutation.isPending && <Loader2 className="ms-2 h-4 w-4 animate-spin" />}
-              {legacyWithoutReceipt
-                ? "اعتماد الطلب القديم وتجهيز المشاهد"
-                : "اعتماد التحويل وتجهيز المشاهد تلقائياً"}
-            </Button>
+            paymentRejected ? (
+              <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+                تم رفض الإيصال الحالي. بانتظار أن يرفع العميل إيصالاً جديداً من صفحة «طلباتي».
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="lg"
+                  disabled={mutation.isPending || (!receiptUrl && !legacyWithoutReceipt)}
+                  onClick={approvePayment}
+                >
+                  {mutation.isPending && <Loader2 className="ms-2 h-4 w-4 animate-spin" />}
+                  {legacyWithoutReceipt
+                    ? "اعتماد الطلب القديم وتجهيز المشاهد"
+                    : "اعتماد التحويل وتجهيز المشاهد تلقائياً"}
+                </Button>
+                {receiptUrl && !legacyWithoutReceipt && (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    disabled={mutation.isPending}
+                    onClick={() =>
+                      run(() =>
+                        updatePayment({
+                          data: {
+                            videoOrderId,
+                            paymentStatus: "failed",
+                            reason: "تعذر اعتماد إيصال التحويل. يرجى رفع إيصال جديد واضح.",
+                          },
+                        }),
+                      )
+                    }
+                  >
+                    رفض الإيصال وطلب إيصال جديد
+                  </Button>
+                )}
+              </div>
+            )
           ) : (
             <p className="flex items-center gap-2 font-bold text-emerald-700">
               <CheckCircle2 className="h-5 w-5" /> تم اعتماد التحويل وبدء الإنتاج
