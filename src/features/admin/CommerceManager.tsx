@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Edit3, Gift, Loader2, Plus, Search, TicketPercent } from "lucide-react";
+import { Edit3, Gift, Loader2, Percent, Plus, Search } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -217,7 +217,7 @@ export function CommerceManager() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="flex items-center gap-2 font-display text-2xl font-extrabold">
-              <TicketPercent className="h-6 w-6 text-primary" />
+              <Percent className="h-6 w-6 text-primary" />
               أكواد الخصم
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
