@@ -111,7 +111,16 @@ export const setPublishConsent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ConsentInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: order, error: readError } = await supabaseAdmin
+      .from("orders")
+      .select("id, user_id")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (readError || !order) throw new Error("الطلب غير موجود");
+    if (order.user_id !== context.userId) throw new Error("غير مصرح");
+
+    const { error } = await supabaseAdmin
       .from("orders")
       .update({ publish_consent: data.consent } as never)
       .eq("id", data.orderId)
