@@ -341,7 +341,8 @@ ${dedication}`;
 
     const slug = `custom-${crypto.randomUUID().slice(0, 8)}`;
     const { DEFAULT_COVER_URL } = await import("@/lib/defaultCover");
-    const { data: inserted, error } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: inserted, error } = await supabaseAdmin
       .from("story_templates")
       .insert({
         slug,
