@@ -93,11 +93,42 @@ export const Route = createFileRoute("/api/public/kashier/webhook")({
         // dedupe: if any order already verified for this kashier_order_id, ack and skip
         const { data: existing } = await supabaseAdmin
           .from("orders")
-          .select("id, payment_status")
+          .select("id, user_id, payment_status, payment_provider, price_egp")
           .eq("kashier_order_id", kashierOrderId);
 
         if (!existing || existing.length === 0) {
           return new Response("Unknown order", { status: 404, headers: corsHeaders });
+        }
+
+        if (existing.some((row) => row.payment_provider !== "kashier")) {
+          return new Response("Payment provider mismatch", {
+            status: 409,
+            headers: corsHeaders,
+          });
+        }
+
+        const expectedAmount = existing.reduce(
+          (sum, row) => sum + Number(row.price_egp ?? 0),
+          0,
+        );
+        const expectedCents = Math.round(expectedAmount * 100);
+        const receivedCents = Math.round(amount * 100);
+        if (
+          !Number.isFinite(amount) ||
+          amount <= 0 ||
+          currency.toUpperCase() !== "EGP" ||
+          receivedCents !== expectedCents
+        ) {
+          console.error("kashier amount/currency mismatch", {
+            kashierOrderId,
+            expectedAmount,
+            receivedAmount: amount,
+            currency,
+          });
+          return new Response("Amount or currency mismatch", {
+            status: 400,
+            headers: corsHeaders,
+          });
         }
 
         const alreadyPaid = existing.every((r) => r.payment_status === "verified");
