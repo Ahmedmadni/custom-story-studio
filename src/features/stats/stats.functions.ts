@@ -8,7 +8,7 @@ import { createServerFn } from "@tanstack/react-start";
 export const getTrustStats = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  const [ordersRes, usersRes, deliveryRes] = await Promise.all([
+  const [ordersRes, usersRes, deliveryRes, reviewsRes] = await Promise.all([
     supabaseAdmin.from("orders").select("id", { count: "exact", head: true }),
     supabaseAdmin
       .from("orders")
@@ -20,6 +20,10 @@ export const getTrustStats = createServerFn({ method: "GET" }).handler(async () 
       .not("published_at", "is", null)
       .order("published_at", { ascending: false })
       .limit(50),
+    supabaseAdmin
+      .from("reviews")
+      .select("rating")
+      .eq("is_published", true),
   ]);
 
   const storiesCount = ordersRes.count ?? 0;
@@ -27,7 +31,7 @@ export const getTrustStats = createServerFn({ method: "GET" }).handler(async () 
     (usersRes.data ?? []).map((r) => (r as { user_id: string | null }).user_id).filter(Boolean),
   ).size;
 
-  let avgHours = 24;
+  let avgHours: number | null = null;
   const rows = (deliveryRes.data ?? []) as unknown as Array<{
     created_at: string;
     published_at: string | null;
@@ -41,12 +45,19 @@ export const getTrustStats = createServerFn({ method: "GET" }).handler(async () 
     avgHours = Math.max(1, Math.round(total / valid.length / 3_600_000));
   }
 
-  // قيم أساسية لتفادي أرقام صفر مُحبِطة في البدايات
+  const publishedRatings = (reviewsRes.data ?? [])
+    .map((row) => Number((row as { rating?: number }).rating))
+    .filter((rating) => Number.isFinite(rating) && rating >= 1 && rating <= 5);
+  const rating =
+    publishedRatings.length > 0
+      ? publishedRatings.reduce((sum, value) => sum + value, 0) / publishedRatings.length
+      : null;
+
   return {
-    storiesCreated: Math.max(1250, storiesCount + 1250),
-    happyFamilies: Math.max(730, families + 730),
-    rating: 4.9,
-    avgDeliveryHours: Math.min(avgHours, 48),
+    storiesCreated: storiesCount,
+    happyFamilies: families,
+    rating,
+    avgDeliveryHours: avgHours == null ? null : Math.min(avgHours, 48),
   };
 });
 
@@ -87,43 +98,36 @@ export const getActivityFeed = createServerFn({ method: "GET" }).handler(async (
   const [ordersRes, levelUpsRes] = await Promise.all([
     supabaseAdmin
       .from("orders")
-      .select(
-        "child_name, updated_at, template:story_templates!orders_template_id_fkey(category, title)",
-      )
+      .select("updated_at")
       .eq("status", "sent")
       .order("updated_at", { ascending: false })
       .limit(6),
     supabaseAdmin
       .from("child_story_universe")
-      .select("level, updated_at, child:child_profiles!child_story_universe_child_id_fkey(name)")
+      .select("level, updated_at")
       .gt("level", 1)
       .order("updated_at", { ascending: false })
       .limit(6),
   ]);
 
-  const firstName = (name: string | null | undefined) => (name ?? "طفل").trim().split(/\s+/)[0];
-
   type OrderRow = {
-    child_name: string | null;
     updated_at: string;
-    template: { category: string | null; title: string | null } | null;
   };
   type LevelRow = {
     level: number;
     updated_at: string;
-    child: { name: string | null } | null;
   };
 
-  const fromOrders = ((ordersRes.data ?? []) as unknown as OrderRow[]).map((r) => ({
+  const fromOrders = ((ordersRes.data ?? []) as unknown as OrderRow[]).map((row) => ({
     type: "order" as const,
-    text: `${firstName(r.child_name)} استلم قصة «${r.template?.title ?? r.template?.category ?? "جديدة"}» 📦`,
-    at: r.updated_at,
+    text: "تم تسليم قصة جديدة لعائلة من كيدزي 📦",
+    at: row.updated_at,
   }));
 
-  const fromLevelUps = ((levelUpsRes.data ?? []) as unknown as LevelRow[]).map((r) => ({
+  const fromLevelUps = ((levelUpsRes.data ?? []) as unknown as LevelRow[]).map((row) => ({
     type: "level" as const,
-    text: `${firstName(r.child?.name)} وصل للمستوى ${r.level} 🎖️`,
-    at: r.updated_at,
+    text: `بطل صغير وصل للمستوى ${row.level} 🎖️`,
+    at: row.updated_at,
   }));
 
   return [...fromOrders, ...fromLevelUps]
