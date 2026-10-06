@@ -79,24 +79,8 @@ export function ChildForm({ initial }: { initial?: ChildFormData }) {
         .single();
       if (error) throw error;
 
-      // Keep child creation atomic from the user's perspective. If the
-      // companion universe row cannot be created, remove the new profile
-      // instead of silently leaving a partially initialized child record.
-      const { error: universeError } = await supabase
-        .from("child_story_universe")
-        .insert({ child_id: data.id });
-      if (universeError) {
-        const { error: cleanupError } = await supabase
-          .from("child_profiles")
-          .delete()
-          .eq("id", data.id)
-          .eq("user_id", user.id);
-        if (cleanupError) {
-          console.error("failed to compensate partial child profile creation", cleanupError);
-        }
-        throw new Error("تعذّر تهيئة ملف الطفل بالكامل، حاول مرة أخرى");
-      }
-
+      // The database initializes child_story_universe with trusted default
+      // progression values in the same child-profile creation flow.
       return data.id as string;
     },
     onSuccess: (id) => {
