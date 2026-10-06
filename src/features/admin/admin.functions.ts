@@ -33,6 +33,32 @@ async function assertAdmin(context: AuthedContext) {
   if (!data) throw new Error("غير مصرح لك بالوصول");
 }
 
+async function removeOrderAssetIfUnreferenced(
+  supabaseAdmin: import("@supabase/supabase-js").SupabaseClient,
+  bucket: "child-photos" | "payment-receipts",
+  column: "child_photo_path" | "receipt_path",
+  path: string,
+) {
+  const { count, error } = await supabaseAdmin
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq(column, path);
+  if (error) {
+    console.error("asset reference check failed", { bucket, column, path, error });
+    return;
+  }
+  if ((count ?? 0) > 0) return;
+
+  const { error: removeError } = await supabaseAdmin.storage.from(bucket).remove([path]);
+  if (removeError) {
+    console.error("unreferenced order asset cleanup failed", {
+      bucket,
+      path,
+      error: removeError,
+    });
+  }
+}
+
 function summarizeProviderFailure(provider: string, status?: number, body?: string) {
   const text = (body ?? "").toLowerCase();
   const name =
@@ -473,12 +499,24 @@ export const adminDeleteOrder = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("orders").delete().eq("id", data.orderId);
     if (error) throw new Error("تعذر حذف الطلب");
 
-    const removals: Array<{ bucket: string; path: string }> = [];
-    if (order?.child_photo_path)
-      removals.push({ bucket: "child-photos", path: order.child_photo_path });
-    if (order?.receipt_path)
-      removals.push({ bucket: "payment-receipts", path: order.receipt_path });
-    await Promise.all(removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])));
+    await Promise.all([
+      order?.child_photo_path
+        ? removeOrderAssetIfUnreferenced(
+            supabaseAdmin,
+            "child-photos",
+            "child_photo_path",
+            order.child_photo_path,
+          )
+        : Promise.resolve(),
+      order?.receipt_path
+        ? removeOrderAssetIfUnreferenced(
+            supabaseAdmin,
+            "payment-receipts",
+            "receipt_path",
+            order.receipt_path,
+          )
+        : Promise.resolve(),
+    ]);
     return { ok: true };
   });
 
@@ -656,27 +694,32 @@ export const updateMyOrder = createServerFn({ method: "POST" })
       .eq("id", data.orderId);
     if (error) throw new Error("تعذر تحديث الطلب");
 
-    // نظافة: نحذف الملفات القديمة لو تم استبدالها
-    const removals: Array<{ bucket: string; path: string }> = [];
-    if (
+    // نظافة مرجعية: لا نحذف ملفاً قديماً إذا كانت طلبات أخرى ما زالت
+    // تشير إليه (إيصال واحد قد يكون مشتركاً بين عدة عناصر في السلة).
+    await Promise.all([
       data.newChildPhotoPath &&
       existing.child_photo_path &&
-      existing.child_photo_path !== data.newChildPhotoPath
-    ) {
-      if (existing.child_photo_path.startsWith(`${context.userId}/`)) {
-        removals.push({ bucket: "child-photos", path: existing.child_photo_path });
-      }
-    }
-    if (
+      existing.child_photo_path !== data.newChildPhotoPath &&
+      existing.child_photo_path.startsWith(`${context.userId}/`)
+        ? removeOrderAssetIfUnreferenced(
+            supabaseAdmin,
+            "child-photos",
+            "child_photo_path",
+            existing.child_photo_path,
+          )
+        : Promise.resolve(),
       data.newReceiptPath &&
       existing.receipt_path &&
-      existing.receipt_path !== data.newReceiptPath
-    ) {
-      if (existing.receipt_path.startsWith(`${context.userId}/`)) {
-        removals.push({ bucket: "payment-receipts", path: existing.receipt_path });
-      }
-    }
-    await Promise.all(removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])));
+      existing.receipt_path !== data.newReceiptPath &&
+      existing.receipt_path.startsWith(`${context.userId}/`)
+        ? removeOrderAssetIfUnreferenced(
+            supabaseAdmin,
+            "payment-receipts",
+            "receipt_path",
+            existing.receipt_path,
+          )
+        : Promise.resolve(),
+    ]);
 
     return { ok: true };
   });
@@ -697,21 +740,26 @@ export const deleteMyOrder = createServerFn({ method: "POST" })
     }
     const { error } = await supabaseAdmin.from("orders").delete().eq("id", data.orderId);
     if (error) throw new Error("تعذر حذف الطلب");
-    // نظافة ملفات
-    const removals: Array<{ bucket: string; path: string }> = [];
-    if (
+    await Promise.all([
       existing.child_photo_path &&
       existing.child_photo_path.startsWith(`${context.userId}/`)
-    ) {
-      removals.push({ bucket: "child-photos", path: existing.child_photo_path });
-    }
-    if (
+        ? removeOrderAssetIfUnreferenced(
+            supabaseAdmin,
+            "child-photos",
+            "child_photo_path",
+            existing.child_photo_path,
+          )
+        : Promise.resolve(),
       existing.receipt_path &&
       existing.receipt_path.startsWith(`${context.userId}/`)
-    ) {
-      removals.push({ bucket: "payment-receipts", path: existing.receipt_path });
-    }
-    await Promise.all(removals.map((r) => supabaseAdmin.storage.from(r.bucket).remove([r.path])));
+        ? removeOrderAssetIfUnreferenced(
+            supabaseAdmin,
+            "payment-receipts",
+            "receipt_path",
+            existing.receipt_path,
+          )
+        : Promise.resolve(),
+    ]);
     return { ok: true };
   });
 
