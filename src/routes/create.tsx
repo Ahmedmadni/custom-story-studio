@@ -65,7 +65,6 @@ import {
   type Gender,
   type LanguageMode,
 } from "@/features/ai/storyTypes";
-import { isValidEgyptianMobile } from "@/features/orders/whatsapp";
 import { optimizeImage } from "@/lib/imageOptimize";
 
 export const Route = createFileRoute("/create")({
