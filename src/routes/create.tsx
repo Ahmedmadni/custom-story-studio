@@ -319,7 +319,6 @@ function CreateWizard() {
         },
       });
 
-      let orderCreated = false;
       let photoPath: string | null = null;
       if (photo && user) {
         try {
@@ -331,32 +330,15 @@ function CreateWizard() {
             .upload(path, optimized, { contentType: optimized.type });
           if (upErr) throw upErr;
           photoPath = path;
-          const { error: insErr } = await supabase.from("orders").insert({
-            user_id: user.id,
-            template_id: res.id,
-            child_name: childName.trim(),
-            child_age: age ? Number(age) : null,
-            gender: gender as Gender,
-            whatsapp: whatsapp.trim(),
-            child_photo_path: path,
-            language: (language || "ar") as LanguageMode,
-            photo_mode: photoMode,
-            orientation,
-            pages_count: contentType === "story" ? pagesCount : 10,
-            price_egp:
-              contentType === "story" ? (pagesCount === 10 ? 200 : 250) : 200,
-            notes:
-              photoMode === "cartoon"
-                ? "طلب من معالج الإنشاء — تحويل صورة الطفل إلى شخصية كرتونية"
-                : "طلب من معالج الإنشاء — استخدام صورة الطفل الحقيقية مع التحسين والدمج",
-          });
-          if (insErr) throw insErr;
-          orderCreated = true;
         } catch {
-          toast.error("تم توليد المحتوى لكن تعذر إرسال طلب الصور");
+          toast.error("تم توليد المحتوى لكن تعذر رفع صورة المرجع");
         }
       }
-      return { ...res, orderCreated, photoPath };
+
+      // /create is an admin authoring workflow, not a checkout flow. Do not
+      // create an unpaid customer order as a side effect of generating content.
+      // Customer orders are created only by the trusted checkout/request flows.
+      return { ...res, photoPath };
     },
     onSuccess: (data) => {
       setPageIndex(0);
@@ -400,7 +382,7 @@ function CreateWizard() {
       case 2:
         return language !== "";
       case 3:
-        return !photo || isValidEgyptianMobile(whatsapp);
+        return true;
       case 4:
         if (contentType === "book")
           return bookCategory !== "";
@@ -1474,7 +1456,6 @@ interface Step7Props {
     moral?: string | null;
     language: string;
     contentType: string;
-    orderCreated?: boolean;
   };
   childName: string;
   pdfPages: PdfStoryPage[];
@@ -1565,12 +1546,6 @@ function Step7Approval({ result, childName, pdfPages, orientation, personalize, 
             </Button>
           </div>
         </>
-      )}
-
-      {result.orderCreated && (
-        <p className="mt-5 rounded-2xl bg-grass/15 p-4 text-sm font-semibold text-grass">
-          🎉 طلب النسخة المصورة بصورة طفلك مستلم — سنرسلها عبر الواتساب
-        </p>
       )}
 
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
