@@ -98,8 +98,9 @@ export const createKashierCheckout = createServerFn({ method: "POST" })
       }
     });
 
-    // single grouping id used as Kashier merchantOrderId
-    const kashierOrderId = `KZ-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    // Single grouping id used as Kashier merchantOrderId.
+    // Use a cryptographically strong identifier rather than Math.random().
+    const kashierOrderId = `KZ-${crypto.randomUUID()}`;
 
     const rows = data.items.map((it, idx) => {
       const isCustom = isCustomById.get(it.templateId) ?? false;
@@ -136,7 +137,9 @@ export const createKashierCheckout = createServerFn({ method: "POST" })
     const amount = totalEgp.toFixed(2);
     const currency = "EGP";
 
-    const { error } = await context.supabase.from("orders").insert(rows);
+    // Order creation is a trusted server operation. Browser roles intentionally
+    // do not have INSERT on orders after least-privilege hardening.
+    const { error } = await supabaseAdmin.from("orders").insert(rows);
     if (error) {
       console.error("kashier orders insert failed", error);
       throw new Error("تعذر إنشاء الطلب");
