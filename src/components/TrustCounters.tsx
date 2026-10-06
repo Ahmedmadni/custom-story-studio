@@ -42,10 +42,10 @@ export function TrustCounters() {
   });
 
   const stats = data ?? {
-    storiesCreated: 1250,
-    happyFamilies: 730,
-    rating: 4.9,
-    avgDeliveryHours: 24,
+    storiesCreated: 0,
+    happyFamilies: 0,
+    rating: null,
+    avgDeliveryHours: null,
   };
 
   const items = [
@@ -64,13 +64,13 @@ export function TrustCounters() {
     {
       icon: Star,
       color: "from-yellow-400 to-amber-500",
-      value: <span>{stats.rating.toFixed(1)}/5</span>,
+      value: <span>{stats.rating == null ? "—" : `${stats.rating.toFixed(1)}/5`}</span>,
       label: "متوسط تقييم الأهالي",
     },
     {
       icon: Clock,
       color: "from-emerald-400 to-teal-500",
-      value: <span>{stats.avgDeliveryHours}س</span>,
+      value: <span>{stats.avgDeliveryHours == null ? "—" : `${stats.avgDeliveryHours}س`}</span>,
       label: "متوسط زمن التسليم",
     },
   ];
