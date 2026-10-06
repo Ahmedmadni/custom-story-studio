@@ -37,7 +37,8 @@ function PaymentReturnPage() {
 
   useEffect(() => {
     if (!kashierOrderId) {
-      setStatus(queryHint === "SUCCESS" ? "success" : "failed");
+      // Never treat redirect query parameters as payment proof.
+      setStatus("failed");
       return;
     }
     let cancelled = false;
@@ -58,6 +59,8 @@ function PaymentReturnPage() {
         if (anyRejected) return setStatus("failed");
       }
       if (tries >= max) {
+        // A positive redirect hint is not enough to mark payment as successful.
+        // Keep it pending while the signed webhook remains the source of truth.
         setStatus(queryHint === "SUCCESS" ? "pending" : "failed");
       } else {
         setTimeout(poll, 2000);
