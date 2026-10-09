@@ -9,112 +9,61 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
-import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
-import { Route as PuzzlesRouteImport } from './routes/puzzles'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as HelpRouteImport } from './routes/help'
-import { Route as GamesRouteImport } from './routes/games'
-import { Route as CreateRouteImport } from './routes/create'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as CartRouteImport } from './routes/cart'
-import { Route as BooksRouteImport } from './routes/books'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BooksRouteImport } from './routes/books'
+import { Route as CartRouteImport } from './routes/cart'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CreateRouteImport } from './routes/create'
+import { Route as GamesRouteImport } from './routes/games'
+import { Route as HelpRouteImport } from './routes/help'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PuzzlesRouteImport } from './routes/puzzles'
+import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
+import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated.checkout'
+import { Route as AuthenticatedFavoritesRouteImport } from './routes/_authenticated.favorites'
+import { Route as AuthenticatedMyChildrenRouteImport } from './routes/_authenticated.my-children'
+import { Route as AuthenticatedMyOrdersRouteImport } from './routes/_authenticated.my-orders'
+import { Route as AuthenticatedMyVideosRouteImport } from './routes/_authenticated.my-videos'
+import { Route as AuthenticatedReferralsRouteImport } from './routes/_authenticated.referrals'
+import { Route as AuthenticatedRequestStoryRouteImport } from './routes/_authenticated.request-story'
+import { Route as AuthenticatedRewardsRouteImport } from './routes/_authenticated.rewards'
+import { Route as PaymentReturnRouteImport } from './routes/payment.return'
+import { Route as PuzzlesIdRouteImport } from './routes/puzzles_.$id'
 import { Route as StoriesIndexRouteImport } from './routes/stories.index'
 import { Route as StoriesSlugRouteImport } from './routes/stories.$slug'
-import { Route as PuzzlesIdRouteImport } from './routes/puzzles_.$id'
-import { Route as PaymentReturnRouteImport } from './routes/payment.return'
-import { Route as AuthenticatedRewardsRouteImport } from './routes/_authenticated.rewards'
-import { Route as AuthenticatedRequestStoryRouteImport } from './routes/_authenticated.request-story'
-import { Route as AuthenticatedReferralsRouteImport } from './routes/_authenticated.referrals'
-import { Route as AuthenticatedMyVideosRouteImport } from './routes/_authenticated.my-videos'
-import { Route as AuthenticatedMyOrdersRouteImport } from './routes/_authenticated.my-orders'
-import { Route as AuthenticatedMyChildrenRouteImport } from './routes/_authenticated.my-children'
-import { Route as AuthenticatedFavoritesRouteImport } from './routes/_authenticated.favorites'
-import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated.checkout'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
-import { Route as AuthenticatedVideoOrderTemplateIdRouteImport } from './routes/_authenticated.video-order.$templateId'
-import { Route as AuthenticatedStoryOrderIdRouteImport } from './routes/_authenticated.story.$orderId'
-import { Route as AuthenticatedOrderTemplateIdRouteImport } from './routes/_authenticated.order.$templateId'
-import { Route as AuthenticatedChildrenCreateRouteImport } from './routes/_authenticated.children.create'
-import { Route as AuthenticatedChildrenIdRouteImport } from './routes/_authenticated.children.$id'
-import { Route as AuthenticatedAdminVideosRouteImport } from './routes/_authenticated.admin.videos'
-import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated.admin.users'
-import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authenticated.admin.templates'
-import { Route as AuthenticatedAdminRolesRouteImport } from './routes/_authenticated.admin.roles'
-import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated.admin.payments'
-import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated.admin.orders'
-import { Route as AuthenticatedAdminHealthRouteImport } from './routes/_authenticated.admin.health'
+import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated.admin.analytics'
 import { Route as AuthenticatedAdminApprovalsRouteImport } from './routes/_authenticated.admin.approvals'
 import { Route as AuthenticatedAdminCommerceRouteImport } from './routes/_authenticated.admin.commerce'
-import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated.admin.analytics'
-import { Route as ApiPublicKashierWebhookRouteImport } from './routes/api/public/kashier.webhook'
-import { Route as AuthenticatedChildrenIdEditRouteImport } from './routes/_authenticated.children.$id.edit'
+import { Route as AuthenticatedAdminHealthRouteImport } from './routes/_authenticated.admin.health'
+import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated.admin.orders'
+import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated.admin.payments'
+import { Route as AuthenticatedAdminRolesRouteImport } from './routes/_authenticated.admin.roles'
+import { Route as AuthenticatedAdminTemplatesRouteImport } from './routes/_authenticated.admin.templates'
+import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated.admin.users'
+import { Route as AuthenticatedAdminVideosRouteImport } from './routes/_authenticated.admin.videos'
+import { Route as AuthenticatedChildrenIdRouteImport } from './routes/_authenticated.children.$id'
+import { Route as AuthenticatedChildrenCreateRouteImport } from './routes/_authenticated.children.create'
+import { Route as AuthenticatedOrderTemplateIdRouteImport } from './routes/_authenticated.order.$templateId'
+import { Route as AuthenticatedStoryOrderIdRouteImport } from './routes/_authenticated.story.$orderId'
+import { Route as AuthenticatedVideoOrderTemplateIdRouteImport } from './routes/_authenticated.video-order.$templateId'
 import { Route as AuthenticatedAdminVideosVideoOrderIdRouteImport } from './routes/_authenticated.admin.videos_.$videoOrderId'
+import { Route as AuthenticatedChildrenIdEditRouteImport } from './routes/_authenticated.children.$id.edit'
+import { Route as ApiPublicKashierWebhookRouteImport } from './routes/api/public/kashier.webhook'
 
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
-  id: '/robots.txt',
-  path: '/robots.txt',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RefundPolicyRoute = RefundPolicyRouteImport.update({
-  id: '/refund-policy',
-  path: '/refund-policy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PuzzlesRoute = PuzzlesRouteImport.update({
-  id: '/puzzles',
-  path: '/puzzles',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HelpRoute = HelpRouteImport.update({
-  id: '/help',
-  path: '/help',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GamesRoute = GamesRouteImport.update({
-  id: '/games',
-  path: '/games',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CreateRoute = CreateRouteImport.update({
-  id: '/create',
-  path: '/create',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CartRoute = CartRouteImport.update({
-  id: '/cart',
-  path: '/cart',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BooksRoute = BooksRouteImport.update({
-  id: '/books',
-  path: '/books',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -122,13 +71,120 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
+const BooksRoute = BooksRouteImport.update({
+  id: '/books',
+  path: '/books',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const CartRoute = CartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateRoute = CreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesRoute = GamesRouteImport.update({
+  id: '/games',
+  path: '/games',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PuzzlesRoute = PuzzlesRouteImport.update({
+  id: '/puzzles',
+  path: '/puzzles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundPolicyRoute = RefundPolicyRouteImport.update({
+  id: '/refund-policy',
+  path: '/refund-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCheckoutRoute = AuthenticatedCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedFavoritesRoute = AuthenticatedFavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedMyChildrenRoute = AuthenticatedMyChildrenRouteImport.update({
+  id: '/my-children',
+  path: '/my-children',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedMyOrdersRoute = AuthenticatedMyOrdersRouteImport.update({
+  id: '/my-orders',
+  path: '/my-orders',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedMyVideosRoute = AuthenticatedMyVideosRouteImport.update({
+  id: '/my-videos',
+  path: '/my-videos',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedReferralsRoute = AuthenticatedReferralsRouteImport.update({
+  id: '/referrals',
+  path: '/referrals',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedRequestStoryRoute =
+  AuthenticatedRequestStoryRouteImport.update({
+    id: '/request-story',
+    path: '/request-story',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedRewardsRoute = AuthenticatedRewardsRouteImport.update({
+  id: '/rewards',
+  path: '/rewards',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const PaymentReturnRoute = PaymentReturnRouteImport.update({
+  id: '/payment/return',
+  path: '/payment/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PuzzlesIdRoute = PuzzlesIdRouteImport.update({
+  id: '/puzzles_/$id',
+  path: '/puzzles/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoriesIndexRoute = StoriesIndexRouteImport.update({
@@ -141,134 +197,15 @@ const StoriesSlugRoute = StoriesSlugRouteImport.update({
   path: '/stories/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PuzzlesIdRoute = PuzzlesIdRouteImport.update({
-  id: '/puzzles_/$id',
-  path: '/puzzles/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PaymentReturnRoute = PaymentReturnRouteImport.update({
-  id: '/payment/return',
-  path: '/payment/return',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRewardsRoute = AuthenticatedRewardsRouteImport.update({
-  id: '/rewards',
-  path: '/rewards',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedRequestStoryRoute =
-  AuthenticatedRequestStoryRouteImport.update({
-    id: '/request-story',
-    path: '/request-story',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedReferralsRoute = AuthenticatedReferralsRouteImport.update({
-  id: '/referrals',
-  path: '/referrals',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedMyVideosRoute = AuthenticatedMyVideosRouteImport.update({
-  id: '/my-videos',
-  path: '/my-videos',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedMyOrdersRoute = AuthenticatedMyOrdersRouteImport.update({
-  id: '/my-orders',
-  path: '/my-orders',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedMyChildrenRoute = AuthenticatedMyChildrenRouteImport.update({
-  id: '/my-children',
-  path: '/my-children',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedFavoritesRoute = AuthenticatedFavoritesRouteImport.update({
-  id: '/favorites',
-  path: '/favorites',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedCheckoutRoute = AuthenticatedCheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const AuthenticatedVideoOrderTemplateIdRoute =
-  AuthenticatedVideoOrderTemplateIdRouteImport.update({
-    id: '/video-order/$templateId',
-    path: '/video-order/$templateId',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedStoryOrderIdRoute =
-  AuthenticatedStoryOrderIdRouteImport.update({
-    id: '/story/$orderId',
-    path: '/story/$orderId',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedOrderTemplateIdRoute =
-  AuthenticatedOrderTemplateIdRouteImport.update({
-    id: '/order/$templateId',
-    path: '/order/$templateId',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedChildrenCreateRoute =
-  AuthenticatedChildrenCreateRouteImport.update({
-    id: '/children/create',
-    path: '/children/create',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedChildrenIdRoute = AuthenticatedChildrenIdRouteImport.update({
-  id: '/children/$id',
-  path: '/children/$id',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedAdminVideosRoute =
-  AuthenticatedAdminVideosRouteImport.update({
-    id: '/videos',
-    path: '/videos',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminTemplatesRoute =
-  AuthenticatedAdminTemplatesRouteImport.update({
-    id: '/templates',
-    path: '/templates',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminRolesRoute = AuthenticatedAdminRolesRouteImport.update({
-  id: '/roles',
-  path: '/roles',
-  getParentRoute: () => AuthenticatedAdminRoute,
-} as any)
-const AuthenticatedAdminPaymentsRoute =
-  AuthenticatedAdminPaymentsRouteImport.update({
-    id: '/payments',
-    path: '/payments',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminOrdersRoute =
-  AuthenticatedAdminOrdersRouteImport.update({
-    id: '/orders',
-    path: '/orders',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminHealthRoute =
-  AuthenticatedAdminHealthRouteImport.update({
-    id: '/health',
-    path: '/health',
+const AuthenticatedAdminAnalyticsRoute =
+  AuthenticatedAdminAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminApprovalsRoute =
@@ -283,22 +220,74 @@ const AuthenticatedAdminCommerceRoute =
     path: '/commerce',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminAnalyticsRoute =
-  AuthenticatedAdminAnalyticsRouteImport.update({
-    id: '/analytics',
-    path: '/analytics',
+const AuthenticatedAdminHealthRoute =
+  AuthenticatedAdminHealthRouteImport.update({
+    id: '/health',
+    path: '/health',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const ApiPublicKashierWebhookRoute = ApiPublicKashierWebhookRouteImport.update({
-  id: '/api/public/kashier/webhook',
-  path: '/api/public/kashier/webhook',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedAdminOrdersRoute =
+  AuthenticatedAdminOrdersRouteImport.update({
+    id: '/orders',
+    path: '/orders',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminPaymentsRoute =
+  AuthenticatedAdminPaymentsRouteImport.update({
+    id: '/payments',
+    path: '/payments',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminRolesRoute = AuthenticatedAdminRolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const AuthenticatedChildrenIdEditRoute =
-  AuthenticatedChildrenIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthenticatedChildrenIdRoute,
+const AuthenticatedAdminTemplatesRoute =
+  AuthenticatedAdminTemplatesRouteImport.update({
+    id: '/templates',
+    path: '/templates',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminVideosRoute =
+  AuthenticatedAdminVideosRouteImport.update({
+    id: '/videos',
+    path: '/videos',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedChildrenIdRoute = AuthenticatedChildrenIdRouteImport.update({
+  id: '/children/$id',
+  path: '/children/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedChildrenCreateRoute =
+  AuthenticatedChildrenCreateRouteImport.update({
+    id: '/children/create',
+    path: '/children/create',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedOrderTemplateIdRoute =
+  AuthenticatedOrderTemplateIdRouteImport.update({
+    id: '/order/$templateId',
+    path: '/order/$templateId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedStoryOrderIdRoute =
+  AuthenticatedStoryOrderIdRouteImport.update({
+    id: '/story/$orderId',
+    path: '/story/$orderId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedVideoOrderTemplateIdRoute =
+  AuthenticatedVideoOrderTemplateIdRouteImport.update({
+    id: '/video-order/$templateId',
+    path: '/video-order/$templateId',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedAdminVideosVideoOrderIdRoute =
   AuthenticatedAdminVideosVideoOrderIdRouteImport.update({
@@ -306,6 +295,17 @@ const AuthenticatedAdminVideosVideoOrderIdRoute =
     path: '/videos/$videoOrderId',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedChildrenIdEditRoute =
+  AuthenticatedChildrenIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedChildrenIdRoute,
+  } as any)
+const ApiPublicKashierWebhookRoute = ApiPublicKashierWebhookRouteImport.update({
+  id: '/api/public/kashier/webhook',
+  path: '/api/public/kashier/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -624,95 +624,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/robots.txt': {
-      id: '/robots.txt'
-      path: '/robots.txt'
-      fullPath: '/robots.txt'
-      preLoaderRoute: typeof RobotsDottxtRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/refund-policy': {
-      id: '/refund-policy'
-      path: '/refund-policy'
-      fullPath: '/refund-policy'
-      preLoaderRoute: typeof RefundPolicyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/puzzles': {
-      id: '/puzzles'
-      path: '/puzzles'
-      fullPath: '/puzzles'
-      preLoaderRoute: typeof PuzzlesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/help': {
-      id: '/help'
-      path: '/help'
-      fullPath: '/help'
-      preLoaderRoute: typeof HelpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/games': {
-      id: '/games'
-      path: '/games'
-      fullPath: '/games'
-      preLoaderRoute: typeof GamesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/create': {
-      id: '/create'
-      path: '/create'
-      fullPath: '/create'
-      preLoaderRoute: typeof CreateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cart': {
-      id: '/cart'
-      path: '/cart'
-      fullPath: '/cart'
-      preLoaderRoute: typeof CartRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/books': {
-      id: '/books'
-      path: '/books'
-      fullPath: '/books'
-      preLoaderRoute: typeof BooksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -722,11 +638,172 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/books': {
+      id: '/books'
+      path: '/books'
+      fullPath: '/books'
+      preLoaderRoute: typeof BooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cart': {
+      id: '/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof CartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create': {
+      id: '/create'
+      path: '/create'
+      fullPath: '/create'
+      preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games': {
+      id: '/games'
+      path: '/games'
+      fullPath: '/games'
+      preLoaderRoute: typeof GamesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/puzzles': {
+      id: '/puzzles'
+      path: '/puzzles'
+      fullPath: '/puzzles'
+      preLoaderRoute: typeof PuzzlesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund-policy': {
+      id: '/refund-policy'
+      path: '/refund-policy'
+      fullPath: '/refund-policy'
+      preLoaderRoute: typeof RefundPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/checkout': {
+      id: '/_authenticated/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof AuthenticatedCheckoutRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/favorites': {
+      id: '/_authenticated/favorites'
+      path: '/favorites'
+      fullPath: '/favorites'
+      preLoaderRoute: typeof AuthenticatedFavoritesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/my-children': {
+      id: '/_authenticated/my-children'
+      path: '/my-children'
+      fullPath: '/my-children'
+      preLoaderRoute: typeof AuthenticatedMyChildrenRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/my-orders': {
+      id: '/_authenticated/my-orders'
+      path: '/my-orders'
+      fullPath: '/my-orders'
+      preLoaderRoute: typeof AuthenticatedMyOrdersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/my-videos': {
+      id: '/_authenticated/my-videos'
+      path: '/my-videos'
+      fullPath: '/my-videos'
+      preLoaderRoute: typeof AuthenticatedMyVideosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/referrals': {
+      id: '/_authenticated/referrals'
+      path: '/referrals'
+      fullPath: '/referrals'
+      preLoaderRoute: typeof AuthenticatedReferralsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/request-story': {
+      id: '/_authenticated/request-story'
+      path: '/request-story'
+      fullPath: '/request-story'
+      preLoaderRoute: typeof AuthenticatedRequestStoryRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/rewards': {
+      id: '/_authenticated/rewards'
+      path: '/rewards'
+      fullPath: '/rewards'
+      preLoaderRoute: typeof AuthenticatedRewardsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/payment/return': {
+      id: '/payment/return'
+      path: '/payment/return'
+      fullPath: '/payment/return'
+      preLoaderRoute: typeof PaymentReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/puzzles_/$id': {
+      id: '/puzzles_/$id'
+      path: '/puzzles/$id'
+      fullPath: '/puzzles/$id'
+      preLoaderRoute: typeof PuzzlesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/stories/': {
@@ -743,83 +820,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoriesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/puzzles_/$id': {
-      id: '/puzzles_/$id'
-      path: '/puzzles/$id'
-      fullPath: '/puzzles/$id'
-      preLoaderRoute: typeof PuzzlesIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/payment/return': {
-      id: '/payment/return'
-      path: '/payment/return'
-      fullPath: '/payment/return'
-      preLoaderRoute: typeof PaymentReturnRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/rewards': {
-      id: '/_authenticated/rewards'
-      path: '/rewards'
-      fullPath: '/rewards'
-      preLoaderRoute: typeof AuthenticatedRewardsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/request-story': {
-      id: '/_authenticated/request-story'
-      path: '/request-story'
-      fullPath: '/request-story'
-      preLoaderRoute: typeof AuthenticatedRequestStoryRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/referrals': {
-      id: '/_authenticated/referrals'
-      path: '/referrals'
-      fullPath: '/referrals'
-      preLoaderRoute: typeof AuthenticatedReferralsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/my-videos': {
-      id: '/_authenticated/my-videos'
-      path: '/my-videos'
-      fullPath: '/my-videos'
-      preLoaderRoute: typeof AuthenticatedMyVideosRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/my-orders': {
-      id: '/_authenticated/my-orders'
-      path: '/my-orders'
-      fullPath: '/my-orders'
-      preLoaderRoute: typeof AuthenticatedMyOrdersRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/my-children': {
-      id: '/_authenticated/my-children'
-      path: '/my-children'
-      fullPath: '/my-children'
-      preLoaderRoute: typeof AuthenticatedMyChildrenRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/favorites': {
-      id: '/_authenticated/favorites'
-      path: '/favorites'
-      fullPath: '/favorites'
-      preLoaderRoute: typeof AuthenticatedFavoritesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/checkout': {
-      id: '/_authenticated/checkout'
-      path: '/checkout'
-      fullPath: '/checkout'
-      preLoaderRoute: typeof AuthenticatedCheckoutRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
       path: '/'
@@ -827,88 +827,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/video-order/$templateId': {
-      id: '/_authenticated/video-order/$templateId'
-      path: '/video-order/$templateId'
-      fullPath: '/video-order/$templateId'
-      preLoaderRoute: typeof AuthenticatedVideoOrderTemplateIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/story/$orderId': {
-      id: '/_authenticated/story/$orderId'
-      path: '/story/$orderId'
-      fullPath: '/story/$orderId'
-      preLoaderRoute: typeof AuthenticatedStoryOrderIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/order/$templateId': {
-      id: '/_authenticated/order/$templateId'
-      path: '/order/$templateId'
-      fullPath: '/order/$templateId'
-      preLoaderRoute: typeof AuthenticatedOrderTemplateIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/children/create': {
-      id: '/_authenticated/children/create'
-      path: '/children/create'
-      fullPath: '/children/create'
-      preLoaderRoute: typeof AuthenticatedChildrenCreateRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/children/$id': {
-      id: '/_authenticated/children/$id'
-      path: '/children/$id'
-      fullPath: '/children/$id'
-      preLoaderRoute: typeof AuthenticatedChildrenIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/admin/videos': {
-      id: '/_authenticated/admin/videos'
-      path: '/videos'
-      fullPath: '/admin/videos'
-      preLoaderRoute: typeof AuthenticatedAdminVideosRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/users': {
-      id: '/_authenticated/admin/users'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/templates': {
-      id: '/_authenticated/admin/templates'
-      path: '/templates'
-      fullPath: '/admin/templates'
-      preLoaderRoute: typeof AuthenticatedAdminTemplatesRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/roles': {
-      id: '/_authenticated/admin/roles'
-      path: '/roles'
-      fullPath: '/admin/roles'
-      preLoaderRoute: typeof AuthenticatedAdminRolesRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/payments': {
-      id: '/_authenticated/admin/payments'
-      path: '/payments'
-      fullPath: '/admin/payments'
-      preLoaderRoute: typeof AuthenticatedAdminPaymentsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/orders': {
-      id: '/_authenticated/admin/orders'
-      path: '/orders'
-      fullPath: '/admin/orders'
-      preLoaderRoute: typeof AuthenticatedAdminOrdersRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/health': {
-      id: '/_authenticated/admin/health'
-      path: '/health'
-      fullPath: '/admin/health'
-      preLoaderRoute: typeof AuthenticatedAdminHealthRouteImport
+    '/_authenticated/admin/analytics': {
+      id: '/_authenticated/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/approvals': {
@@ -925,19 +848,96 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCommerceRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/analytics': {
-      id: '/_authenticated/admin/analytics'
-      path: '/analytics'
-      fullPath: '/admin/analytics'
-      preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
+    '/_authenticated/admin/health': {
+      id: '/_authenticated/admin/health'
+      path: '/health'
+      fullPath: '/admin/health'
+      preLoaderRoute: typeof AuthenticatedAdminHealthRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/api/public/kashier/webhook': {
-      id: '/api/public/kashier/webhook'
-      path: '/api/public/kashier/webhook'
-      fullPath: '/api/public/kashier/webhook'
-      preLoaderRoute: typeof ApiPublicKashierWebhookRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/admin/orders': {
+      id: '/_authenticated/admin/orders'
+      path: '/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AuthenticatedAdminOrdersRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/payments': {
+      id: '/_authenticated/admin/payments'
+      path: '/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AuthenticatedAdminPaymentsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/roles': {
+      id: '/_authenticated/admin/roles'
+      path: '/roles'
+      fullPath: '/admin/roles'
+      preLoaderRoute: typeof AuthenticatedAdminRolesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/templates': {
+      id: '/_authenticated/admin/templates'
+      path: '/templates'
+      fullPath: '/admin/templates'
+      preLoaderRoute: typeof AuthenticatedAdminTemplatesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/users': {
+      id: '/_authenticated/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/videos': {
+      id: '/_authenticated/admin/videos'
+      path: '/videos'
+      fullPath: '/admin/videos'
+      preLoaderRoute: typeof AuthenticatedAdminVideosRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/children/$id': {
+      id: '/_authenticated/children/$id'
+      path: '/children/$id'
+      fullPath: '/children/$id'
+      preLoaderRoute: typeof AuthenticatedChildrenIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/children/create': {
+      id: '/_authenticated/children/create'
+      path: '/children/create'
+      fullPath: '/children/create'
+      preLoaderRoute: typeof AuthenticatedChildrenCreateRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/order/$templateId': {
+      id: '/_authenticated/order/$templateId'
+      path: '/order/$templateId'
+      fullPath: '/order/$templateId'
+      preLoaderRoute: typeof AuthenticatedOrderTemplateIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/story/$orderId': {
+      id: '/_authenticated/story/$orderId'
+      path: '/story/$orderId'
+      fullPath: '/story/$orderId'
+      preLoaderRoute: typeof AuthenticatedStoryOrderIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/video-order/$templateId': {
+      id: '/_authenticated/video-order/$templateId'
+      path: '/video-order/$templateId'
+      fullPath: '/video-order/$templateId'
+      preLoaderRoute: typeof AuthenticatedVideoOrderTemplateIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/videos_/$videoOrderId': {
+      id: '/_authenticated/admin/videos_/$videoOrderId'
+      path: '/videos/$videoOrderId'
+      fullPath: '/admin/videos/$videoOrderId'
+      preLoaderRoute: typeof AuthenticatedAdminVideosVideoOrderIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/children/$id/edit': {
       id: '/_authenticated/children/$id/edit'
@@ -946,12 +946,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChildrenIdEditRouteImport
       parentRoute: typeof AuthenticatedChildrenIdRoute
     }
-    '/_authenticated/admin/videos_/$videoOrderId': {
-      id: '/_authenticated/admin/videos_/$videoOrderId'
-      path: '/videos/$videoOrderId'
-      fullPath: '/admin/videos/$videoOrderId'
-      preLoaderRoute: typeof AuthenticatedAdminVideosVideoOrderIdRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
+    '/api/public/kashier/webhook': {
+      id: '/api/public/kashier/webhook'
+      path: '/api/public/kashier/webhook'
+      fullPath: '/api/public/kashier/webhook'
+      preLoaderRoute: typeof ApiPublicKashierWebhookRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
