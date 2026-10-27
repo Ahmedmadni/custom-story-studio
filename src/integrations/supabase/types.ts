@@ -1362,6 +1362,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_adjust_reward_points: {
+        Args: {
+          _actor_id: string
+          _note: string
+          _points: number
+          _user_id: string
+        }
+        Returns: {
+          lifetime_points: number
+          new_balance: number
+        }[]
+      }
       award_points: {
         Args: {
           _note?: string
@@ -1373,8 +1385,21 @@ export type Database = {
         Returns: undefined
       }
       calc_child_level: { Args: { _xp: number }; Returns: number }
+      claim_referral_atomic: {
+        Args: { _invited_user_id: string; _referral_code: string }
+        Returns: string
+      }
       complete_story_for_child: {
         Args: { _order_id: string }
+        Returns: undefined
+      }
+      consume_coupon_redemption: {
+        Args: {
+          _coupon_id: string
+          _discount_egp: number
+          _order_id: string
+          _user_id: string
+        }
         Returns: undefined
       }
       create_video_order_and_project: {
@@ -1394,12 +1419,43 @@ export type Database = {
           video_order_id: string
         }[]
       }
+      create_video_order_and_project_v2: {
+        Args: {
+          _aspect_ratio: string
+          _child_age: number
+          _child_gender: string
+          _child_id: string
+          _child_name: string
+          _child_photo_path: string
+          _language: string
+          _payment_receipt_path: string
+          _template_id: string
+          _user_id: string
+        }
+        Returns: {
+          created_at: string
+          video_order_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      reward_pending_referral_after_verified_order: {
+        Args: { _invited_user_id: string }
+        Returns: boolean
+      }
+      submit_review_and_reward: {
+        Args: {
+          _body?: string
+          _order_id: string
+          _rating: number
+          _user_id: string
+        }
+        Returns: string
       }
     }
     Enums: {

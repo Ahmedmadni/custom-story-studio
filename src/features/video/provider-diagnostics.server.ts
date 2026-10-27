@@ -93,14 +93,14 @@ export async function providerHttpFailure(
     message: sanitizeProviderMessage(providerError.message, fallback),
     timestamp: new Date().toISOString(),
   };
-  return new ProviderFailure(safeArabicError(response.status), diagnostic);
+  return new ProviderFailure(diagnostic.message || safeArabicError(response.status), diagnostic);
 }
 
 export function providerResultFailure(
   context: DiagnosticContext,
   input: { httpStatus?: number; code?: string; type?: string; message: string },
 ) {
-  return new ProviderFailure("لم يُرجع مزود الإنتاج نتيجة صالحة", {
+  return new ProviderFailure(sanitizeProviderMessage(input.message, "لم يُرجع مزود الإنتاج نتيجة صالحة"), {
     ...context,
     http_status: input.httpStatus ?? null,
     code: cleanIdentifier(input.code),

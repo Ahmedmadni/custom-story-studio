@@ -124,6 +124,17 @@ async function requeueJob(admin: Admin, job: Job): Promise<Job | null> {
 }
 
 async function beginAttempt(admin: Admin, job: Job) {
+  const previousError = jsonObject(jsonObject(job.response_meta).provider_error ?? null);
+  if (job.status !== "succeeded" && [400, 401, 403, 404].includes(Number(previousError.http_status)))
+    throw new Error(job.last_error ?? "توقفت المهمة؛ يلزم معالجة سبب الرفض قبل بدء طلب جديد");
+  // Provider access denial survives reloads/process restarts in the persisted jobs.
+  const { data: deniedJobs } = await admin.from("video_jobs").select("response_meta, last_error")
+    .eq("provider", "lovable").in("status", ["failed", "dead_letter"]);
+  const denial = (deniedJobs ?? []).find((item) => {
+    const diagnostic = jsonObject(jsonObject(item.response_meta).provider_error ?? null);
+    return Number(diagnostic.http_status) === 403;
+  });
+  if (denial) throw new Error(denial.last_error ?? "إنتاج Lovable متوقف حتى استعادة صلاحية الوصول");
   const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
   const max = getVideoProviderConfig().maxAttempts;
   if (
@@ -148,6 +159,7 @@ async function beginAttempt(admin: Admin, job: Job) {
       finished_at: null,
       next_retry_at: null,
       provider_job_id: null,
+      ...(job.job_type === "scene_clip" ? { provider: "lovable" } : {}),
     })
     .eq("id", job.id)
     .eq("status", "queued")
@@ -449,25 +461,25 @@ async function submitScene(admin: Admin, original: Job) {
 async function persistRemoteClip(
   admin: Admin,
   job: Job,
-  url: string,
+  url: string | import("./provider-boundary").ProviderAsset,
   metadata: Record<string, unknown>,
 ) {
-  if (!job.scene_id || !url.startsWith("https://")) throw new Error("نتيجة مزود الفيديو غير صالحة");
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("تعذر تنزيل نتيجة مزود الفيديو");
+  if (!job.scene_id || (typeof url === "string" && !url.startsWith("https://"))) throw new Error("نتيجة مزود الفيديو غير صالحة");
+  const response = typeof url === "string" ? await fetch(url) : null;
+  if (response && !response.ok) throw new Error("تعذر تنزيل نتيجة مزود الفيديو");
   const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
   const max = getVideoProviderConfig().maxAssetBytes;
-  const declared = Number(response.headers.get("content-length") ?? 0);
+  const declared = Number(response?.headers.get("content-length") ?? 0);
   if (declared > max) throw new Error("حجم مقطع المزود يتجاوز الحد المسموح");
-  const bytes = Buffer.from(await response.arrayBuffer());
+  const bytes = typeof url !== "string" ? url.bytes : response ? new Uint8Array(await response.arrayBuffer()) : new Uint8Array();
   if (bytes.byteLength > max) throw new Error("حجم مقطع المزود يتجاوز الحد المسموح");
-  const contentType = response.headers.get("content-type")?.split(";")[0] ?? "video/mp4";
+  const contentType = typeof url !== "string" ? url.contentType : response?.headers.get("content-type")?.split(";")[0] ?? "video/mp4";
   if (!contentType.startsWith("video/")) throw new Error("مزود الفيديو لم يُرجع ملف فيديو");
   const extension = contentType.includes("webm") ? "webm" : "mp4";
   const path = `projects/${job.project_id}/scenes/${job.scene_id}/${job.id}-${job.attempt_count}.${extension}`;
   const { error: uploadError } = await admin.storage
     .from("video-assets")
-    .upload(path, bytes, { contentType, upsert: false });
+    .upload(path, bytes, { contentType, upsert: true });
   if (uploadError) throw new Error("تعذر حفظ مقطع الفيديو الخاص");
   const now = new Date().toISOString();
   const { error: sceneError } = await admin
@@ -487,13 +499,27 @@ async function persistRemoteClip(
 
 async function pollSceneJob(admin: Admin, job: Job) {
   if (!job.provider_job_id || job.status !== "running") return;
+  if (job.next_retry_at && Date.parse(job.next_retry_at) > Date.now()) return;
   try {
-    const { videoSceneProvider } = await import("@/features/video/providers.server");
-    const result = await videoSceneProvider().poll(job.provider_job_id);
+    const { videoSceneProvider, legacyReplicateSceneProvider } = await import("@/features/video/providers.server");
+    const result = await (job.provider === "replicate" ? legacyReplicateSceneProvider() : videoSceneProvider()).poll(job.provider_job_id);
     if (result.status === "running") return;
     if (result.status === "failed") throw new Error(result.error);
-    await persistRemoteClip(admin, job, result.assetUrl, result.metadata);
+    await persistRemoteClip(admin, job, "asset" in result ? result.asset : result.assetUrl, result.metadata);
   } catch (error) {
+    const { getProviderFailureDiagnostic } = await import("./provider-diagnostics.server");
+    const diagnostic = getProviderFailureDiagnostic(error);
+    if (diagnostic?.http_status === 429 || (diagnostic?.http_status && diagnostic.http_status >= 500)) {
+      const meta = jsonObject(job.response_meta);
+      const retries = Number(meta.poll_retry_count ?? 0) + 1;
+      if (retries <= 3) {
+        await admin.from("video_jobs").update({
+          next_retry_at: new Date(Date.now() + 10_000 * 2 ** retries + Math.random() * 2_000).toISOString(),
+          response_meta: { ...meta, poll_retry_count: retries } as Json,
+        }).eq("id", job.id);
+        return;
+      }
+    }
     await failJob(admin, job, error);
     if (job.scene_id)
       await admin.from("video_scenes").update({ status: "failed" }).eq("id", job.scene_id);
@@ -581,7 +607,7 @@ export const generateVideoScene = createServerFn({ method: "POST" })
     const admin = await authorize(context as unknown as Context);
     const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
     const providerConfig = getVideoProviderConfig();
-    if (!providerConfig.scene.replicate.apiKey || !providerConfig.scene.replicate.lovableKey) {
+    if (!providerConfig.scene.lovable.apiKey) {
       throw new Error("توليد مشاهد الفيديو التلقائي غير مفعّل حالياً");
     }
     const { data: scene } = await admin
@@ -594,11 +620,13 @@ export const generateVideoScene = createServerFn({ method: "POST" })
     if (project.aspect_ratio === "1:1") {
       throw new Error("التوليد التلقائي لا يدعم الفيديو المربع؛ استخدم 16:9 أو 9:16");
     }
+    const { data: running } = await admin.from("video_jobs").select("id").eq("job_type", "scene_clip").eq("status", "running").limit(1);
+    if (running?.length) throw new Error("انتظر اكتمال المشهد الجاري قبل توليد المشهد التالي");
     const acquired = await acquireJob(admin, {
       projectId: scene.project_id,
       sceneId: data.sceneId,
       jobType: "scene_clip",
-      provider: "replicate",
+      provider: "lovable",
     });
     let target = acquired.job;
     if (!acquired.acquired) {
@@ -625,13 +653,15 @@ export const refreshVideoProductionJobs = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const admin = await authorize(context as unknown as Context);
     await loadProject(admin, data.projectId);
+    const { data: blocked } = await admin.from("video_jobs").select("response_meta").eq("provider", "lovable").in("status", ["failed", "dead_letter"]);
+    if ((blocked ?? []).some((item) => [402, 403].includes(Number(jsonObject(jsonObject(item.response_meta).provider_error ?? null).http_status)))) return { checked: 0 };
     const { data: jobs } = await admin
       .from("video_jobs")
       .select("*")
       .eq("project_id", data.projectId)
       .eq("job_type", "scene_clip")
       .eq("status", "running");
-    await Promise.all((jobs ?? []).map((job) => pollSceneJob(admin, job)));
+    for (const job of jobs ?? []) await pollSceneJob(admin, job);
     return { checked: jobs?.length ?? 0 };
   });
 

@@ -8,6 +8,7 @@ import {
   providerHttpFailure,
   providerResultFailure,
 } from "@/features/video/provider-diagnostics.server";
+import { lovableVideoSceneProvider } from "./lovable-scene-provider.server";
 
 const WAN_NUM_FRAMES = 81;
 
@@ -209,6 +210,11 @@ export function scriptProvider(): ScriptProvider {
 }
 
 export function videoSceneProvider(): VideoSceneProvider {
+  return lovableVideoSceneProvider();
+}
+
+/** Legacy adapter retained only for already-running external jobs. */
+export function legacyReplicateSceneProvider(): VideoSceneProvider {
   const config = getVideoProviderConfig().scene;
   const replicate = config.replicate;
   const model = replicate.model;
