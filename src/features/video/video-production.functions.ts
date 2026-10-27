@@ -124,6 +124,17 @@ async function requeueJob(admin: Admin, job: Job): Promise<Job | null> {
 }
 
 async function beginAttempt(admin: Admin, job: Job) {
+  const previousError = jsonObject(jsonObject(job.response_meta).provider_error ?? null);
+  if (job.status !== "succeeded" && [400, 401, 403, 404].includes(Number(previousError.http_status)))
+    throw new Error(job.last_error ?? "توقفت المهمة؛ يلزم معالجة سبب الرفض قبل بدء طلب جديد");
+  // Provider access denial survives reloads/process restarts in the persisted jobs.
+  const { data: deniedJobs } = await admin.from("video_jobs").select("response_meta, last_error")
+    .eq("provider", "lovable").in("status", ["failed", "dead_letter"]);
+  const denial = (deniedJobs ?? []).find((item) => {
+    const diagnostic = jsonObject(jsonObject(item.response_meta).provider_error ?? null);
+    return Number(diagnostic.http_status) === 403;
+  });
+  if (denial) throw new Error(denial.last_error ?? "إنتاج Lovable متوقف حتى استعادة صلاحية الوصول");
   const { getVideoProviderConfig } = await import("@/features/video/provider-config.server");
   const max = getVideoProviderConfig().maxAttempts;
   if (
@@ -148,6 +159,7 @@ async function beginAttempt(admin: Admin, job: Job) {
       finished_at: null,
       next_retry_at: null,
       provider_job_id: null,
+      ...(job.job_type === "scene_clip" ? { provider: "lovable" } : {}),
     })
     .eq("id", job.id)
     .eq("status", "queued")
@@ -487,6 +499,7 @@ async function persistRemoteClip(
 
 async function pollSceneJob(admin: Admin, job: Job) {
   if (!job.provider_job_id || job.status !== "running") return;
+  if (job.next_retry_at && Date.parse(job.next_retry_at) > Date.now()) return;
   try {
     const { videoSceneProvider, legacyReplicateSceneProvider } = await import("@/features/video/providers.server");
     const result = await (job.provider === "replicate" ? legacyReplicateSceneProvider() : videoSceneProvider()).poll(job.provider_job_id);
@@ -494,6 +507,19 @@ async function pollSceneJob(admin: Admin, job: Job) {
     if (result.status === "failed") throw new Error(result.error);
     await persistRemoteClip(admin, job, "asset" in result ? result.asset : result.assetUrl, result.metadata);
   } catch (error) {
+    const { getProviderFailureDiagnostic } = await import("./provider-diagnostics.server");
+    const diagnostic = getProviderFailureDiagnostic(error);
+    if (diagnostic?.http_status === 429 || (diagnostic?.http_status && diagnostic.http_status >= 500)) {
+      const meta = jsonObject(job.response_meta);
+      const retries = Number(meta.poll_retry_count ?? 0) + 1;
+      if (retries <= 3) {
+        await admin.from("video_jobs").update({
+          next_retry_at: new Date(Date.now() + 10_000 * 2 ** retries + Math.random() * 2_000).toISOString(),
+          response_meta: { ...meta, poll_retry_count: retries } as Json,
+        }).eq("id", job.id);
+        return;
+      }
+    }
     await failJob(admin, job, error);
     if (job.scene_id)
       await admin.from("video_scenes").update({ status: "failed" }).eq("id", job.scene_id);
@@ -627,6 +653,8 @@ export const refreshVideoProductionJobs = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const admin = await authorize(context as unknown as Context);
     await loadProject(admin, data.projectId);
+    const { data: blocked } = await admin.from("video_jobs").select("response_meta").eq("provider", "lovable").in("status", ["failed", "dead_letter"]);
+    if ((blocked ?? []).some((item) => [402, 403].includes(Number(jsonObject(jsonObject(item.response_meta).provider_error ?? null).http_status)))) return { checked: 0 };
     const { data: jobs } = await admin
       .from("video_jobs")
       .select("*")
