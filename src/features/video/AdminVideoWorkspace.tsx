@@ -777,12 +777,12 @@ function SimpleScene({
       </div>
       {!providerAvailable && (
         <p className="mt-2 text-sm font-bold text-amber-700">
-          توليد الفيديو التلقائي سيُفعّل عند ربط الـAPI قبل الإطلاق.
+          إنتاج الفيديو برصيد Lovable غير متاح حالياً؛ راجع إعدادات التفعيل والرصيد.
         </p>
       )}
       <details className="mt-3 rounded-xl bg-secondary/30 p-3">
         <summary className="cursor-pointer text-sm font-bold">
-          اختبار بدون API — رفع مقطع جاهز مباشرة
+          رفع مقطع جاهز مباشرة
         </summary>
         <div className="mt-3">
           <Input

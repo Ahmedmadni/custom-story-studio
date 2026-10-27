@@ -382,10 +382,7 @@ export const getAdminVideoProject = createServerFn({ method: "POST" })
           providerConfig.reference.lovable.apiKey ?? providerConfig.reference.gemini.apiKey,
         ),
         script: Boolean(providerConfig.script.apiKey),
-        scene: Boolean(
-          providerConfig.scene.lovable.apiKey ??
-            (providerConfig.scene.replicate.lovableKey && providerConfig.scene.replicate.apiKey),
-        ),
+        scene: Boolean(providerConfig.scene.lovable.apiKey),
       },
       scenes: await Promise.all(
         scenes.map(async (scene) => ({
