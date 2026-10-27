@@ -9,9 +9,8 @@ function positiveInteger(value: string | undefined, fallback: number) {
 
 /** Server-only provider/model selection. Never import this module from a component. */
 export function getVideoProviderConfig() {
-  // Paid/usage-based generation stays explicitly disabled during product development.
-  // Before public launch, enable it deliberately in server secrets/configuration.
-  const providersEnabled = process.env.VIDEO_AI_PROVIDERS_ENABLED === "true";
+  // Lovable credit-backed production is on; keep an explicit emergency off switch.
+  const providersEnabled = process.env.VIDEO_AI_PROVIDERS_ENABLED !== "false";
   const lovableKey = providersEnabled ? process.env.LOVABLE_API_KEY : undefined;
   const geminiKey = providersEnabled ? process.env.GEMINI_API_KEY : undefined;
   const replicateKey = providersEnabled
@@ -40,11 +39,9 @@ export function getVideoProviderConfig() {
       model: process.env.VIDEO_SCRIPT_MODEL ?? "google/gemini-3-flash-preview",
     },
     scene: {
-      // A direct Lovable video adapter is not implemented yet. Keep its model reserved,
-      // but do not advertise the provider as available until an adapter actually exists.
-      provider: "replicate" as const,
+      provider: "lovable" as const,
       lovable: {
-        apiKey: undefined as string | undefined,
+        apiKey: lovableKey,
         model: process.env.VIDEO_SCENE_MODEL ?? "google/gemini-omni-1.1-flash",
       },
       replicate: {

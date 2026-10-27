@@ -9,6 +9,7 @@ export type AsyncProviderJob = { providerJobId: string; metadata: Record<string,
 export type AsyncProviderResult =
   | { status: "running" }
   | { status: "failed"; error: string }
+  | { status: "succeeded"; asset: ProviderAsset; metadata: Record<string, unknown> }
   | { status: "succeeded"; assetUrl: string; metadata: Record<string, unknown> };
 
 export interface ReferenceImageProvider {
