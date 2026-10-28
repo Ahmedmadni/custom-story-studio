@@ -4,8 +4,11 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { pricePerPages } from "@/features/cart/pricing";
 import { orientationFromAspectRatio } from "@/features/ai/storyStyle";
+import { rewardDiscount } from "@/features/rewards/redemption";
 
 const CustomRequestInput = z.object({
+  requestId: z.string().uuid(),
+  pointsUsed: z.union([z.literal(0), z.literal(100)]).default(0),
   childName: z.string().trim().min(1).max(40),
   childNameEn: z.string().trim().max(40).nullable().optional(),
   childAge: z.number().int().min(1).max(14),
@@ -36,6 +39,7 @@ export const submitCustomStoryRequest = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CustomRequestInput.parse(input))
   .handler(async ({ data, context }) => {
     const price = pricePerPages(data.pagesCount, true);
+    const pointsDiscountEgp = rewardDiscount(data.pointsUsed, price);
 
     const brief = [
       `النوع: ${data.contentType === "book" ? "كتاب تعليمي" : "قصة مصورة"}`,
@@ -78,9 +82,10 @@ export const submitCustomStoryRequest = createServerFn({ method: "POST" })
       }
     }
 
-    const { data: inserted, error } = await supabaseAdmin
-      .from("orders")
-      .insert({
+    const rpcClient = supabaseAdmin as unknown as { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{data: unknown; error: { message?: string } | null}> };
+    const { data: inserted, error } = await rpcClient.rpc("create_story_checkout", {
+      _user_id: context.userId, _request_id: data.requestId, _points: data.pointsUsed,
+      _rows: [{
         user_id: context.userId,
         template_id: null,
         is_custom_request: true,
@@ -97,6 +102,7 @@ export const submitCustomStoryRequest = createServerFn({ method: "POST" })
         orientation: orientationFromAspectRatio(data.aspectRatio),
         pages_count: data.pagesCount,
         price_egp: price,
+        discount_egp: 0,
         receipt_path: data.receiptPath,
         payment_status: "receipt_uploaded",
         paid_at: new Date().toISOString(),
@@ -104,13 +110,14 @@ export const submitCustomStoryRequest = createServerFn({ method: "POST" })
         gifted_by_name: data.gifterName?.trim() || null,
         gifted_by_relation: data.gifterRelation?.trim() || null,
         notes: data.notes?.trim() || null,
-      } as never)
-      .select("id")
-      .single();
+      }],
+    });
 
     if (error || !inserted) {
       console.error("submitCustomStoryRequest insert error", error);
-      throw new Error("تعذر إرسال الطلب، حاول مرة أخرى");
+      throw new Error(error?.message?.includes("Insufficient reward points")
+        ? "رصيد النقاط غير كافٍ؛ ألغِ اختيار المكافأة أو حدّث الصفحة"
+        : "تعذر إرسال الطلب، لم تُخصم نقاطك؛ حاول مرة أخرى");
     }
-    return { ok: true, orderId: inserted.id as string };
+    return { ok: true, orderId: (inserted as string[])[0], pointsDiscountEgp };
   });
