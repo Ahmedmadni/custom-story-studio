@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { packageTierFor, pricePerPages, PRINT_COPY_PRICE_EGP } from "@/features/cart/pricing";
 import { orientationFromAspectRatio } from "@/features/ai/storyStyle";
+import { allocateDiscount, rewardDiscount } from "@/features/rewards/redemption";
 
 const ItemInput = z.object({
   templateId: z.string().uuid(),
@@ -32,6 +33,8 @@ const ItemInput = z.object({
 });
 
 const CheckoutInput = z.object({
+  requestId: z.string().uuid(),
+  pointsUsed: z.union([z.literal(0), z.literal(100)]).default(0),
   whatsapp: z.string().trim().min(8).max(20),
   receiptPath: z.string().min(1),
   items: z.array(ItemInput).min(1).max(10),
@@ -48,14 +51,6 @@ type UntypedRpcClient = {
     args: Record<string, unknown>,
   ) => PromiseLike<{ data: unknown; error: RpcErrorLike | null }>;
 };
-
-function missingAtomicCouponRpc(error: RpcErrorLike | null) {
-  return Boolean(
-    error &&
-      (error.code === "PGRST202" ||
-        (error.message ?? "").includes("consume_coupon_redemption")),
-  );
-}
 
 /**
  * ينشئ صفّ طلب لكل عنصر في السلة بنفس إيصال الدفع.
@@ -223,18 +218,13 @@ export const submitCheckout = createServerFn({ method: "POST" })
     }
 
     const totalDiscount = packageDiscount + couponDiscount;
+    const pointsDiscountEgp = rewardDiscount(data.pointsUsed, subtotal - totalDiscount);
+    const discountShares = allocateDiscount(baseAmounts, totalDiscount);
 
     // نوزّع الخصم على الصفوف بنسبة سعر كل عنصر، ونضيف رسوم الطباعة للعنصر الأول فقط
-    let distributed = 0;
     const rows = data.items.map((it, idx) => {
       const base = baseAmounts[idx];
-      const isLast = idx === data.items.length - 1;
-      const share = isLast
-        ? totalDiscount - distributed
-        : subtotal > 0
-          ? Math.round((base / subtotal) * totalDiscount)
-          : 0;
-      distributed += share;
+      const share = discountShares[idx];
       const printExtra = data.printCopy && idx === 0 ? PRINT_COPY_PRICE_EGP : 0;
       return {
         user_id: context.userId,
@@ -267,70 +257,23 @@ export const submitCheckout = createServerFn({ method: "POST" })
     });
 
     // Order creation is a trusted server operation. Browser roles do not get INSERT on orders.
-    const { data: inserted, error } = await supabaseAdmin.from("orders").insert(rows).select("id");
-    if (error) throw new Error("تعذر إرسال الطلب، حاول مرة أخرى");
-
-    if (couponId && couponDiscount > 0) {
-      const firstOrderId = inserted?.[0]?.id;
-      if (!firstOrderId) {
-        throw new Error("تعذر تسجيل استخدام كود الخصم");
-      }
-
-      const rpcClient = supabaseAdmin as unknown as UntypedRpcClient;
-      const redemption = await rpcClient.rpc("consume_coupon_redemption", {
-        _coupon_id: couponId,
-        _user_id: context.userId,
-        _order_id: firstOrderId,
-        _discount_egp: couponDiscount,
-      });
-
-      if (redemption.error && missingAtomicCouponRpc(redemption.error)) {
-        // Compatibility only until the production migration is applied.
-        const { error: redemptionError } = await supabaseAdmin.from("coupon_redemptions").insert({
-          coupon_id: couponId,
-          user_id: context.userId,
-          order_id: firstOrderId,
-          discount_egp: couponDiscount,
-        });
-        if (redemptionError) {
-          await supabaseAdmin
-            .from("orders")
-            .delete()
-            .in(
-              "id",
-              (inserted ?? []).map((row) => row.id),
-            );
-          throw new Error("تعذر تطبيق كود الخصم، حاول مرة أخرى");
-        }
-
-        const { data: current } = await supabaseAdmin
-          .from("coupons")
-          .select("used_count")
-          .eq("id", couponId)
-          .single();
-        const { error: counterError } = await supabaseAdmin
-          .from("coupons")
-          .update({ used_count: (current?.used_count ?? 0) + 1 })
-          .eq("id", couponId);
-        if (counterError) {
-          console.error("legacy coupon counter update failed", counterError);
-        }
-      } else if (redemption.error) {
-        await supabaseAdmin
-          .from("orders")
-          .delete()
-          .in(
-            "id",
-            (inserted ?? []).map((row) => row.id),
-          );
-        throw new Error("تعذر تطبيق كود الخصم أو تم استنفاد الحد المسموح");
-      }
+    const rpcClient = supabaseAdmin as unknown as UntypedRpcClient;
+    const { data: inserted, error } = await rpcClient.rpc("create_story_checkout", {
+      _user_id: context.userId, _request_id: data.requestId, _rows: rows,
+      _points: data.pointsUsed, _coupon_id: couponId, _coupon_discount: couponDiscount,
+    });
+    if (error) {
+      console.error("story checkout transaction failed", error.code);
+      throw new Error(error.message?.includes("Insufficient reward points")
+        ? "رصيد النقاط غير كافٍ؛ ألغِ اختيار المكافأة أو حدّث الصفحة"
+        : "تعذر إرسال الطلب أو تطبيق الخصم، لم تُخصم نقاطك؛ حاول مرة أخرى");
     }
 
     return {
       ok: true,
-      orderIds: (inserted ?? []).map((r) => r.id),
+      orderIds: inserted as string[],
       packageDiscountEgp: packageDiscount,
       couponDiscountEgp: couponDiscount,
+      pointsDiscountEgp,
     };
   });
