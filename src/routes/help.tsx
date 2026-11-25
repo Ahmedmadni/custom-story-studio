@@ -144,7 +144,7 @@ export const Route = createFileRoute("/help")({
     links: [{ rel: "canonical", href: `${SITE_URL}/help` }],
     scripts: [
       {
-        attrs: { type: "application/ld+json" },
+        type: "application/ld+json",
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "FAQPage",
