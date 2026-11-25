@@ -193,6 +193,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const [toolSettings, setToolSettings] = useState(() => savedToolSettings(null));
   const [toolSettingsLoaded, setToolSettingsLoaded] = useState(false);
   const [fillTolerance, setFillTolerance] = useState(28);
+  const [fillMode, setFillMode] = useState<"paint" | "erase">("paint");
   const [palette, setPalette] = useState<(typeof palettes)[number]["id"]>("bright");
   const [load, setLoad] = useState<"loading" | "ready" | "error">("loading");
   const [attempt, setAttempt] = useState(0);
@@ -284,11 +285,17 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
       ],
     };
     if (tool === "fill") {
-      ctx.fillStyle = color;
-      ctx.globalAlpha = opacity / 100;
+      ctx.fillStyle = fillMode === "erase" ? "#b6a9d2" : color;
+      ctx.globalAlpha = 1;
       ctx.beginPath();
       ctx.arc(130, 38, 25, 0, Math.PI * 2);
       ctx.fill();
+      if (fillMode === "erase") {
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(130, 38, 16, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.globalAlpha = 1;
     } else {
       if (tool === "eraser") {
@@ -298,7 +305,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
       if (tool === "marker" || tool === "watercolor") smoothStroke(ctx, mark);
       else segment(ctx, mark, mark.points[0], mark.points[1]);
     }
-  }, [tool, color, size, opacity]);
+  }, [tool, color, size, opacity, fillMode]);
 
   useEffect(() => {
     let gone = false;
@@ -353,7 +360,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     history.current.done.push(mark);
     history.current.undone = [];
     save();
-    if (mark.tool !== "eraser" && mark.tool !== "clear") {
+    if (mark.tool !== "eraser" && mark.tool !== "clear" && mark.fillMode !== "erase") {
       setRecentColors((previous) => {
         const next = rememberColor(previous, mark.color);
         try {
@@ -417,7 +424,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
       size,
       opacity: opacity / 100,
       points: [at],
-      ...(tool === "fill" ? { tolerance: fillTolerance } : {}),
+      ...(tool === "fill" ? { tolerance: fillTolerance, fillMode } : {}),
       ...(e.pointerType === "pen" ? { pressures: [e.pressure] } : {}),
     };
     const ctx = e.currentTarget.getContext("2d")!;
@@ -634,6 +641,60 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
               </div>
             ))}
           </fieldset>
+          {tool === "fill" && (
+            <fieldset>
+              <legend>طريقة تعبئة المساحة</legend>
+              <div
+                className="desk-fill-options desk-fill-modes"
+                role="group"
+                aria-label="تلوين المساحة أو إزالة لونها"
+              >
+                <button
+                  type="button"
+                  aria-pressed={fillMode === "paint"}
+                  onClick={() => setFillMode("paint")}
+                >
+                  لون المساحة
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={fillMode === "erase"}
+                  onClick={() => setFillMode("erase")}
+                >
+                  امسح لونها
+                </button>
+              </div>
+              <span className="desk-subtitle">انتشار التعبئة</span>
+              <div
+                className="desk-fill-options"
+                role="group"
+                aria-label="اتساع التعبئة داخل الرسمة"
+              >
+                {fillOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={fillTolerance === option.value}
+                    onClick={() => {
+                      setFillTolerance(option.value);
+                      try {
+                        localStorage.setItem(fillToleranceKey, String(option.value));
+                      } catch {
+                        // Keep the choice for this session.
+                      }
+                    }}
+                  >
+                    {option.name}
+                  </button>
+                ))}
+              </div>
+              <p className="desk-tool-hint">
+                {fillMode === "erase"
+                  ? "المس داخل المساحة الملونة لإزالة لونها. يمكنك التراجع دائمًا."
+                  : "إذا بقيت نقاط صغيرة غير ملونة، جرّب «واسع». حدود الرسمة تظل محمية."}
+              </p>
+            </fieldset>
+          )}
           <button
             className="desk-pen-mode"
             type="button"
@@ -654,7 +715,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
               <small>عند تفعيله، يمكنك تحريك الورقة بإصبعك من أداة التحريك.</small>
             </span>
           </button>
-          <fieldset>
+          <fieldset hidden={tool === "fill" && fillMode === "erase"}>
             <legend>بالتة الألوان</legend>
             <div className="desk-palettes" role="group" aria-label="مجموعات الألوان">
               {palettes.map((p) => (
@@ -775,37 +836,6 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
               </div>
             )}
           </fieldset>
-          {tool === "fill" && (
-            <fieldset>
-              <legend>انتشار التعبئة</legend>
-              <div
-                className="desk-fill-options"
-                role="group"
-                aria-label="اتساع التعبئة داخل الرسمة"
-              >
-                {fillOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    aria-pressed={fillTolerance === option.value}
-                    onClick={() => {
-                      setFillTolerance(option.value);
-                      try {
-                        localStorage.setItem(fillToleranceKey, String(option.value));
-                      } catch {
-                        // Keep the choice for this session.
-                      }
-                    }}
-                  >
-                    {option.name}
-                  </button>
-                ))}
-              </div>
-              <p className="desk-tool-hint">
-                إذا بقيت نقاط صغيرة غير ملونة، جرّب «واسع». حدود الرسمة تظل محمية.
-              </p>
-            </fieldset>
-          )}
           {tool !== "fill" && tool !== "pan" && tool !== "picker" && (
             <fieldset>
               <legend>سُمك الأداة: {size}</legend>

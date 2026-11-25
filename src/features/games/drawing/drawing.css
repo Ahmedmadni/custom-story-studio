@@ -419,6 +419,9 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.3rem;
 }
+.desk-fill-modes {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 .desk-fill-options button {
   min-height: 44px;
   border-radius: 0.75rem;
