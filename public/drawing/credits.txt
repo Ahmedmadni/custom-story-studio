@@ -25,3 +25,4 @@
 colorbook.ma و printables.hp.com من المصادر الظاهرة في الصفحات المرفقة.
 
 تُنسب مجموعة الرسومات المتجهة الـ75 إلى أصحاب الأعمال المذكورين في /drawing/svg-credits.txt.
+مصادر الدفعة الإضافية (19 رسمة): /drawing/attachment-credits.txt.
