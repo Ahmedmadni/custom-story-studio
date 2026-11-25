@@ -163,7 +163,7 @@
 }
 .studio-card div {
   margin: 0.55rem;
-  aspect-ratio: 1.28;
+  aspect-ratio: 3 / 3.25;
   display: grid;
   place-items: center;
 }
@@ -215,8 +215,8 @@
   position: relative;
   isolation: isolate;
   width: 100%;
-  max-width: min(100%, 68vh);
-  aspect-ratio: 1;
+  max-width: min(100%, 51vh);
+  aspect-ratio: 3 / 4;
   background: white;
   box-shadow: 0 4px 12px #40325024;
   overflow: hidden;

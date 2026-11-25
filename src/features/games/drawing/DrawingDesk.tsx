@@ -13,6 +13,7 @@ import {
 import { COLORS } from "../games-data";
 import {
   PAPER,
+  PAPER_HEIGHT,
   fillArea,
   isMark,
   replay,
@@ -62,14 +63,14 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     const ctx = canvas.current!.getContext("2d", { willReadFrequently: true })!;
     async function init() {
       try {
-        const mask = new Uint8Array(PAPER * PAPER);
+        const mask = new Uint8Array(PAPER * PAPER_HEIGHT);
         if (id !== "blank") {
           const img = new Image();
           img.src = "/drawing/" + id + ".webp";
           await img.decode();
           if (gone) return;
-          ctx.drawImage(img, 0, 0, PAPER, PAPER);
-          const data = ctx.getImageData(0, 0, PAPER, PAPER).data;
+          ctx.drawImage(img, 0, 0, PAPER, PAPER_HEIGHT);
+          const data = ctx.getImageData(0, 0, PAPER, PAPER_HEIGHT).data;
           for (let i = 0; i < mask.length; i++) mask[i] = Number(data[4 * i] < 192);
           art.current = img;
         }
@@ -113,9 +114,12 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   }
   function point(e: PointerEvent<HTMLCanvasElement>): Point {
     const box = e.currentTarget.getBoundingClientRect();
-    const scale = (distance: number, length: number) =>
-      Math.max(0, Math.min(PAPER - 1, Math.round((distance * PAPER) / length)));
-    return [scale(e.clientX - box.left, box.width), scale(e.clientY - box.top, box.height)];
+    const scale = (distance: number, length: number, max: number) =>
+      Math.max(0, Math.min(max - 1, Math.round((distance * max) / length)));
+    return [
+      scale(e.clientX - box.left, box.width, PAPER),
+      scale(e.clientY - box.top, box.height, PAPER_HEIGHT),
+    ];
   }
   function start(e: PointerEvent<HTMLCanvasElement>) {
     if (load !== "ready" || active.current || !e.isPrimary || e.button !== 0) return;
@@ -157,13 +161,14 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   }
   function download() {
     const output = document.createElement("canvas");
-    output.width = output.height = PAPER;
+    output.width = PAPER;
+    output.height = PAPER_HEIGHT;
     const ctx = output.getContext("2d")!;
     ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, PAPER, PAPER);
+    ctx.fillRect(0, 0, PAPER, PAPER_HEIGHT);
     ctx.drawImage(canvas.current!, 0, 0);
     ctx.globalCompositeOperation = "multiply";
-    if (art.current) ctx.drawImage(art.current, 0, 0, PAPER, PAPER);
+    if (art.current) ctx.drawImage(art.current, 0, 0, PAPER, PAPER_HEIGHT);
     output.toBlob((blob) => {
       if (!blob) {
         setMessage("تعذّر تنزيل اللوحة. حاول مرة أخرى.");
@@ -192,7 +197,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
             <canvas
               ref={canvas}
               width={PAPER}
-              height={PAPER}
+              height={PAPER_HEIGHT}
               aria-label={"ورقة الرسم • " + title}
               onPointerDown={start}
               onPointerMove={move}
