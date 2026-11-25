@@ -11,10 +11,11 @@ import {
 
 describe("drawing studio", () => {
   it("has a local preview and printable-resolution outline for each gallery sheet", () => {
-    expect(sheets.length).toBe(276);
-    expect(collections.length).toBe(17);
+    expect(sheets.length).toBe(345);
+    expect(collections.length).toBe(19);
     expect(sheets.filter((s) => s.id.startsWith("vector-")).length).toBe(75);
     expect(sheets.filter((s) => s.id.startsWith("attachment-")).length).toBe(19);
+    expect(sheets.filter((s) => s.id.startsWith("batch-")).length).toBe(69);
     expect(new Set(sheets.map((s) => s.id)).size).toBe(sheets.length);
     for (const group of collections) {
       expect(sheets.some((s) => s.id === group.cover && s.group === group.id)).toBe(true);
