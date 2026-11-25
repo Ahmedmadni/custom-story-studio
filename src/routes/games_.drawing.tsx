@@ -22,7 +22,8 @@ export const Route = createFileRoute("/games_/drawing")({
       { title: "مرسم كيدزي | لعبة الرسم والتلوين للأطفال" },
       {
         name: "description",
-        content: "اختر رسمة من الحيوانات أو الخيال أو البحر أو الحديقة، ولوّنها بفرشاتك وأقلامك.",
+        content:
+          "اختر رسمة من كتب التلوين في مجموعات الحيوانات والأميرات والديناصورات والمهن وغيرها، ولوّنها بفرشاتك وأقلامك.",
       },
     ],
     links: [
@@ -63,7 +64,7 @@ function Studio() {
                 </Link>
               </div>
               <div className="studio-fan" aria-hidden="true">
-                {["grape", "kawaii_unicorn_cloud", "alpaca"].map((id) => (
+                {["dinosaurs-01", "princesses-01", "cute-02"].map((id) => (
                   <img key={id} src={"/drawing/" + id + "-cover.webp"} alt="" />
                 ))}
               </div>
@@ -114,8 +115,8 @@ function Studio() {
                       src={"/drawing/" + s.id + "-cover.webp"}
                       alt=""
                       loading="lazy"
-                      width={380}
-                      height={380}
+                      width={300}
+                      height={400}
                     />
                   </div>
                   <span>
@@ -126,7 +127,7 @@ function Studio() {
               ))}
             </div>
             <a className="studio-credits" href="/drawing/credits.txt">
-              مصادر الرسومات وتراخيصها
+              مصادر الرسومات
             </a>
           </>
         )}

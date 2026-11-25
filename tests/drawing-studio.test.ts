@@ -1,10 +1,18 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync } from "node:fs";
 import { collections, sheets } from "../src/features/games/drawing/catalog";
-import { fillArea, isMark, PAPER, type Mark } from "../src/features/games/drawing/paint";
+import {
+  fillArea,
+  isMark,
+  PAPER,
+  PAPER_HEIGHT,
+  type Mark,
+} from "../src/features/games/drawing/paint";
 
 describe("drawing studio", () => {
   it("has a local preview and printable-resolution outline for each gallery sheet", () => {
+    expect(sheets.length).toBe(182);
+    expect(collections.length).toBe(11);
     expect(new Set(sheets.map((s) => s.id)).size).toBe(sheets.length);
     for (const group of collections) {
       expect(sheets.some((s) => s.id === group.cover && s.group === group.id)).toBe(true);
@@ -18,7 +26,7 @@ describe("drawing studio", () => {
     }
   });
   it("contains bucket fills and ignores repeated fills on the same color or an outline", () => {
-    const boundary = new Uint8Array(PAPER * PAPER).fill(1);
+    const boundary = new Uint8Array(PAPER * PAPER_HEIGHT).fill(1);
     // One pocket touches the left edge. Another sits at the end of the preceding row.
     const start = 2 * PAPER;
     [start - 1, start, start + 1, start + PAPER].forEach((i) => {
@@ -42,6 +50,7 @@ describe("drawing studio", () => {
     const mark = { tool: "pencil", color: "#112233", size: 24, points: [[200, 300]] };
     expect(isMark(mark)).toBe(true);
     expect(isMark({ ...mark, points: [[PAPER, 0]] })).toBe(false);
+    expect(isMark({ ...mark, points: [[0, PAPER_HEIGHT]] })).toBe(false);
     expect(isMark({ ...mark, points: [] })).toBe(false);
     expect(isMark({ ...mark, color: "unknown" })).toBe(false);
   });

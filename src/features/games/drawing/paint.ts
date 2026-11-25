@@ -1,4 +1,5 @@
 export const PAPER = 900;
+export const PAPER_HEIGHT = 1200;
 export type Tool = "pencil" | "brush" | "crayon" | "fill" | "eraser";
 export type Point = [number, number];
 export interface Mark {
@@ -24,7 +25,9 @@ export function isMark(value: unknown): value is Mark {
       (p) =>
         Array.isArray(p) &&
         p.length === 2 &&
-        p.every((v) => Number.isInteger(v) && v >= 0 && v < PAPER),
+        p.every(
+          (v, index) => Number.isInteger(v) && v >= 0 && v < (index === 0 ? PAPER : PAPER_HEIGHT),
+        ),
     )
   );
 }
@@ -77,7 +80,7 @@ export function fillArea(ctx: CanvasRenderingContext2D, outline: Uint8Array, mar
   const [x, y] = mark.points[0];
   const start = y * PAPER + x;
   if (outline[start]) return false;
-  const pixels = ctx.getImageData(0, 0, PAPER, PAPER);
+  const pixels = ctx.getImageData(0, 0, PAPER, PAPER_HEIGHT);
   const rgba = pixels.data;
   const rgb = [1, 3, 5].map((i) => parseInt(mark.color.slice(i, i + 2), 16));
   const visible = (i: number, channel: number) =>
@@ -111,7 +114,7 @@ export function fillArea(ctx: CanvasRenderingContext2D, outline: Uint8Array, mar
 }
 
 export function replay(ctx: CanvasRenderingContext2D, outline: Uint8Array, marks: Mark[]) {
-  ctx.clearRect(0, 0, PAPER, PAPER);
+  ctx.clearRect(0, 0, PAPER, PAPER_HEIGHT);
   for (const mark of marks) {
     if (mark.tool === "fill") fillArea(ctx, outline, mark);
     else mark.points.forEach((p, i) => segment(ctx, mark, mark.points[Math.max(0, i - 1)], p));

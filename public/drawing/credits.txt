@@ -1,25 +1,25 @@
-Kidzy drawing studio — artwork credits
+مصادر صفحات التلوين التي قدمها صاحب الموقع (اسم ملف PDF الأصلي):
 
-Princess and the Star Wand: original Kidzy drawing.
+حروف وحيوانات: arabic-letters-book.pdf — الصفحات 1–28
+الأبطال والمغامرات: كتاب-تلوين-الاولاد-والابطال-pdf.pdf — الصفحات 1–20
+الأميرات والخيال: كتاب-تلوين-البنات-والأميرات-A4.pdf — الصفحات 1–15
+الديناصورات: كتاب-تلوين-الديناصورات-للاطفال-pdf.pdf — الصفحات 1–10
+الفواكه والخضروات: كتاب-تلوين-الفواكه-والخضروات-للاطفال-pdf.pdf — الصفحات 1–10
+المهن: كتاب-تلوين-المهن-والوظائف-للاطفال-pdf.pdf — الصفحات 1–10
+رسومات كيوت: كتاب-تلوين-رسومات-كيوت-للاطفال-pdf.pdf — الصفحات 2–31
+رمضان والأعياد: كتاب-تلوين-رمضان-والاعياد-للاطفال-pdf.pdf — الصفحات 1–10
+السيارات والمواصلات: كتاب-تلوين-سيارات-ووسائل-النقل-للاطفال-pdf.pdf — الصفحات 2–21
+الزخارف والماندالا: كتاب-تلوين-ماندالا-للكبار-والاسترخاء.pdf — الصفحات 2–21
+ثعلب الماء في الشمس: المرح في الشمس_ Otter.pdf
+الكوالا المحبوب: حب الكوالا!.pdf
+حديث الحيتان: حديث الحيتان.pdf
+تعلّم حرف A: حرف التعلم A.pdf
+حفلة شاي على البحر: حفلة شاي على البحر.pdf
+الفتاة الصغيرة: فتاة صغيرة - بقلم كيتورا أرييل.pdf
+عيد الأم: كل ما يتعلق بعيد الأم.pdf
+مخطط الواجبات: مخطط مونستر للواجبات المنزلية.pdf
+مرحبًا بالصيف: مرحبًا بالصيف!.pdf
 
-Other sheets are adapted from Coloring Pages, maintained by Pavel Kukov:
-https://github.com/pavelkukov/coloring-pages/tree/c5f2dcae9a583dcd841122a1d32bc7b40f5746c0
-Repository license: Creative Commons Attribution-ShareAlike 4.0 International
-https://creativecommons.org/licenses/by-sa/4.0/
-Kidzy adaptations (cropping, resizing and colored previews) of these sheets are available under the same license. Original credits as recorded upstream:
-
-alpaca - Author: Public domain, Source: http://www.supercoloring.com/coloring-pages/cartoon-alpaca-0
-cartoon_frog - Author: Public domain, Source: http://www.supercoloring.com/coloring-pages/cartoon-frog-3
-donkey - Author: Public domain, Source: https://publicdomainvectors.org/en/free-clipart/Donkey-vector-drawing/82214.html
-owl - Author: Public domain, Source: https://www.publicdomainpictures.net/en/view-image.php?image=58836&picture=owl-coloring-page-clipart
-kawaii_unicorn_cloud - Author: Public domain, Source: http://www.supercoloring.com/coloring-pages/kawaii-unicorn-cloud
-dragon - Author: Public domain, Source: https://publicdomainvectors.org/en/free-clipart/Dragon-ready-to-fly-in-black-and-white/81797.html
-locked_heart - Author: Public domain, Source: http://www.supercoloring.com/coloring-pages/locked-heart
-summer_beach - Author: Public domain, Source: http://www.supercoloring.com/coloring-pages/summer-beach-scene
-fishing_fish - Author: Public domain, Source: https://publicdomainvectors.org/en/free-clipart/Fishing-fish/82488.html
-boy_surfer - Author: Public domain, Source: http://www.supercoloring.com/coloring-pages/boy-surfer-0
-shark_jaws - Author: Public domain, Source: https://publicdomainvectors.org/en/free-clipart/Shark-jaws/85060.html
-ladybug_on_leaf - Author: Public domain, Source: http://www.supercoloring.com/coloring-pages/ladybird-on-a-leaf
-grape - Author: Public domain, Source: http://www.supercoloring.com/coloring-pages/grape-4
-bitten_apple - Author: Public domain, Source: http://www.supercoloring.com/coloring-pages/cartoon-bitten-apple
-poppies_coloring_page - Author: Public domain, Source: http://www.supercoloring.com/coloring-pages/flowers-1
+ملف professions-book.pdf نسخة مكررة من كتاب المهن؛ لم نكرر رسوماته.
+أزيلت أغلفة الكتب من المعرض، واستُخدمت فقط صفحات التلوين.
+colorbook.ma و printables.hp.com من المصادر الظاهرة في الصفحات المرفقة.
