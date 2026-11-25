@@ -195,6 +195,39 @@
 .desk-heading {
   margin-top: 0.2rem;
 }
+.desk-heading-actions,
+.desk-zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.desk-heading-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.desk-zoom {
+  min-height: 44px;
+  padding: 0 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.desk-zoom button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+}
+.desk-zoom button:disabled {
+  opacity: 0.4;
+}
+.desk-pdf {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+}
 .desk-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
@@ -202,8 +235,12 @@
   align-items: start;
 }
 .desk-mat {
-  display: grid;
-  place-items: center;
+  display: flex;
+  justify-content: safe center;
+  align-items: safe center;
+  overflow: auto;
+  max-height: 85vh;
+  min-height: 260px;
   background-color: #eee9f6;
   background-image: radial-gradient(#cfc5e0 1px, transparent 1px);
   background-size: 12px 12px;
@@ -214,8 +251,7 @@
 .desk-paper {
   position: relative;
   isolation: isolate;
-  width: 100%;
-  max-width: min(100%, 51vh);
+  flex: none;
   aspect-ratio: 3 / 4;
   background: white;
   box-shadow: 0 4px 12px #40325024;
@@ -233,6 +269,9 @@
   touch-action: none;
   cursor: crosshair;
   user-select: none;
+}
+.desk-paper .desk-preview {
+  pointer-events: none;
 }
 .desk-paper img {
   pointer-events: none;
@@ -281,6 +320,36 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.3rem;
+}
+.desk-clear {
+  margin-top: 0.65rem;
+}
+.desk-clear > button,
+.desk-clear div button {
+  min-height: 42px;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.7rem;
+  background: var(--secondary);
+  font-weight: 750;
+}
+.desk-clear > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.desk-clear div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+.desk-clear div span {
+  flex-basis: 100%;
+}
+.desk-clear div button:first-of-type {
+  background: var(--destructive);
+  color: var(--destructive-foreground);
 }
 .desk-tool-group:last-child .desk-tools {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -418,7 +487,7 @@
     grid-template-columns: 1fr;
   }
   .desk-paper {
-    max-width: min(100%, 60vh);
+    max-width: none;
   }
   .desk-kit {
     padding: 0.7rem 0.85rem;

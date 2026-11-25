@@ -9,8 +9,13 @@ import {
   Pencil,
   PenLine,
   Droplets,
+  FileDown,
+  Hand,
+  Pipette,
   Redo2,
   Undo2,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { COLORS } from "../games-data";
 import {
@@ -20,10 +25,14 @@ import {
   isMark,
   replay,
   segment,
+  sealOutlineGaps,
+  smoothStroke,
   type Mark,
   type Point,
   type Tool,
 } from "./paint";
+
+type DeskTool = Tool | "picker" | "pan";
 
 const toolGroups = [
   {
@@ -49,6 +58,8 @@ const toolGroups = [
     tools: [
       { id: "fill", name: "تعبئة", icon: PaintBucket },
       { id: "eraser", name: "ممحاة", icon: Eraser },
+      { id: "picker", name: "قطّارة", icon: Pipette },
+      { id: "pan", name: "تحريك", icon: Hand },
     ],
   },
 ] as const;
@@ -108,12 +119,22 @@ const widths = [
 
 export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const previewCanvas = useRef<HTMLCanvasElement>(null);
+  const viewport = useRef<HTMLDivElement>(null);
   const art = useRef<HTMLImageElement | null>(null);
   const boundary = useRef<Uint8Array>(new Uint8Array(0));
   const history = useRef<{ done: Mark[]; undone: Mark[] }>({ done: [], undone: [] });
   const active = useRef<{ pointer: number; mark: Mark } | null>(null);
+  const panning = useRef<{
+    pointer: number;
+    x: number;
+    y: number;
+    left: number;
+    top: number;
+  } | null>(null);
+  const lastPaintTool = useRef<Tool>("brush");
   const [counts, setCounts] = useState([0, 0]);
-  const [tool, setTool] = useState<Tool>("brush");
+  const [tool, setTool] = useState<DeskTool>("brush");
   const [color, setColor] = useState(COLORS[0].hex);
   const [size, setSize] = useState(24);
   const [opacity, setOpacity] = useState(100);
@@ -121,7 +142,18 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const [load, setLoad] = useState<"loading" | "ready" | "error">("loading");
   const [attempt, setAttempt] = useState(0);
   const [message, setMessage] = useState("");
+  const [zoom, setZoom] = useState(1);
+  const [confirmClear, setConfirmClear] = useState(false);
   const storageKey = "kidzy:desk:v1:" + id;
+  const marks = history.current.done;
+  let lastClear = -1;
+  for (let i = marks.length - 1; i >= 0; i--) {
+    if (marks[i].tool === "clear") {
+      lastClear = i;
+      break;
+    }
+  }
+  const canClear = marks.length > lastClear + 1;
 
   useEffect(() => {
     let gone = false;
@@ -139,7 +171,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
           for (let i = 0; i < mask.length; i++) mask[i] = Number(data[4 * i] < 192);
           art.current = img;
         }
-        boundary.current = mask;
+        boundary.current = sealOutlineGaps(mask, PAPER, PAPER_HEIGHT);
         let done: Mark[] = [];
         try {
           const saved: unknown = JSON.parse(localStorage.getItem(storageKey) ?? "[]");
@@ -148,7 +180,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
           setMessage("الحفظ على هذا الجهاز غير متاح حاليًا. يمكنك تنزيل لوحتك.");
         }
         history.current = { done, undone: [] };
-        replay(ctx, mask, done);
+        replay(ctx, boundary.current, done);
         setCounts([done.length, 0]);
         setLoad("ready");
       } catch {
@@ -187,8 +219,39 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     ];
   }
   function start(e: PointerEvent<HTMLCanvasElement>) {
-    if (load !== "ready" || active.current || !e.isPrimary || e.button !== 0) return;
+    if (load !== "ready" || active.current || panning.current || !e.isPrimary || e.button !== 0)
+      return;
+    if (tool === "pan") {
+      const view = viewport.current!;
+      panning.current = {
+        pointer: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        left: view.scrollLeft,
+        top: view.scrollTop,
+      };
+      e.currentTarget.setPointerCapture(e.pointerId);
+      return;
+    }
     const at = point(e);
+    if (tool === "picker") {
+      const pixels = e.currentTarget.getContext("2d")!.getImageData(at[0], at[1], 1, 1).data;
+      if (pixels[3] < 8) {
+        setMessage("المس لونًا رسمته على الورقة لالتقاطه.");
+      } else {
+        const hex = [0, 1, 2]
+          .map((i) =>
+            Math.round(255 - ((255 - pixels[i]) * pixels[3]) / 255)
+              .toString(16)
+              .padStart(2, "0"),
+          )
+          .join("");
+        setColor("#" + hex);
+        setTool(lastPaintTool.current);
+        setMessage("التقطت اللون من لوحتك.");
+      }
+      return;
+    }
     const mark: Mark = {
       tool,
       color,
@@ -204,9 +267,18 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     }
     e.currentTarget.setPointerCapture(e.pointerId);
     active.current = { pointer: e.pointerId, mark };
-    segment(ctx, mark, at, at, mark.pressures?.[0] ?? 1);
+    if (tool === "marker" || tool === "watercolor") {
+      smoothStroke(previewCanvas.current!.getContext("2d")!, mark);
+    } else segment(ctx, mark, at, at, mark.pressures?.[0] ?? 1);
   }
   function move(e: PointerEvent<HTMLCanvasElement>) {
+    const pan = panning.current;
+    if (pan?.pointer === e.pointerId) {
+      const view = viewport.current!;
+      view.scrollLeft = pan.left + pan.x - e.clientX;
+      view.scrollTop = pan.top + pan.y - e.clientY;
+      return;
+    }
     const drag = active.current;
     if (!drag || drag.pointer !== e.pointerId) return;
     const at = point(e);
@@ -218,14 +290,35 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     const pressure = drag.mark.pressures
       ? (drag.mark.pressures[drag.mark.pressures.length - 2] + e.pressure) / 2
       : 1;
-    segment(e.currentTarget.getContext("2d")!, drag.mark, prev, at, pressure);
+    if (drag.mark.tool === "marker" || drag.mark.tool === "watercolor") {
+      const preview = previewCanvas.current!.getContext("2d")!;
+      preview.clearRect(0, 0, PAPER, PAPER_HEIGHT);
+      smoothStroke(preview, drag.mark);
+    } else segment(e.currentTarget.getContext("2d")!, drag.mark, prev, at, pressure);
   }
   function finish(e: PointerEvent<HTMLCanvasElement>) {
+    if (panning.current?.pointer === e.pointerId) {
+      if (e.type === "pointerup") move(e);
+      panning.current = null;
+      return;
+    }
     const drag = active.current;
     if (!drag || drag.pointer !== e.pointerId) return;
     if (e.type === "pointerup") move(e);
+    if (drag.mark.tool === "marker" || drag.mark.tool === "watercolor") {
+      const preview = previewCanvas.current!;
+      e.currentTarget.getContext("2d")!.drawImage(preview, 0, 0);
+      preview.getContext("2d")!.clearRect(0, 0, PAPER, PAPER_HEIGHT);
+    }
     active.current = null;
     record(drag.mark);
+  }
+  function clearArtwork() {
+    if (active.current || !canClear) return;
+    canvas.current!.getContext("2d")!.clearRect(0, 0, PAPER, PAPER_HEIGHT);
+    record({ tool: "clear", color: "#ffffff", size: 1, points: [[0, 0]] });
+    setConfirmClear(false);
+    setMessage("مُسحت الألوان. يمكنك التراجع لاستعادتها.");
   }
   function step(back: boolean) {
     if (active.current) return;
@@ -236,7 +329,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     replay(canvas.current!.getContext("2d")!, boundary.current, done);
     save();
   }
-  function download() {
+  function composed() {
     const output = document.createElement("canvas");
     output.width = PAPER;
     output.height = PAPER_HEIGHT;
@@ -246,6 +339,10 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     ctx.drawImage(canvas.current!, 0, 0);
     ctx.globalCompositeOperation = "multiply";
     if (art.current) ctx.drawImage(art.current, 0, 0, PAPER, PAPER_HEIGHT);
+    return output;
+  }
+  function download() {
+    const output = composed();
     output.toBlob((blob) => {
       if (!blob) {
         setMessage("تعذّر تنزيل اللوحة. حاول مرة أخرى.");
@@ -259,18 +356,59 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
       window.setTimeout(() => URL.revokeObjectURL(url), 15000);
     }, "image/png");
   }
+  async function downloadPdf() {
+    try {
+      const { jsPDF } = await import("jspdf");
+      const document = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      document.addImage(composed().toDataURL("image/png"), "PNG", 0, 8, 210, 280);
+      document.save("كيدزي - " + title + ".pdf");
+    } catch {
+      setMessage("تعذّر إنشاء ملف PDF. يمكنك تنزيل اللوحة كصورة.");
+    }
+  }
 
   return (
     <section aria-label={title} className="desk">
       <div className="desk-heading">
         <h1>{title}</h1>
-        <button className="desk-download" disabled={load !== "ready"} onClick={download}>
-          <Download size={18} /> تنزيل اللوحة
-        </button>
+        <div className="desk-heading-actions">
+          <div className="desk-zoom" role="group" aria-label="تكبير الورقة">
+            <button
+              type="button"
+              aria-label="تصغير"
+              disabled={zoom === 1}
+              onClick={() => setZoom((z) => Math.max(1, z - 0.5))}
+            >
+              <ZoomOut size={18} />
+            </button>
+            <span>{Math.round(zoom * 100)}٪</span>
+            <button
+              type="button"
+              aria-label="تكبير"
+              disabled={zoom === 3}
+              onClick={() => setZoom((z) => Math.min(3, z + 0.5))}
+            >
+              <ZoomIn size={18} />
+            </button>
+          </div>
+          <button className="desk-download" disabled={load !== "ready"} onClick={download}>
+            <Download size={18} /> صورة PNG
+          </button>
+          <button
+            className="desk-download desk-pdf"
+            disabled={load !== "ready"}
+            onClick={() => void downloadPdf()}
+          >
+            <FileDown size={18} /> PDF للطباعة
+          </button>
+        </div>
       </div>
       <div className="desk-layout">
-        <div className="desk-mat">
-          <div className="desk-paper">
+        <div className="desk-mat" ref={viewport}>
+          <div
+            className="desk-paper"
+            style={{ width: `min(${zoom * 100}%, ${zoom * 60}vh)`, maxWidth: "none" }}
+          >
             <canvas
               ref={canvas}
               width={PAPER}
@@ -281,6 +419,13 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
               onPointerUp={finish}
               onPointerCancel={finish}
               onLostPointerCapture={finish}
+            />
+            <canvas
+              ref={previewCanvas}
+              width={PAPER}
+              height={PAPER_HEIGHT}
+              className="desk-preview"
+              aria-hidden="true"
             />
             {id !== "blank" && <img src={"/drawing/" + id + ".webp"} alt="" draggable={false} />}
             {load !== "ready" && (
@@ -316,6 +461,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
                       aria-pressed={tool === key}
                       onClick={() => {
                         setTool(key);
+                        if (key !== "picker" && key !== "pan") lastPaintTool.current = key;
                         if (key === "pencil") setColor("#46505d");
                       }}
                     >
@@ -421,6 +567,23 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
               <Redo2 size={19} />
               إعادة
             </button>
+          </div>
+          <div className="desk-clear">
+            {confirmClear ? (
+              <div role="group" aria-label="تأكيد مسح اللوحة">
+                <span>تمسح الألوان من هذه الورقة؟ يمكنك التراجع بعدها.</span>
+                <button type="button" onClick={clearArtwork}>
+                  امسح الألوان
+                </button>
+                <button type="button" onClick={() => setConfirmClear(false)}>
+                  إلغاء
+                </button>
+              </div>
+            ) : (
+              <button type="button" disabled={!canClear} onClick={() => setConfirmClear(true)}>
+                <Eraser size={18} /> مسح الألوان
+              </button>
+            )}
           </div>
           <p className="desk-status" role="status">
             {message || (load === "ready" && counts[0] > 0 ? "حُفظت رسمتك على هذا الجهاز" : "")}

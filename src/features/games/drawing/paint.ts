@@ -10,7 +10,8 @@ export type Tool =
   | "watercolor"
   | "marker"
   | "fill"
-  | "eraser";
+  | "eraser"
+  | "clear";
 export type Point = [number, number];
 export interface Mark {
   tool: Tool;
@@ -32,7 +33,40 @@ const TOOLS: Tool[] = [
   "marker",
   "fill",
   "eraser",
+  "clear",
 ];
+
+// Small breaks in antialiased outlines otherwise let the paint bucket flood
+// the whole page. This mask is only used for filling; the source art stays intact.
+export function sealOutlineGaps(mask: Uint8Array, width: number, height: number) {
+  const sealed = mask.slice();
+  for (let y = 0; y < height; y++) {
+    const row = y * width;
+    for (let x = 1; x < width - 1; x++) {
+      const i = row + x;
+      if (mask[i - 1] && !mask[i] && mask[i + 1]) sealed[i] = 1;
+      if (x < width - 2 && mask[i - 1] && !mask[i] && !mask[i + 1] && mask[i + 2]) {
+        sealed[i] = sealed[i + 1] = 1;
+      }
+    }
+  }
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (mask[i - width] && !mask[i] && mask[i + width]) sealed[i] = 1;
+      if (
+        y < height - 2 &&
+        mask[i - width] &&
+        !mask[i] &&
+        !mask[i + width] &&
+        mask[i + 2 * width]
+      ) {
+        sealed[i] = sealed[i + width] = 1;
+      }
+    }
+  }
+  return sealed;
+}
 
 export function isMark(value: unknown): value is Mark {
   if (!value || typeof value !== "object") return false;
@@ -180,6 +214,34 @@ export function segment(
   ctx.restore();
 }
 
+// Transparent paints are drawn as a single path. Segment-by-segment alpha
+// creates dark joints, especially when a child moves slowly with a stylus.
+export function smoothStroke(ctx: CanvasRenderingContext2D, mark: Mark) {
+  if (mark.tool !== "marker" && mark.tool !== "watercolor") return;
+  const points = mark.points;
+  ctx.save();
+  ctx.fillStyle = ctx.strokeStyle = mark.color;
+  ctx.lineCap = ctx.lineJoin = "round";
+  const path = (width: number, alpha: number) => {
+    ctx.globalAlpha = (mark.opacity ?? 1) * alpha;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    if (points.length === 1) {
+      ctx.arc(points[0][0], points[0][1], width / 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.moveTo(...points[0]);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(...points[i]);
+      ctx.stroke();
+    }
+  };
+  if (mark.tool === "watercolor") {
+    path(mark.size * 1.45, 0.13);
+    path(mark.size, 0.24);
+  } else path(mark.size * 1.15, 0.56);
+  ctx.restore();
+}
+
 // Compare the visible paint on white paper. The outline is an independent barrier,
 // so an eraser or a bucket can never destroy the original drawing.
 export function fillArea(ctx: CanvasRenderingContext2D, outline: Uint8Array, mark: Mark) {
@@ -222,7 +284,9 @@ export function fillArea(ctx: CanvasRenderingContext2D, outline: Uint8Array, mar
 export function replay(ctx: CanvasRenderingContext2D, outline: Uint8Array, marks: Mark[]) {
   ctx.clearRect(0, 0, PAPER, PAPER_HEIGHT);
   for (const mark of marks) {
-    if (mark.tool === "fill") fillArea(ctx, outline, mark);
+    if (mark.tool === "clear") ctx.clearRect(0, 0, PAPER, PAPER_HEIGHT);
+    else if (mark.tool === "fill") fillArea(ctx, outline, mark);
+    else if (mark.tool === "marker" || mark.tool === "watercolor") smoothStroke(ctx, mark);
     else
       mark.points.forEach((p, i) =>
         segment(
