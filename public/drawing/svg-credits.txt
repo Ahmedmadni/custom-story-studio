@@ -1,0 +1,81 @@
+مكتبة SVG من pavelkukov/coloring-pages (75 رسمًا):
+https://github.com/pavelkukov/coloring-pages
+صور WebP مشتقة من SVG لتناسب مساحة التلوين الطولية؛ احتُفظ بأسماء الفنانين وروابط الأعمال.
+الترخيص العام للمستودع: CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0/
+النص الكامل: /drawing/svg-license.txt
+
+حرف A والطائرة (a_is_for_airplane.svg) — Lena London — http://www.supercoloring.com/coloring-pages/cartoon-airplane — http://creativecommons.org/licenses/by-sa/4.0/
+ماندالا تجريدية (abstract_mandala.svg) — Dora Alis — http://www.supercoloring.com/coloring-pages/simple-abstract-mandala-1 — http://creativecommons.org/licenses/by-sa/4.0/
+ماندالا متشابكة (abstract_mandala_1.svg) — Dora Alis — http://www.supercoloring.com/coloring-pages/abstract-mandala-4 — http://creativecommons.org/licenses/by-sa/4.0/
+الألبكة (alpaca.svg) — Public domain — http://www.supercoloring.com/coloring-pages/cartoon-alpaca-0 — See repository license
+حرف B والطائر (b_is_for_bird.svg) — Lena London — http://www.supercoloring.com/coloring-pages/bird-perching-on-a-tree-branch — http://creativecommons.org/licenses/by-sa/4.0/
+الدب والزهرة (bear_with_flower.svg) — Lena London — http://www.supercoloring.com/coloring-pages/cute-cartoon-bear — See repository license
+التفاحة المقضومة (bitten_apple.svg) — Public domain — http://www.supercoloring.com/coloring-pages/cartoon-bitten-apple — See repository license
+صفحة بيضاء (blank.svg) — public domain — المستودع الأصلي — See repository license
+راكب الأمواج (boy_surfer.svg) — Public domain — http://www.supercoloring.com/coloring-pages/boy-surfer-0 — See repository license
+الأرنب والبيض (bunny_and_eggs.svg) — Cute Easter — http://www.supercoloring.com/coloring-pages/cute-easter-chick-bunny-and-eggs?tag=59110 — See repository license
+الفراشة المزخرفة (butterfly_tattoo.svg) — Public domain — http://www.supercoloring.com/coloring-pages/butterfly-tattoo?tag=58516 — http://creativecommons.org/licenses/by-sa/4.0/
+حرف C والكعكة (c_is_for_cake.svg) — Lena London — http://www.supercoloring.com/coloring-pages/piece-of-cake — http://creativecommons.org/licenses/by-sa/4.0/
+الجمل (camel.svg) — Olga Gaidoush — http://www.supercoloring.com/coloring-pages/camel-0 — See repository license
+الضفدع المرح (cartoon_frog.svg) — Public domain — http://www.supercoloring.com/coloring-pages/cartoon-frog-3 — See repository license
+ماندالا سلتيّة (celtic_mandala.svg) — Dora Alis — http://www.supercoloring.com/coloring-pages/celtic-mandala-0 — http://creativecommons.org/licenses/by-sa/4.0/
+زخارف كتاب كيلز (celtic_ornament_book_of_kells.svg) — Artsashina — http://www.supercoloring.com/coloring-pages/celtic-ornament-design-from-book-of-kells?tag=58516 — http://creativecommons.org/licenses/by-sa/4.0/
+الأميرة الصغيرة (chibi_princess.svg) — Lena London — http://www.supercoloring.com/coloring-pages/cute-chibi-princess — See repository license
+التنين المجنح (creazilla_dragon.svg) — Public domain — http://www.supercoloring.com/coloring-pages/creazilla-dragon — See repository license
+الفراشة المبتسمة (cute_butterfly.svg) — Coloring books: Cute Butterflies — http://www.supercoloring.com/coloring-pages/cute-butterfly-with-happy-smile — See repository license
+الفراشة واليقطينة (cute_butterfly_flies_over_pumpkin.svg) — Coloring books: Cute Butterflies — http://www.supercoloring.com/coloring-pages/cute-butterfly-boy-flies-over-pumpkin — See repository license
+البقرة الصغيرة (cute_cow.svg) — Lena London — http://www.supercoloring.com/coloring-pages/cute-cartoon-cow — See repository license
+الحصان والفراشة (cute_horse.svg) — Cute Horses — http://www.supercoloring.com/coloring-pages/cute-horse-and-butterfly — http://creativecommons.org/licenses/by-sa/4.0/
+حرف D والدونات (d_is_for_donut.svg) — Lena London — http://www.supercoloring.com/coloring-pages/doughnut — http://creativecommons.org/licenses/by-sa/4.0/
+الحمار الصغير (donkey.svg) — Public domain — https://publicdomainvectors.org/en/free-clipart/Donkey-vector-drawing/82214.html — See repository license
+الحمامة (dove.svg) — Public domain — http://www.supercoloring.com/coloring-pages/dove-0 — See repository license
+التنين الطائر (dragon.svg) — Public domain — https://publicdomainvectors.org/en/free-clipart/Dragon-ready-to-fly-in-black-and-white/81797.html — See repository license
+حرف E والبيضة (e_is_for_egg.svg) — Lena London — http://www.supercoloring.com/coloring-pages/cartoon-egg-character — http://creativecommons.org/licenses/by-sa/4.0/
+سلة البيض (easter_basket.svg) — Public domain — http://www.supercoloring.com/coloring-pages/easter-basket-with-eggs — See repository license
+بيضة مزخرفة (easter_egg.svg) — Painter — http://www.supercoloring.com/coloring-pages/easter-egg-with-simple-flower-pattern — See repository license
+بيضة النجوم (easter_egg_with_stars.svg) — Painter — http://www.supercoloring.com/coloring-pages/easter-egg-with-stars — See repository license
+فيل مزخرف (elephant_mandala.svg) — Public domain — http://www.supercoloring.com/coloring-pages/elephant-mandala-0 — http://creativecommons.org/licenses/by-sa/4.0/
+الجنية المزخرفة (fairy_tattoo.svg) — Bianca Vola — http://www.supercoloring.com/coloring-pages/fairy-tattoo?tag=58516 — http://creativecommons.org/licenses/by-sa/4.0/
+السمكة الصيادة (fishing_fish.svg) — Public domain — https://publicdomainvectors.org/en/free-clipart/Fishing-fish/82488.html — See repository license
+نجمة خماسية (five_pointed_star.svg) — Public domain — المستودع الأصلي — See repository license
+زهور البايزلي (flowers_with_paisley_patterns.svg) — Lesya Adamchuk — http://www.supercoloring.com/coloring-pages/flowers-with-paisley-patterns — See repository license
+رجل الزنجبيل (gingerbread_man.svg) — Public domain — http://www.supercoloring.com/coloring-pages/simple-gingerbread-man — See repository license
+الفتاة ذات القرط اللؤلؤي (girl_with_a_pearl_earring.svg) — Johannes Vermeer — http://www.supercoloring.com/coloring-pages/girl-with-pearl-earring — http://creativecommons.org/licenses/by-nc-sa/4.0/؛ أذن مالك الموقع بالاستخدام الإضافي
+عنقود العنب (grape.svg) — Public domain — http://www.supercoloring.com/coloring-pages/grape-4 — See repository license
+كف مزخرف (hasma.svg) — Public domain — http://www.supercoloring.com/coloring-pages/hamsa — http://creativecommons.org/licenses/by-sa/4.0/
+قلب بسيط (heart.svg) — Public domain — http://www.supercoloring.com/coloring-pages/simple-heart-1 — See repository license
+الحصان الظريف (horse_caricature.svg) — Public domain — https://publicdomainvectors.org/en/free-clipart/Horse-caricature/82390.html — See repository license
+الطائر الطنان (hummingbird.svg) — SuperColoring — http://www.supercoloring.com/coloring-pages/hummingbird-6 — http://creativecommons.org/licenses/by-sa/4.0/
+قنديل البحر (jellyfish.svg) — Lena London — http://www.supercoloring.com/coloring-pages/cartoon-jellyfish-0 — See repository license
+العصير والكعكة (juice_and_cake.svg) — SuperColoring — http://www.supercoloring.com/coloring-pages/cocktail-and-cake — See repository license
+وحيد القرن والغيمة (kawaii_unicorn_cloud.svg) — Public domain — http://www.supercoloring.com/coloring-pages/kawaii-unicorn-cloud — See repository license
+الفارس على الحصان (knight_on_horse.svg) — Nata Silina — http://www.supercoloring.com/coloring-pages/cartoon-knight-on-horse — See repository license
+دعسوقة على ورقة (ladybug_on_leaf.svg) — Public domain — http://www.supercoloring.com/coloring-pages/ladybird-on-a-leaf — See repository license
+المهر الصغير (little_pony.svg) — Public domain — https://www.flickr.com/photos/76801207@N04/7043305357 — http://creativecommons.org/licenses/by-sa/4.0/
+القلب المقفل (locked_heart.svg) — Public domain — http://www.supercoloring.com/coloring-pages/locked-heart — http://creativecommons.org/licenses/by-sa/4.0/
+نقش ماندالا ١ (mandala_pattern_1.svg) — Lena London — http://www.supercoloring.com/coloring-pages/mandala-with-abstract-pattern — http://creativecommons.org/licenses/by-sa/4.0/
+نقش ماندالا ٢ (mandala_pattern_2.svg) — Lena London — http://www.supercoloring.com/coloring-pages/mandala-with-abstract-pattern-0 — http://creativecommons.org/licenses/by-sa/4.0/
+قلب الفسيفساء (mosaic_heart.svg) — Artsashina — http://www.supercoloring.com/coloring-pages/mosaic-heart — http://creativecommons.org/licenses/by-sa/4.0/
+أخطبوط عيد الميلاد (octo.svg) — Public domain — https://www.momjunction.com/print-coloring-image/93028/print/2014/09/The-underwater-birthday-card/ — See repository license
+الأخطبوط (octopus.svg) — Lena London — http://www.supercoloring.com/coloring-pages/cute-cartoon-octopus — http://creativecommons.org/licenses/by-sa/4.0/
+البومة (owl.svg) — Public domain — https://www.publicdomainpictures.net/en/view-image.php?image=58836&picture=owl-coloring-page-clipart — See repository license
+حرف P والأميرة (p_is_for_princess.svg) — Lena London — http://www.supercoloring.com/coloring-pages/gorgeous-princess-0 — http://creativecommons.org/licenses/by-sa/4.0/
+حمامة السلام (peace_dove_by_picasso.svg) — Pablo Picasso — http://www.supercoloring.com/coloring-pages/peace-dove-by-picasso — http://creativecommons.org/licenses/by-nc-sa/4.0/؛ أذن مالك الموقع بالاستخدام الإضافي
+زهور الخشخاش (poppies_coloring_page.svg) — Public domain — http://www.supercoloring.com/coloring-pages/flowers-1 — http://creativecommons.org/licenses/by-sa/4.0/
+اليقطينة (pumpkin.svg) — Artsashina — http://www.supercoloring.com/coloring-pages/pumpkin-with-leaves — See repository license
+السفينة إدموند فيتزجيرالد (s_s_edmund_fitzgerald.svg) — Lena London — http://www.supercoloring.com/coloring-pages/ss-edmund-fitzgerald — http://creativecommons.org/licenses/by-sa/4.0/
+سانتا ورادولف (santa_and_rudolf.svg) — Public domain — https://publicdomainvectors.org/en/free-clipart/Santa-and-raindeer-coloring-book-vector-illustration/18574.html — http://creativecommons.org/licenses/by-sa/4.0/
+سمكة القرش (shark_jaws.svg) — Public domain — https://publicdomainvectors.org/en/free-clipart/Shark-jaws/85060.html — See repository license
+القطة النائمة (sleeping_cat.svg) — Just a little doodle of a sleeping cat by Chelsea Dover — http://www.supercoloring.com/coloring-pages/sleeping-cat — http://creativecommons.org/licenses/by-sa/4.0/
+رجل الثلج (snowman.svg) — SuperColoring — http://www.supercoloring.com/coloring-pages/snowman — http://creativecommons.org/licenses/by-sa/4.0/
+طائر الربيع (spring_bird.svg) — Lena London — http://www.supercoloring.com/coloring-pages/spring-bird — See repository license
+زهور الربيع (spring_flowers.svg) — Flower Coloring Pages by Peaksel — http://www.supercoloring.com/coloring-pages/spring-flowers-0 — See repository license
+مطر الربيع (spring_rain.svg) — Lena London — http://www.supercoloring.com/coloring-pages/spring-rain — See repository license
+مربع للتلوين (square.svg) — Public domain — المستودع الأصلي — See repository license
+شاطئ الصيف (summer_beach.svg) — Public domain — http://www.supercoloring.com/coloring-pages/summer-beach-scene — See repository license
+ماندالا الشمس (sun_mandala.svg) — Dora Alis — http://www.supercoloring.com/coloring-pages/mandala-with-sun — http://creativecommons.org/licenses/by-sa/4.0/
+شمس مزخرفة (sun_mandala_2.svg) — Nevit — http://www.supercoloring.com/coloring-pages/sun-mandala-0 — http://creativecommons.org/licenses/by-sa/4.0/
+فسيفساء المثلث والمربع (tessellation_with_triangle_and_square.svg) — Nonenmac — http://www.supercoloring.com/coloring-pages/tessellation-with-triangle-and-square — See repository license
+الأشجار (trees.svg) — SuperColoring — http://www.supercoloring.com/coloring-pages/trees — http://creativecommons.org/licenses/by-sa/4.0/
+أرنبا العيد (two_easter_bunnies.svg) — Cute Easter — http://www.supercoloring.com/coloring-pages/two-easter-bunnies-with-egg — See repository license
+فاكهة مزخرفة (zentangle_fruits_and_chalice.svg) — Zentangle Food — http://www.supercoloring.com/coloring-pages/zentangle-fruits-and-chalice — http://creativecommons.org/licenses/by-sa/4.0/

@@ -11,8 +11,9 @@ import {
 
 describe("drawing studio", () => {
   it("has a local preview and printable-resolution outline for each gallery sheet", () => {
-    expect(sheets.length).toBe(182);
-    expect(collections.length).toBe(11);
+    expect(sheets.length).toBe(257);
+    expect(collections.length).toBe(17);
+    expect(sheets.filter((s) => s.id.startsWith("vector-")).length).toBe(75);
     expect(new Set(sheets.map((s) => s.id)).size).toBe(sheets.length);
     for (const group of collections) {
       expect(sheets.some((s) => s.id === group.cover && s.group === group.id)).toBe(true);
