@@ -132,6 +132,37 @@ describe("drawing studio", () => {
     expect(isMark({ ...mark, tolerance: 81 })).toBe(false);
     expect(isMark({ ...mark, tool: "brush" })).toBe(false);
   });
+  it("removes color from one enclosed area and replays erase and recolor", () => {
+    const boundary = new Uint8Array(PAPER * PAPER_HEIGHT).fill(1);
+    const start = PAPER + 20;
+    boundary[start] = boundary[start + 1] = 0;
+    const data = new Uint8ClampedArray(4 * boundary.length);
+    const ctx = {
+      getImageData: () => ({ data }),
+      putImageData: () => {},
+      clearRect: () => data.fill(0),
+    } as unknown as CanvasRenderingContext2D;
+    const paint: Mark = {
+      tool: "fill",
+      color: "#ef4444",
+      size: 10,
+      points: [[20, 1]],
+      tolerance: 28,
+    };
+    const erase: Mark = { ...paint, fillMode: "erase" };
+    const recolor: Mark = { ...paint, color: "#2255cc" };
+    expect(fillArea(ctx, boundary, paint)).toBe(true);
+    expect(fillArea(ctx, boundary, erase)).toBe(true);
+    expect(data[4 * start + 3]).toBe(0);
+    expect(data[4 * (start + 1) + 3]).toBe(0);
+    expect(fillArea(ctx, boundary, erase)).toBe(false);
+    replay(ctx, boundary, [paint, erase, recolor]);
+    expect([...data.slice(4 * start, 4 * start + 4)]).toEqual([34, 85, 204, 255]);
+    expect(data[4 * (start + 2) + 3]).toBe(0);
+    expect(isMark(erase)).toBe(true);
+    expect(isMark({ ...erase, fillMode: "other" })).toBe(false);
+    expect(isMark({ ...erase, tool: "brush" })).toBe(false);
+  });
   it("rejects malformed or out-of-bounds saved marks before replay", () => {
     const mark = { tool: "pencil", color: "#112233", size: 24, points: [[200, 300]] };
     expect(isMark(mark)).toBe(true);
