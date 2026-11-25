@@ -252,6 +252,14 @@
   padding: 1rem;
   box-shadow: 0 5px 18px #3d2b5b08;
 }
+@media (min-width: 761px) {
+  .desk-kit {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+}
 .desk-kit fieldset {
   margin: 0 0 0.9rem;
   min-width: 0;
@@ -260,12 +268,22 @@
   font-weight: 800;
   margin-bottom: 0.35rem;
 }
+.desk-subtitle {
+  display: block;
+  margin: 0.6rem 0 0.3rem;
+  font-size: 0.77rem;
+  font-weight: 800;
+  color: var(--muted-foreground);
+}
 .desk-tools,
 .desk-widths,
 .desk-history {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.3rem;
+}
+.desk-tool-group:last-child .desk-tools {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .desk-tools button,
 .desk-history button,
@@ -287,6 +305,7 @@
 .desk-tools button {
   flex-direction: column;
   padding: 0.4rem 0.15rem;
+  line-height: 1.25;
 }
 .desk-kit button[aria-pressed="true"]:not(.desk-swatches button) {
   background: var(--primary);
@@ -295,6 +314,31 @@
 .desk-widths i {
   border-radius: 50%;
   background: currentColor;
+}
+.desk-widths {
+  grid-template-columns: repeat(3, 1fr);
+}
+.desk-palettes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.25rem;
+  margin-bottom: 0.45rem;
+}
+.desk-palettes button {
+  min-height: 38px;
+  border-radius: 0.65rem;
+  font-size: 0.77rem;
+  font-weight: 750;
+  background: var(--secondary);
+}
+.desk-kit .desk-palettes button[aria-pressed="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.desk-kit button:focus-visible,
+.desk-kit input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 .desk-swatches {
   display: grid;
@@ -319,6 +363,37 @@
 .desk-swatches button[aria-pressed="true"] span {
   outline: 2px solid var(--foreground);
   outline-offset: 2px;
+}
+.desk-swatches svg {
+  color: #171626;
+  filter: drop-shadow(0 1px 1px white);
+}
+.desk-custom-color {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.desk-custom-color input {
+  width: 44px;
+  height: 38px;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+}
+.desk-custom-color span:last-child {
+  margin-inline-start: auto;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.desk-range {
+  display: block;
+  width: 100%;
+  margin: 0.7rem 0 0.2rem;
+  accent-color: var(--primary);
+  min-height: 25px;
 }
 .desk-history {
   grid-template-columns: 1fr 1fr;
@@ -348,9 +423,7 @@
   .desk-kit {
     padding: 0.7rem 0.85rem;
   }
-  .desk-tools {
-    grid-template-columns: repeat(5, 1fr);
-  }
+  .desk-tools { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .desk-kit fieldset {
     margin-bottom: 0.5rem;
   }

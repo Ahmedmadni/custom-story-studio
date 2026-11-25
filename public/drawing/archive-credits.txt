@@ -1,0 +1,49 @@
+31 قالب تلوين من التطبيقات المرفقة؛ لم تُضف أي شعارات أو لقطات للشاشة:
+
+رسومات Android الأصلية (24): Peter Dornbach، من niccokunzmann/coloring-book.
+التحويل إلى WebP سنة 2026؛ الرسومات مشتقة من مصادر GPLv3 المرفقة بالمستودع.
+ملف المصدر والنسخة الأصلية من LICENSE وNOTICE: /drawing/coloring-book-outlines-source.zip
+
+مناطيد الهواء — outline001_balloons.png
+سفينة الفضاء — outline002_spaceship.png
+الخيول — outline003_horses.png
+القلعة — outline004_castle.png
+المنزل الريفي — outline005_house.png
+الديناصور — outline006_dino.png
+الزهور والفراشات — outline007_flowers.png
+الحياة البحرية — outline008_sealife.png
+حديقة الحيوانات — outline009_zoo.png
+السيارة والمطعم — outline010_roadrunner.png
+الطائرة — outline011_plane.png
+كعكة الميلاد — outline012_birthday.png
+الشاحنة الكبيرة — outline013_18wheeler.png
+الدراجة النارية — outline014_motorbike.png
+الطائرة المقاتلة — outline015_f15eagle.png
+الكلب — outline016_beagle.png
+الفراشة — outline017_butterfly.png
+الحلزون — outline018_snail.png
+المروحية — outline019_helicopter.png
+النحلة — outline020_bee.png
+العنكبوت — outline021_spider.png
+المدينة القديمة — outline022_medeival_city.png
+الفضاء الخارجي — outline023_outer_space.png
+خريطة العالم — outline024_world_map.png
+
+رسومات مثال JL Coloring Book (3): Copyright Joe Love / primoweb.com؛ المشروع متاح للاستخدام في المواقع وفق README المرفق.
+https://github.com/collinph/jl-coloringbook
+خوذة رائد الفضاء — jl-coloringbook-master/example/images/astronaut.png
+النسر على الغصن — jl-coloringbook-master/example/images/eagle.png
+زخارف الزجاج — jl-coloringbook-master/example/images/glass.jpg
+
+أربعة قوالب SVG مضمنة في TemplateSelector.tsx من yajuarya/coloring-book.
+يشير README إلى MIT، لكن ملف LICENSE غير موجود في النسخة المرفقة؛ احتُفظ بالمصدر والنسبة هنا.
+https://github.com/yajuarya/coloring-book
+قطة بسيطة — TemplateSelector.tsx#cat
+زهرة بسيطة — TemplateSelector.tsx#flower
+منزل بسيط — TemplateSelector.tsx#house
+فراشة بسيطة — TemplateSelector.tsx#butterfly
+
+coloring-pages-master(1).zip نسخة مطابقة للمجموعة الـ75 المنشورة في /drawing/svg-credits.txt.
+صور PNG داخلها تمثل الرسومات SVG نفسها، لذلك لم تتكرر في المعرض.
+coloring-books-for-kids-main.zip يولّد الصور عند الطلب ولا يحوي صفحات تلوين ثابتة.
+صور الواجهة والأيقونات ولقطات التطبيق في باقي الملفات ليست صفحات قابلة للتلوين.

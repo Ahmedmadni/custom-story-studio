@@ -2,6 +2,7 @@
 import { svgCollections, svgSheets } from "./svg-catalog";
 import { extraSheets } from "./extra-catalog";
 import { nextCollections, nextSheets } from "./next-catalog";
+import { archiveCollections, archiveSheets } from "./archive-catalog";
 
 const pdfCollections = [
   {
@@ -72,7 +73,12 @@ const pdfCollections = [
   },
 ] as const;
 
-export const collections = [...pdfCollections, ...svgCollections, ...nextCollections] as const;
+export const collections = [
+  ...pdfCollections,
+  ...svgCollections,
+  ...nextCollections,
+  ...archiveCollections,
+] as const;
 
 export interface Sheet {
   id: string;
@@ -993,4 +999,10 @@ const pdfSheets = [
   },
 ] as const;
 
-export const sheets: Sheet[] = [...nextSheets, ...extraSheets, ...svgSheets, ...pdfSheets];
+export const sheets: Sheet[] = [
+  ...nextSheets,
+  ...extraSheets,
+  ...svgSheets,
+  ...pdfSheets,
+  ...archiveSheets,
+];

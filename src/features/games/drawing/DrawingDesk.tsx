@@ -7,6 +7,8 @@ import {
   Highlighter,
   PaintBucket,
   Pencil,
+  PenLine,
+  Droplets,
   Redo2,
   Undo2,
 } from "lucide-react";
@@ -23,20 +25,81 @@ import {
   type Tool,
 } from "./paint";
 
-const tools = [
-  { id: "pencil", name: "قلم رصاص", icon: Pencil },
-  { id: "brush", name: "فرشاة", icon: Brush },
-  { id: "crayon", name: "قلم شمع", icon: Highlighter },
-  { id: "fill", name: "دلو اللون", icon: PaintBucket },
-  { id: "eraser", name: "ممحاة", icon: Eraser },
+const toolGroups = [
+  {
+    title: "أقلام",
+    tools: [
+      { id: "pencil", name: "رصاص", icon: Pencil },
+      { id: "colored-pencil", name: "قلم ملون", icon: Pencil },
+      { id: "ink", name: "حبر", icon: PenLine },
+      { id: "crayon", name: "شمع", icon: Highlighter },
+    ],
+  },
+  {
+    title: "فرش",
+    tools: [
+      { id: "brush", name: "فرشاة ناعمة", icon: Brush },
+      { id: "oil", name: "ألوان زيتية", icon: Brush },
+      { id: "watercolor", name: "ألوان مائية", icon: Droplets },
+      { id: "marker", name: "قلم فلوماستر", icon: Highlighter },
+    ],
+  },
+  {
+    title: "أدوات",
+    tools: [
+      { id: "fill", name: "تعبئة", icon: PaintBucket },
+      { id: "eraser", name: "ممحاة", icon: Eraser },
+    ],
+  },
 ] as const;
-const colors = [
-  ...COLORS,
-  { name: "فيروزي", hex: "#14b8a6" },
-  { name: "سماوي", hex: "#7dd3fc" },
-  { name: "خوخي", hex: "#fdba9b" },
-  { name: "أسود", hex: "#27233a" },
-];
+const palettes = [
+  {
+    id: "bright",
+    name: "زاهية",
+    colors: [...COLORS, { name: "فيروزي", hex: "#14b8a6" }, { name: "سماوي", hex: "#7dd3fc" }],
+  },
+  {
+    id: "pastel",
+    name: "باستيل",
+    colors: [
+      { name: "وردي فاتح", hex: "#f8b8d3" },
+      { name: "خوخي", hex: "#fdba9b" },
+      { name: "أصفر فاتح", hex: "#ffe2a0" },
+      { name: "نعناعي", hex: "#a8e6cf" },
+      { name: "أزرق فاتح", hex: "#a5d8f3" },
+      { name: "ليلكي", hex: "#c9b6ee" },
+      { name: "وردي باهت", hex: "#f1cfdd" },
+      { name: "كريمي", hex: "#f5e6c8" },
+    ],
+  },
+  {
+    id: "earth",
+    name: "طبيعة",
+    colors: [
+      { name: "أخضر أوراق", hex: "#4d8b55" },
+      { name: "زيتوني", hex: "#7b874a" },
+      { name: "عشبي", hex: "#93b56b" },
+      { name: "بني", hex: "#795548" },
+      { name: "ترابي", hex: "#b3875c" },
+      { name: "رملي", hex: "#d6b88a" },
+      { name: "سماء", hex: "#73b8da" },
+      { name: "بحري", hex: "#287b91" },
+    ],
+  },
+  {
+    id: "neutral",
+    name: "حيادية",
+    colors: [
+      { name: "أسود", hex: "#27233a" },
+      { name: "رصاصي", hex: "#46505d" },
+      { name: "رمادي داكن", hex: "#626775" },
+      { name: "رمادي", hex: "#9a9dab" },
+      { name: "رمادي فاتح", hex: "#c8cbd0" },
+      { name: "عاجي", hex: "#f2eee3" },
+      { name: "أبيض", hex: "#ffffff" },
+    ],
+  },
+] as const;
 const widths = [
   { value: 10, name: "رفيع" },
   { value: 24, name: "متوسط" },
@@ -53,6 +116,8 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState(COLORS[0].hex);
   const [size, setSize] = useState(24);
+  const [opacity, setOpacity] = useState(100);
+  const [palette, setPalette] = useState<(typeof palettes)[number]["id"]>("bright");
   const [load, setLoad] = useState<"loading" | "ready" | "error">("loading");
   const [attempt, setAttempt] = useState(0);
   const [message, setMessage] = useState("");
@@ -124,7 +189,14 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   function start(e: PointerEvent<HTMLCanvasElement>) {
     if (load !== "ready" || active.current || !e.isPrimary || e.button !== 0) return;
     const at = point(e);
-    const mark: Mark = { tool, color, size, points: [at] };
+    const mark: Mark = {
+      tool,
+      color,
+      size,
+      opacity: opacity / 100,
+      points: [at],
+      ...(e.pointerType === "pen" ? { pressures: [e.pressure] } : {}),
+    };
     const ctx = e.currentTarget.getContext("2d")!;
     if (tool === "fill") {
       if (fillArea(ctx, boundary.current, mark)) record(mark);
@@ -132,7 +204,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     }
     e.currentTarget.setPointerCapture(e.pointerId);
     active.current = { pointer: e.pointerId, mark };
-    segment(ctx, mark, at, at);
+    segment(ctx, mark, at, at, mark.pressures?.[0] ?? 1);
   }
   function move(e: PointerEvent<HTMLCanvasElement>) {
     const drag = active.current;
@@ -140,8 +212,13 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     const at = point(e);
     const prev = drag.mark.points[drag.mark.points.length - 1];
     if (prev[0] === at[0] && prev[1] === at[1]) return;
+    if (drag.mark.points.length >= 20000) return;
     drag.mark.points.push(at);
-    segment(e.currentTarget.getContext("2d")!, drag.mark, prev, at);
+    if (drag.mark.pressures) drag.mark.pressures.push(e.pressure);
+    const pressure = drag.mark.pressures
+      ? (drag.mark.pressures[drag.mark.pressures.length - 2] + e.pressure) / 2
+      : 1;
+    segment(e.currentTarget.getContext("2d")!, drag.mark, prev, at, pressure);
   }
   function finish(e: PointerEvent<HTMLCanvasElement>) {
     const drag = active.current;
@@ -226,37 +303,76 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
         </div>
         <aside className="desk-kit" aria-label="حقيبة الرسم">
           <fieldset>
-            <legend>أداة الرسم</legend>
-            <div className="desk-tools">
-              {tools.map(({ id: key, name, icon: Icon }) => (
-                <button key={key} aria-pressed={tool === key} onClick={() => setTool(key)}>
-                  <Icon size={21} />
-                  {name}
-                </button>
-              ))}
-            </div>
+            <legend>حقيبة الرسم</legend>
+            {toolGroups.map((group) => (
+              <div className="desk-tool-group" key={group.title}>
+                <span className="desk-subtitle">{group.title}</span>
+                <div className="desk-tools">
+                  {group.tools.map(({ id: key, name, icon: Icon }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-label={name}
+                      aria-pressed={tool === key}
+                      onClick={() => {
+                        setTool(key);
+                        if (key === "pencil") setColor("#46505d");
+                      }}
+                    >
+                      <Icon size={21} />
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </fieldset>
           <fieldset>
-            <legend>علبة الألوان</legend>
-            <div className="desk-swatches">
-              {colors.map((c) => (
+            <legend>بالتة الألوان</legend>
+            <div className="desk-palettes" role="group" aria-label="مجموعات الألوان">
+              {palettes.map((p) => (
                 <button
-                  key={c.hex}
-                  aria-label={c.name}
-                  title={c.name}
-                  aria-pressed={color === c.hex}
-                  onClick={() => setColor(c.hex)}
+                  key={p.id}
+                  type="button"
+                  aria-pressed={palette === p.id}
+                  onClick={() => setPalette(p.id)}
                 >
-                  <span style={{ background: c.hex }}>
-                    {color === c.hex && <Check size={17} />}
-                  </span>
+                  {p.name}
                 </button>
               ))}
             </div>
+            <div className="desk-swatches">
+              {palettes
+                .find((p) => p.id === palette)!
+                .colors.map((c) => (
+                  <button
+                    key={c.hex}
+                    type="button"
+                    aria-label={c.name}
+                    title={c.name}
+                    aria-pressed={color === c.hex}
+                    onClick={() => setColor(c.hex)}
+                  >
+                    <span style={{ background: c.hex }}>
+                      {color === c.hex && <Check size={17} strokeWidth={3} />}
+                    </span>
+                  </button>
+                ))}
+            </div>
+            <label className="desk-custom-color">
+              <span>لون من اختيارك</span>
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                aria-label="اختر لونًا مخصصًا"
+              />
+              <span dir="ltr">{color.toUpperCase()}</span>
+            </label>
           </fieldset>
           {tool !== "fill" && (
             <fieldset>
-              <legend>سُمك الخط</legend>
+              <legend>سُمك الأداة: {size}</legend>
               <div className="desk-widths">
                 {widths.map((w) => (
                   <button
@@ -269,6 +385,31 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
                   </button>
                 ))}
               </div>
+              <input
+                className="desk-range"
+                type="range"
+                min="2"
+                max="80"
+                step="1"
+                value={size}
+                aria-label="سُمك القلم أو الفرشاة"
+                onChange={(e) => setSize(Number(e.target.value))}
+              />
+            </fieldset>
+          )}
+          {tool !== "fill" && tool !== "eraser" && (
+            <fieldset>
+              <legend>كثافة اللون: {opacity}٪</legend>
+              <input
+                className="desk-range"
+                type="range"
+                min="10"
+                max="100"
+                step="5"
+                value={opacity}
+                aria-label="كثافة اللون"
+                onChange={(e) => setOpacity(Number(e.target.value))}
+              />
             </fieldset>
           )}
           <div className="desk-history">
