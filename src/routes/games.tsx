@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -78,6 +78,17 @@ function GamesPage() {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Link
+              to="/games/drawing"
+              search={{}}
+              className="group relative isolate overflow-hidden rounded-3xl border-4 border-transparent bg-primary/10 p-6 text-start shadow-md transition-all hover:-translate-y-1 hover:border-primary"
+            >
+              <img src="/drawing/alpaca-cover.webp" alt="" className="absolute end-2 top-4 -z-10 h-24 w-24 rotate-6 rounded-2xl bg-white p-1 shadow-sm"/>
+              <div className="mb-3 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-card text-3xl shadow">🖍️</div>
+              <h3 className="font-display text-xl font-extrabold text-foreground">مرسم كيدزي</h3>
+              <p className="mt-1 text-sm text-muted-foreground">اختر رسمة ولوّنها بالأقلام والفرش، أو ارسم على ورقة حرّة.</p>
+              <span className="mt-3 inline-block rounded-full bg-card px-3 py-1 text-xs font-bold text-primary">افتح المرسم ←</span>
+            </Link>
             {GAMES.map((g) => (
               <button
                 key={g.key}

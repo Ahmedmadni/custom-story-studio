@@ -145,7 +145,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     scripts: [
       {
-        attrs: { type: "application/ld+json" },
+        type: "application/ld+json",
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Organization",
@@ -162,7 +162,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         }),
       },
       {
-        attrs: { type: "application/ld+json" },
+        type: "application/ld+json",
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebSite",

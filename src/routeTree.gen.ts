@@ -33,6 +33,7 @@ import { Route as AuthenticatedMyVideosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedReferralsRouteImport } from './routes/_authenticated.referrals'
 import { Route as AuthenticatedRequestStoryRouteImport } from './routes/_authenticated.request-story'
 import { Route as AuthenticatedRewardsRouteImport } from './routes/_authenticated.rewards'
+import { Route as GamesDrawingRouteImport } from './routes/games_.drawing'
 import { Route as PaymentReturnRouteImport } from './routes/payment.return'
 import { Route as PuzzlesIdRouteImport } from './routes/puzzles_.$id'
 import { Route as StoriesIndexRouteImport } from './routes/stories.index'
@@ -176,6 +177,11 @@ const AuthenticatedRewardsRoute = AuthenticatedRewardsRouteImport.update({
   id: '/rewards',
   path: '/rewards',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const GamesDrawingRoute = GamesDrawingRouteImport.update({
+  id: '/games_/drawing',
+  path: '/games/drawing',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PaymentReturnRoute = PaymentReturnRouteImport.update({
   id: '/payment/return',
@@ -331,6 +337,7 @@ export interface FileRoutesByFullPath {
   '/referrals': typeof AuthenticatedReferralsRoute
   '/request-story': typeof AuthenticatedRequestStoryRoute
   '/rewards': typeof AuthenticatedRewardsRoute
+  '/games/drawing': typeof GamesDrawingRoute
   '/payment/return': typeof PaymentReturnRoute
   '/puzzles/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
@@ -378,6 +385,7 @@ export interface FileRoutesByTo {
   '/referrals': typeof AuthenticatedReferralsRoute
   '/request-story': typeof AuthenticatedRequestStoryRoute
   '/rewards': typeof AuthenticatedRewardsRoute
+  '/games/drawing': typeof GamesDrawingRoute
   '/payment/return': typeof PaymentReturnRoute
   '/puzzles/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
@@ -428,6 +436,7 @@ export interface FileRoutesById {
   '/_authenticated/referrals': typeof AuthenticatedReferralsRoute
   '/_authenticated/request-story': typeof AuthenticatedRequestStoryRoute
   '/_authenticated/rewards': typeof AuthenticatedRewardsRoute
+  '/games_/drawing': typeof GamesDrawingRoute
   '/payment/return': typeof PaymentReturnRoute
   '/puzzles_/$id': typeof PuzzlesIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
@@ -478,6 +487,7 @@ export interface FileRouteTypes {
     | '/referrals'
     | '/request-story'
     | '/rewards'
+    | '/games/drawing'
     | '/payment/return'
     | '/puzzles/$id'
     | '/stories/$slug'
@@ -525,6 +535,7 @@ export interface FileRouteTypes {
     | '/referrals'
     | '/request-story'
     | '/rewards'
+    | '/games/drawing'
     | '/payment/return'
     | '/puzzles/$id'
     | '/stories/$slug'
@@ -574,6 +585,7 @@ export interface FileRouteTypes {
     | '/_authenticated/referrals'
     | '/_authenticated/request-story'
     | '/_authenticated/rewards'
+    | '/games_/drawing'
     | '/payment/return'
     | '/puzzles_/$id'
     | '/stories/$slug'
@@ -615,6 +627,7 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  GamesDrawingRoute: typeof GamesDrawingRoute
   PaymentReturnRoute: typeof PaymentReturnRoute
   PuzzlesIdRoute: typeof PuzzlesIdRoute
   StoriesSlugRoute: typeof StoriesSlugRoute
@@ -791,6 +804,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/rewards'
       preLoaderRoute: typeof AuthenticatedRewardsRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/games_/drawing': {
+      id: '/games_/drawing'
+      path: '/games/drawing'
+      fullPath: '/games/drawing'
+      preLoaderRoute: typeof GamesDrawingRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/payment/return': {
       id: '/payment/return'
@@ -1059,6 +1079,7 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  GamesDrawingRoute: GamesDrawingRoute,
   PaymentReturnRoute: PaymentReturnRoute,
   PuzzlesIdRoute: PuzzlesIdRoute,
   StoriesSlugRoute: StoriesSlugRoute,
