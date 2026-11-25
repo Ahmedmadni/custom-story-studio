@@ -18,6 +18,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { COLORS } from "../games-data";
+import { ignoreTouch, rememberColor, savedColors } from "./controls";
 import {
   PAPER,
   PAPER_HEIGHT,
@@ -116,10 +117,13 @@ const widths = [
   { value: 24, name: "متوسط" },
   { value: 48, name: "عريض" },
 ];
+const recentColorsKey = "kidzy:desk:recent-colors:v1";
+const penOnlyKey = "kidzy:desk:pen-only:v1";
 
 export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const previewCanvas = useRef<HTMLCanvasElement>(null);
+  const toolPreview = useRef<HTMLCanvasElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const art = useRef<HTMLImageElement | null>(null);
   const boundary = useRef<Uint8Array>(new Uint8Array(0));
@@ -133,6 +137,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     top: number;
   } | null>(null);
   const lastPaintTool = useRef<Tool>("brush");
+  const lastPenAt = useRef(0);
   const [counts, setCounts] = useState([0, 0]);
   const [tool, setTool] = useState<DeskTool>("brush");
   const [color, setColor] = useState(COLORS[0].hex);
@@ -144,6 +149,8 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const [message, setMessage] = useState("");
   const [zoom, setZoom] = useState(1);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [recentColors, setRecentColors] = useState<string[]>([]);
+  const [penOnly, setPenOnly] = useState(false);
   const storageKey = "kidzy:desk:v1:" + id;
   const marks = history.current.done;
   let lastClear = -1;
@@ -154,6 +161,48 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     }
   }
   const canClear = marks.length > lastClear + 1;
+
+  useEffect(() => {
+    try {
+      setRecentColors(savedColors(JSON.parse(localStorage.getItem(recentColorsKey) ?? "[]")));
+      setPenOnly(localStorage.getItem(penOnlyKey) === "true");
+    } catch {
+      // Browser storage can be disabled; the controls still work for this session.
+    }
+  }, []);
+
+  useEffect(() => {
+    const ctx = toolPreview.current?.getContext("2d");
+    if (!ctx || tool === "pan" || tool === "picker") return;
+    ctx.clearRect(0, 0, 260, 76);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, 260, 76);
+    const mark: Mark = {
+      tool,
+      color,
+      size,
+      opacity: opacity / 100,
+      points: [
+        [24, 38],
+        [236, 38],
+      ],
+    };
+    if (tool === "fill") {
+      ctx.fillStyle = color;
+      ctx.globalAlpha = opacity / 100;
+      ctx.beginPath();
+      ctx.arc(130, 38, 25, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    } else {
+      if (tool === "eraser") {
+        ctx.fillStyle = "#b6a9d2";
+        ctx.fillRect(20, 19, 220, 38);
+      }
+      if (tool === "marker" || tool === "watercolor") smoothStroke(ctx, mark);
+      else segment(ctx, mark, mark.points[0], mark.points[1]);
+    }
+  }, [tool, color, size, opacity]);
 
   useEffect(() => {
     let gone = false;
@@ -208,6 +257,17 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     history.current.done.push(mark);
     history.current.undone = [];
     save();
+    if (mark.tool !== "eraser" && mark.tool !== "clear") {
+      setRecentColors((previous) => {
+        const next = rememberColor(previous, mark.color);
+        try {
+          localStorage.setItem(recentColorsKey, JSON.stringify(next));
+        } catch {
+          // Keep recently used colors available in this session.
+        }
+        return next;
+      });
+    }
   }
   function point(e: PointerEvent<HTMLCanvasElement>): Point {
     const box = e.currentTarget.getBoundingClientRect();
@@ -221,6 +281,9 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   function start(e: PointerEvent<HTMLCanvasElement>) {
     if (load !== "ready" || active.current || panning.current || !e.isPrimary || e.button !== 0)
       return;
+    const now = Date.now();
+    if (e.pointerType === "pen") lastPenAt.current = now;
+    if (ignoreTouch(e.pointerType, penOnly, lastPenAt.current, now, tool === "pan")) return;
     if (tool === "pan") {
       const view = viewport.current!;
       panning.current = {
@@ -272,6 +335,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     } else segment(ctx, mark, at, at, mark.pressures?.[0] ?? 1);
   }
   function move(e: PointerEvent<HTMLCanvasElement>) {
+    if (e.pointerType === "pen") lastPenAt.current = Date.now();
     const pan = panning.current;
     if (pan?.pointer === e.pointerId) {
       const view = viewport.current!;
@@ -297,6 +361,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     } else segment(e.currentTarget.getContext("2d")!, drag.mark, prev, at, pressure);
   }
   function finish(e: PointerEvent<HTMLCanvasElement>) {
+    if (e.pointerType === "pen") lastPenAt.current = Date.now();
     if (panning.current?.pointer === e.pointerId) {
       if (e.type === "pointerup") move(e);
       panning.current = null;
@@ -473,6 +538,26 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
               </div>
             ))}
           </fieldset>
+          <button
+            className="desk-pen-mode"
+            type="button"
+            aria-pressed={penOnly}
+            onClick={() => {
+              const next = !penOnly;
+              setPenOnly(next);
+              try {
+                localStorage.setItem(penOnlyKey, String(next));
+              } catch {
+                // Continue without device storage.
+              }
+            }}
+          >
+            <PenLine size={20} />
+            <span>
+              <strong>الرسم بالقلم الإلكتروني فقط</strong>
+              <small>عند تفعيله، يمكنك تحريك الورقة بإصبعك من أداة التحريك.</small>
+            </span>
+          </button>
           <fieldset>
             <legend>بالتة الألوان</legend>
             <div className="desk-palettes" role="group" aria-label="مجموعات الألوان">
@@ -515,6 +600,26 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
               />
               <span dir="ltr">{color.toUpperCase()}</span>
             </label>
+            {recentColors.length > 0 && (
+              <div className="desk-recent">
+                <span className="desk-subtitle">ألوان استخدمتها</span>
+                <div className="desk-swatches" role="group" aria-label="الألوان المستخدمة مؤخرًا">
+                  {recentColors.map((recent, index) => (
+                    <button
+                      key={recent}
+                      type="button"
+                      aria-label={`لون مستخدم ${index + 1}: ${recent}`}
+                      aria-pressed={color.toLowerCase() === recent}
+                      onClick={() => setColor(recent)}
+                    >
+                      <span style={{ background: recent }}>
+                        {color.toLowerCase() === recent && <Check size={17} strokeWidth={3} />}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </fieldset>
           {tool !== "fill" && (
             <fieldset>
@@ -555,6 +660,17 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
                 value={opacity}
                 aria-label="كثافة اللون"
                 onChange={(e) => setOpacity(Number(e.target.value))}
+              />
+            </fieldset>
+          )}
+          {tool !== "pan" && tool !== "picker" && (
+            <fieldset className="desk-tool-sample">
+              <legend>معاينة الأداة</legend>
+              <canvas
+                ref={toolPreview}
+                width={260}
+                height={76}
+                aria-label="شكل القلم أو الفرشاة باللون والسُمك الحاليين"
               />
             </fieldset>
           )}

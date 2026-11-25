@@ -354,6 +354,33 @@
 .desk-tool-group:last-child .desk-tools {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.desk-pen-mode {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: 54px;
+  padding: 0.55rem 0.65rem;
+  margin-bottom: 0.9rem;
+  border-radius: 0.75rem;
+  background: var(--secondary);
+  text-align: start;
+}
+.desk-pen-mode svg {
+  flex: none;
+}
+.desk-pen-mode strong,
+.desk-pen-mode small {
+  display: block;
+}
+.desk-pen-mode strong {
+  font-size: 0.81rem;
+}
+.desk-pen-mode small {
+  font-size: 0.69rem;
+  line-height: 1.4;
+  margin-top: 0.15rem;
+}
 .desk-tools button,
 .desk-history button,
 .desk-widths button {
@@ -457,6 +484,17 @@
   color: var(--muted-foreground);
   font-variant-numeric: tabular-nums;
 }
+.desk-recent .desk-subtitle {
+  margin-top: 0.7rem;
+}
+.desk-tool-sample canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: white;
+}
 .desk-range {
   display: block;
   width: 100%;
@@ -492,7 +530,9 @@
   .desk-kit {
     padding: 0.7rem 0.85rem;
   }
-  .desk-tools { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .desk-tools {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
   .desk-kit fieldset {
     margin-bottom: 0.5rem;
   }

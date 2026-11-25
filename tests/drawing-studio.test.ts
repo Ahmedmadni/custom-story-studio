@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync } from "node:fs";
 import { collections, sheets } from "../src/features/games/drawing/catalog";
+import { ignoreTouch, rememberColor, savedColors } from "../src/features/games/drawing/controls";
 import {
   fillArea,
   isMark,
@@ -13,6 +14,21 @@ import {
 } from "../src/features/games/drawing/paint";
 
 describe("drawing studio", () => {
+  it("keeps recent colors valid, unique and ordered across sessions", () => {
+    expect(rememberColor(["#AABBCC", "#112233"], "#aabbcc")).toEqual(["#aabbcc", "#112233"]);
+    expect(savedColors(["#AABBCC", "invalid", 1, "#aabbcc", "#112233"])).toEqual([
+      "#aabbcc",
+      "#112233",
+    ]);
+    expect(savedColors({ colors: ["#aabbcc"] })).toEqual([]);
+  });
+  it("blocks palm touches near the stylus and permits deliberate finger panning", () => {
+    expect(ignoreTouch("touch", false, 1000, 1600, false)).toBe(true);
+    expect(ignoreTouch("touch", false, 1000, 1800, false)).toBe(false);
+    expect(ignoreTouch("touch", true, 1000, 1800, false)).toBe(true);
+    expect(ignoreTouch("touch", true, 1000, 1100, true)).toBe(false);
+    expect(ignoreTouch("mouse", true, 1000, 1100, false)).toBe(false);
+  });
   it("has a local preview and printable-resolution outline for each gallery sheet", () => {
     expect(sheets.length).toBe(376);
     expect(collections.length).toBe(20);
