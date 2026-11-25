@@ -416,7 +416,7 @@
 }
 .desk-palettes {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.25rem;
   margin-bottom: 0.45rem;
 }
@@ -463,6 +463,28 @@
 .desk-swatches svg {
   color: #171626;
   filter: drop-shadow(0 1px 1px white);
+}
+.desk-shades {
+  margin-top: 0.65rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border);
+}
+.desk-shade-swatches {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.desk-color-adjust {
+  display: block;
+  margin-top: 0.55rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.desk-color-adjust input {
+  display: block;
+  width: 100%;
+  min-height: 26px;
+  margin-top: 0.1rem;
+  accent-color: var(--primary);
+  cursor: pointer;
 }
 .desk-custom-color {
   display: flex;

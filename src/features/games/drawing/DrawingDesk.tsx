@@ -18,7 +18,14 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { COLORS } from "../games-data";
-import { ignoreTouch, rememberColor, savedColors } from "./controls";
+import {
+  colorShades,
+  colorToHsl,
+  hslToColor,
+  ignoreTouch,
+  rememberColor,
+  savedColors,
+} from "./controls";
 import {
   PAPER,
   PAPER_HEIGHT,
@@ -111,6 +118,36 @@ const palettes = [
       { name: "أبيض", hex: "#ffffff" },
     ],
   },
+  {
+    id: "flowers",
+    name: "زهور",
+    colors: [
+      { name: "توتي", hex: "#ba3160" },
+      { name: "وردي", hex: "#e681a4" },
+      { name: "مرجاني", hex: "#ef786b" },
+      { name: "برتقالي", hex: "#ed9b4f" },
+      { name: "أصفر ذهبي", hex: "#e6b94e" },
+      { name: "أخضر أوراق", hex: "#579467" },
+      { name: "بنفسجي", hex: "#8b63b4" },
+      { name: "ليلكي", hex: "#c09ada" },
+    ],
+  },
+  {
+    id: "portraits",
+    name: "شخصيات",
+    colors: [
+      { name: "بشرة فاتحة", hex: "#f5d8bd" },
+      { name: "بشرة وردية", hex: "#e8b9a5" },
+      { name: "بشرة قمحية", hex: "#d8a77d" },
+      { name: "بشرة سمراء", hex: "#b77e59" },
+      { name: "بشرة بنية", hex: "#8b573d" },
+      { name: "بشرة داكنة", hex: "#583a32" },
+      { name: "شعر ذهبي", hex: "#c99d53" },
+      { name: "شعر بني", hex: "#6f4635" },
+      { name: "شعر أسود", hex: "#302b32" },
+      { name: "شعر أحمر", hex: "#a8503c" },
+    ],
+  },
 ] as const;
 const widths = [
   { value: 10, name: "رفيع" },
@@ -141,6 +178,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const [counts, setCounts] = useState([0, 0]);
   const [tool, setTool] = useState<DeskTool>("brush");
   const [color, setColor] = useState(COLORS[0].hex);
+  const [selectedHsl, setSelectedHsl] = useState(() => colorToHsl(COLORS[0].hex));
   const [size, setSize] = useState(24);
   const [opacity, setOpacity] = useState(100);
   const [palette, setPalette] = useState<(typeof palettes)[number]["id"]>("bright");
@@ -161,6 +199,17 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     }
   }
   const canClear = marks.length > lastClear + 1;
+  const shades = colorShades(color);
+
+  function selectColor(value: string) {
+    setColor(value);
+    setSelectedHsl(colorToHsl(value));
+  }
+  function changeColorChannel(channel: "hue" | "saturation" | "lightness", value: number) {
+    const next = { ...selectedHsl, [channel]: value };
+    setSelectedHsl(next);
+    setColor(hslToColor(next));
+  }
 
   useEffect(() => {
     try {
@@ -309,7 +358,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
               .padStart(2, "0"),
           )
           .join("");
-        setColor("#" + hex);
+        selectColor("#" + hex);
         setTool(lastPaintTool.current);
         setMessage("التقطت اللون من لوحتك.");
       }
@@ -527,7 +576,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
                       onClick={() => {
                         setTool(key);
                         if (key !== "picker" && key !== "pan") lastPaintTool.current = key;
-                        if (key === "pencil") setColor("#46505d");
+                        if (key === "pencil") selectColor("#46505d");
                       }}
                     >
                       <Icon size={21} />
@@ -582,7 +631,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
                     aria-label={c.name}
                     title={c.name}
                     aria-pressed={color === c.hex}
-                    onClick={() => setColor(c.hex)}
+                    onClick={() => selectColor(c.hex)}
                   >
                     <span style={{ background: c.hex }}>
                       {color === c.hex && <Check size={17} strokeWidth={3} />}
@@ -590,12 +639,70 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
                   </button>
                 ))}
             </div>
+            <div className="desk-shades">
+              <span className="desk-subtitle">درجات اللون • من الغامق إلى الفاتح</span>
+              <div
+                className="desk-swatches desk-shade-swatches"
+                role="group"
+                aria-label="درجات اللون المختار"
+              >
+                {shades.map((shade, index) => (
+                  <button
+                    key={shade}
+                    type="button"
+                    aria-label={`درجة اللون ${index + 1}: ${shade}`}
+                    aria-pressed={color.toLowerCase() === shade}
+                    onClick={() => selectColor(shade)}
+                  >
+                    <span style={{ background: shade }}>
+                      {color.toLowerCase() === shade && <Check size={17} strokeWidth={3} />}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <label className="desk-color-adjust">
+                <span>طيف اللون</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="359"
+                  value={selectedHsl.hue}
+                  dir="ltr"
+                  aria-label="تغيير طيف اللون"
+                  onChange={(e) => changeColorChannel("hue", Number(e.target.value))}
+                />
+              </label>
+              <label className="desk-color-adjust">
+                <span>قوة اللون: {selectedHsl.saturation}٪</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={selectedHsl.saturation}
+                  dir="ltr"
+                  aria-label="قوة اللون"
+                  onChange={(e) => changeColorChannel("saturation", Number(e.target.value))}
+                />
+              </label>
+              <label className="desk-color-adjust">
+                <span>فاتح أو غامق: {selectedHsl.lightness}٪</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={selectedHsl.lightness}
+                  dir="ltr"
+                  aria-label="تفتيح اللون أو تغميقه"
+                  onChange={(e) => changeColorChannel("lightness", Number(e.target.value))}
+                />
+              </label>
+            </div>
             <label className="desk-custom-color">
               <span>لون من اختيارك</span>
               <input
                 type="color"
                 value={color}
-                onChange={(e) => setColor(e.target.value)}
+                onChange={(e) => selectColor(e.target.value)}
                 aria-label="اختر لونًا مخصصًا"
               />
               <span dir="ltr">{color.toUpperCase()}</span>
@@ -610,7 +717,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
                       type="button"
                       aria-label={`لون مستخدم ${index + 1}: ${recent}`}
                       aria-pressed={color.toLowerCase() === recent}
-                      onClick={() => setColor(recent)}
+                      onClick={() => selectColor(recent)}
                     >
                       <span style={{ background: recent }}>
                         {color.toLowerCase() === recent && <Check size={17} strokeWidth={3} />}
@@ -650,7 +757,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
           )}
           {tool !== "fill" && tool !== "eraser" && (
             <fieldset>
-              <legend>كثافة اللون: {opacity}٪</legend>
+              <legend>عتامة الفرشاة: {opacity}٪</legend>
               <input
                 className="desk-range"
                 type="range"
@@ -658,7 +765,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
                 max="100"
                 step="5"
                 value={opacity}
-                aria-label="كثافة اللون"
+                aria-label="عتامة الفرشاة"
                 onChange={(e) => setOpacity(Number(e.target.value))}
               />
             </fieldset>

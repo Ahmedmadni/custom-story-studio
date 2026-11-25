@@ -1,7 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync } from "node:fs";
 import { collections, sheets } from "../src/features/games/drawing/catalog";
-import { ignoreTouch, rememberColor, savedColors } from "../src/features/games/drawing/controls";
+import {
+  colorShades,
+  colorToHsl,
+  hslToColor,
+  ignoreTouch,
+  rememberColor,
+  savedColors,
+} from "../src/features/games/drawing/controls";
 import {
   fillArea,
   isMark,
@@ -14,6 +21,21 @@ import {
 } from "../src/features/games/drawing/paint";
 
 describe("drawing studio", () => {
+  it("converts palette colors and preserves the chosen color among ordered shades", () => {
+    expect(colorToHsl("#ff0000")).toEqual({ hue: 0, saturation: 100, lightness: 50 });
+    expect(hslToColor({ hue: 120, saturation: 100, lightness: 50 })).toBe("#00ff00");
+    expect(hslToColor({ hue: 240, saturation: 100, lightness: 50 })).toBe("#0000ff");
+    expect(hslToColor({ hue: 0, saturation: 100, lightness: 0 })).toBe("#000000");
+    expect(hslToColor({ hue: 0, saturation: 100, lightness: 100 })).toBe("#ffffff");
+    for (const color of ["#f8b8d3", "#583a32", "#ffffff", "#000000"]) {
+      const shades = colorShades(color);
+      expect(shades).toContain(color);
+      expect(new Set(shades).size).toBe(shades.length);
+      expect(shades.map((shade) => colorToHsl(shade).lightness)).toEqual(
+        [...shades].map((shade) => colorToHsl(shade).lightness).sort((a, b) => a - b),
+      );
+    }
+  });
   it("keeps recent colors valid, unique and ordered across sessions", () => {
     expect(rememberColor(["#AABBCC", "#112233"], "#aabbcc")).toEqual(["#aabbcc", "#112233"]);
     expect(savedColors(["#AABBCC", "invalid", 1, "#aabbcc", "#112233"])).toEqual([
