@@ -6,6 +6,9 @@ import {
   isMark,
   PAPER,
   PAPER_HEIGHT,
+  replay,
+  sealOutlineGaps,
+  smoothStroke,
   type Mark,
 } from "../src/features/games/drawing/paint";
 
@@ -62,5 +65,59 @@ describe("drawing studio", () => {
     expect(isMark({ ...mark, opacity: 0 })).toBe(false);
     expect(isMark({ ...mark, pressures: [0.2, 0.5] })).toBe(false);
     expect(isMark({ ...mark, pressures: [2] })).toBe(false);
+    expect(isMark({ ...mark, tool: "clear", points: [[0, 0]] })).toBe(true);
+  });
+  it("draws translucent strokes as whole paths and replays a reversible clear", () => {
+    const actions: string[] = [];
+    const ctx = {
+      save: () => {},
+      restore: () => {},
+      beginPath: () => {},
+      moveTo: () => {},
+      lineTo: () => actions.push("point"),
+      stroke: () => actions.push("stroke"),
+      arc: () => {},
+      fill: () => actions.push("fill"),
+      clearRect: () => actions.push("clear"),
+      globalAlpha: 1,
+    } as unknown as CanvasRenderingContext2D;
+    const path: Mark = {
+      tool: "marker",
+      color: "#ef4444",
+      size: 24,
+      points: [
+        [10, 10],
+        [20, 20],
+        [30, 25],
+      ],
+    };
+    smoothStroke(ctx, path);
+    expect(actions).toEqual(["point", "point", "stroke"]);
+    actions.length = 0;
+    smoothStroke(ctx, { ...path, tool: "watercolor" });
+    expect(actions).toEqual(["point", "point", "stroke", "point", "point", "stroke"]);
+    actions.length = 0;
+    const clear: Mark = { tool: "clear", color: "#ffffff", size: 1, points: [[0, 0]] };
+    replay(ctx, new Uint8Array(PAPER * PAPER_HEIGHT), [path, clear, path]);
+    expect(actions).toEqual([
+      "clear",
+      "point",
+      "point",
+      "stroke",
+      "clear",
+      "point",
+      "point",
+      "stroke",
+    ]);
+  });
+  it("seals one and two pixel gaps in a bucket barrier without altering its source", () => {
+    const width = 7;
+    const mask = new Uint8Array(width * 7);
+    for (const y of [0, 1, 4, 5, 6]) mask[y * width + 3] = 1;
+    const sealed = sealOutlineGaps(mask, width, 7);
+    expect(sealed[2 * width + 3]).toBe(1);
+    expect(sealed[3 * width + 3]).toBe(1);
+    expect(mask[2 * width + 3]).toBe(0);
+    expect(sealed[2 * width + 2]).toBe(0);
   });
 });
