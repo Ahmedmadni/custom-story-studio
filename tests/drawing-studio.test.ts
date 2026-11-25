@@ -11,11 +11,12 @@ import {
 
 describe("drawing studio", () => {
   it("has a local preview and printable-resolution outline for each gallery sheet", () => {
-    expect(sheets.length).toBe(345);
-    expect(collections.length).toBe(19);
+    expect(sheets.length).toBe(376);
+    expect(collections.length).toBe(20);
     expect(sheets.filter((s) => s.id.startsWith("vector-")).length).toBe(75);
     expect(sheets.filter((s) => s.id.startsWith("attachment-")).length).toBe(19);
     expect(sheets.filter((s) => s.id.startsWith("batch-")).length).toBe(69);
+    expect(sheets.filter((s) => s.id.startsWith("archive-")).length).toBe(31);
     expect(new Set(sheets.map((s) => s.id)).size).toBe(sheets.length);
     for (const group of collections) {
       expect(sheets.some((s) => s.id === group.cover && s.group === group.id)).toBe(true);
@@ -56,5 +57,10 @@ describe("drawing studio", () => {
     expect(isMark({ ...mark, points: [[0, PAPER_HEIGHT]] })).toBe(false);
     expect(isMark({ ...mark, points: [] })).toBe(false);
     expect(isMark({ ...mark, color: "unknown" })).toBe(false);
+    expect(isMark({ ...mark, tool: "oil", opacity: 0.8, pressures: [0.4] })).toBe(true);
+    expect(isMark({ ...mark, tool: "watercolor", opacity: 0.45 })).toBe(true);
+    expect(isMark({ ...mark, opacity: 0 })).toBe(false);
+    expect(isMark({ ...mark, pressures: [0.2, 0.5] })).toBe(false);
+    expect(isMark({ ...mark, pressures: [2] })).toBe(false);
   });
 });

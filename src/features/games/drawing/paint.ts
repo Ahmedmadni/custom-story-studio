@@ -1,19 +1,44 @@
 export const PAPER = 900;
 export const PAPER_HEIGHT = 1200;
-export type Tool = "pencil" | "brush" | "crayon" | "fill" | "eraser";
+export type Tool =
+  | "pencil"
+  | "colored-pencil"
+  | "ink"
+  | "crayon"
+  | "brush"
+  | "oil"
+  | "watercolor"
+  | "marker"
+  | "fill"
+  | "eraser";
 export type Point = [number, number];
 export interface Mark {
   tool: Tool;
   color: string;
   size: number;
   points: Point[];
+  opacity?: number;
+  pressures?: number[];
 }
+
+const TOOLS: Tool[] = [
+  "pencil",
+  "colored-pencil",
+  "ink",
+  "crayon",
+  "brush",
+  "oil",
+  "watercolor",
+  "marker",
+  "fill",
+  "eraser",
+];
 
 export function isMark(value: unknown): value is Mark {
   if (!value || typeof value !== "object") return false;
   const mark = value as Partial<Mark>;
   return (
-    ["pencil", "brush", "crayon", "fill", "eraser"].includes(String(mark.tool)) &&
+    TOOLS.includes(mark.tool as Tool) &&
     typeof mark.color === "string" &&
     /^#[0-9a-f]{6}$/i.test(mark.color) &&
     typeof mark.size === "number" &&
@@ -21,6 +46,18 @@ export function isMark(value: unknown): value is Mark {
     mark.size <= 80 &&
     Array.isArray(mark.points) &&
     mark.points.length > 0 &&
+    mark.points.length <= 20000 &&
+    (mark.opacity === undefined ||
+      (typeof mark.opacity === "number" &&
+        Number.isFinite(mark.opacity) &&
+        mark.opacity >= 0.1 &&
+        mark.opacity <= 1)) &&
+    (mark.pressures === undefined ||
+      (Array.isArray(mark.pressures) &&
+        mark.pressures.length === mark.points.length &&
+        mark.pressures.every(
+          (p) => typeof p === "number" && Number.isFinite(p) && p >= 0 && p <= 1,
+        ))) &&
     mark.points.every(
       (p) =>
         Array.isArray(p) &&
@@ -55,21 +92,90 @@ function crayon(ctx: CanvasRenderingContext2D, color: string) {
 }
 
 // Live strokes and history replay use the same segments, including single taps.
-export function segment(ctx: CanvasRenderingContext2D, mark: Mark, a: Point, b: Point) {
-  ctx.save();
-  ctx.globalCompositeOperation = mark.tool === "eraser" ? "destination-out" : "source-over";
-  const ink = mark.tool === "crayon" ? crayon(ctx, mark.color) : mark.color;
-  ctx.fillStyle = ctx.strokeStyle = ink;
-  ctx.lineWidth = mark.size * (mark.tool === "pencil" ? 0.45 : 1);
-  ctx.lineCap = "round";
+function stroke(ctx: CanvasRenderingContext2D, a: Point, b: Point, width: number) {
+  ctx.lineWidth = width;
+  ctx.lineCap = ctx.lineJoin = "round";
   ctx.beginPath();
   if (a[0] === b[0] && a[1] === b[1]) {
-    ctx.arc(a[0], a[1], ctx.lineWidth / 2, 0, Math.PI * 2);
+    ctx.arc(a[0], a[1], width / 2, 0, Math.PI * 2);
     ctx.fill();
   } else {
     ctx.moveTo(...a);
     ctx.lineTo(...b);
     ctx.stroke();
+  }
+}
+
+function tint(color: string, white: number) {
+  return (
+    "#" +
+    [1, 3, 5]
+      .map((offset) =>
+        Math.round(parseInt(color.slice(offset, offset + 2), 16) * (1 - white) + 255 * white)
+          .toString(16)
+          .padStart(2, "0"),
+      )
+      .join("")
+  );
+}
+
+// Each segment uses the same deterministic marks for live drawing and undo/redo replay.
+export function segment(
+  ctx: CanvasRenderingContext2D,
+  mark: Mark,
+  a: Point,
+  b: Point,
+  pressure = 1,
+) {
+  ctx.save();
+  ctx.globalCompositeOperation = mark.tool === "eraser" ? "destination-out" : "source-over";
+  ctx.globalAlpha = mark.tool === "eraser" ? 1 : (mark.opacity ?? 1);
+  const ink =
+    mark.tool === "crayon" || mark.tool === "colored-pencil" ? crayon(ctx, mark.color) : mark.color;
+  ctx.fillStyle = ctx.strokeStyle = ink;
+  const width = Math.max(1, mark.size * (0.5 + 0.5 * pressure));
+  switch (mark.tool) {
+    case "pencil":
+      ctx.globalAlpha *= 0.72;
+      stroke(ctx, a, b, Math.max(1, width * 0.32));
+      break;
+    case "colored-pencil":
+      ctx.globalAlpha *= 0.78;
+      stroke(ctx, a, b, Math.max(1, width * 0.48));
+      break;
+    case "ink":
+      stroke(ctx, a, b, Math.max(1, width * 0.42));
+      break;
+    case "marker":
+      ctx.globalAlpha *= 0.56;
+      stroke(ctx, a, b, width * 1.15);
+      break;
+    case "watercolor":
+      ctx.globalAlpha *= 0.13;
+      stroke(ctx, a, b, width * 1.45);
+      ctx.globalAlpha = (mark.opacity ?? 1) * 0.24;
+      stroke(ctx, a, b, width);
+      break;
+    case "oil": {
+      stroke(ctx, a, b, width * 1.16);
+      // Several short bristle tracks and a highlight make the opaque stroke textured.
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      const length = Math.hypot(dx, dy) || 1;
+      const normalX = -dy / length;
+      const normalY = dx / length;
+      ctx.fillStyle = ctx.strokeStyle = tint(mark.color, 0.28);
+      ctx.globalAlpha *= 0.4;
+      for (const offset of [-0.3, 0.05, 0.29]) {
+        const shift = offset * width;
+        const from: Point = [a[0] + normalX * shift, a[1] + normalY * shift];
+        const to: Point = [b[0] + normalX * shift, b[1] + normalY * shift];
+        stroke(ctx, from, to, Math.max(1, width * 0.055));
+      }
+      break;
+    }
+    default:
+      stroke(ctx, a, b, width);
   }
   ctx.restore();
 }
@@ -117,6 +223,15 @@ export function replay(ctx: CanvasRenderingContext2D, outline: Uint8Array, marks
   ctx.clearRect(0, 0, PAPER, PAPER_HEIGHT);
   for (const mark of marks) {
     if (mark.tool === "fill") fillArea(ctx, outline, mark);
-    else mark.points.forEach((p, i) => segment(ctx, mark, mark.points[Math.max(0, i - 1)], p));
+    else
+      mark.points.forEach((p, i) =>
+        segment(
+          ctx,
+          mark,
+          mark.points[Math.max(0, i - 1)],
+          p,
+          mark.pressures ? (mark.pressures[Math.max(0, i - 1)] + mark.pressures[i]) / 2 : 1,
+        ),
+      );
   }
 }
