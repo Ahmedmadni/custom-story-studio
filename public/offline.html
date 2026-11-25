@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#6c4dff" />
+    <title>كيدزي | لا يوجد اتصال</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: #f8f5ff;
+        color: #2e214b;
+        font-family: system-ui, sans-serif;
+        text-align: center;
+      }
+      main {
+        max-width: 430px;
+        padding: 32px 24px;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 12px 32px #2e214b17;
+      }
+      img {
+        width: 96px;
+        height: 96px;
+        border-radius: 22px;
+      }
+      h1 {
+        font-size: 1.4rem;
+        margin: 16px 0 8px;
+      }
+      p {
+        line-height: 1.8;
+        color: #625775;
+      }
+      a,
+      button {
+        display: inline-block;
+        border: 0;
+        border-radius: 999px;
+        margin: 6px;
+        padding: 12px 18px;
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+        color: #fff;
+        background: #6c4dff;
+        cursor: pointer;
+      }
+      a {
+        color: #4b319c;
+        background: #ede5ff;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/icons/kidzy-192.png" alt="كيدزي" />
+      <h1>الإنترنت غير متاح الآن</h1>
+      <p>
+        يمكنك العودة إلى معرض الرسم إذا فُتح على هذا الجهاز من قبل. احتفظ بالصفحة مفتوحة لتكمل تلوين
+        صورتك، وستعود بقية خدمات كيدزي عند اتصالك بالإنترنت.
+      </p>
+      <button type="button" onclick="location.reload()">حاول مجددًا</button>
+      <a href="/games/drawing">معرض الرسم</a>
+    </main>
+  </body>
+</html>

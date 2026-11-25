@@ -2,10 +2,7 @@ import { WifiOff } from "lucide-react";
 
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
-/**
- * بانر "لا يوجد اتصال" (F8) — لا يوجد Service Worker في هذا المشروع، فهذا
- * البديل العملي لصفحة أوفلاين حقيقية: يظهر فوق أي صفحة عند انقطاع الشبكة.
- */
+/** Keeps the connection state visible while cached drawing assets remain usable. */
 export function OfflineBanner() {
   const online = useOnlineStatus();
   if (online) return null;
