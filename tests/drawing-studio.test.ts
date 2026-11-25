@@ -21,8 +21,22 @@ import {
   smoothStroke,
   type Mark,
 } from "../src/features/games/drawing/paint";
+import { drawingStorageKey, hasSavedArtwork } from "../src/features/games/drawing/progress";
 
 describe("drawing studio", () => {
+  it("finds saved color after undo, clear, and recolor without treating a blank page as progress", () => {
+    const paint: Mark = { tool: "pencil", color: "#112233", size: 24, points: [[200, 300]] };
+    const clear: Mark = { tool: "clear", color: "#ffffff", size: 1, points: [[0, 0]] };
+    const erase: Mark = { ...paint, tool: "eraser" };
+    expect(drawingStorageKey("blank")).toBe("kidzy:desk:v1:blank");
+    expect(hasSavedArtwork(null)).toBe(false);
+    expect(hasSavedArtwork(JSON.stringify([paint]))).toBe(true);
+    expect(hasSavedArtwork(JSON.stringify([paint, clear]))).toBe(false);
+    expect(hasSavedArtwork(JSON.stringify([paint, clear, erase]))).toBe(false);
+    expect(hasSavedArtwork(JSON.stringify([paint, clear, erase, paint]))).toBe(true);
+    expect(hasSavedArtwork(JSON.stringify([paint, { ...paint, points: [] }]))).toBe(false);
+    expect(hasSavedArtwork("not json")).toBe(false);
+  });
   it("keeps individual tool presets and rejects corrupted saved settings", () => {
     const settings = savedToolSettings({
       brush: { size: 47, opacity: 60 },
