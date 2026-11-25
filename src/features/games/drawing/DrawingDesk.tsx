@@ -43,6 +43,7 @@ import {
   type Point,
   type Tool,
 } from "./paint";
+import { drawingStorageKey } from "./progress";
 
 type DeskTool = Tool | "picker" | "pan";
 
@@ -202,7 +203,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const [confirmClear, setConfirmClear] = useState(false);
   const [recentColors, setRecentColors] = useState<string[]>([]);
   const [penOnly, setPenOnly] = useState(false);
-  const storageKey = "kidzy:desk:v1:" + id;
+  const storageKey = drawingStorageKey(id);
   const marks = history.current.done;
   let lastClear = -1;
   for (let i = marks.length - 1; i >= 0; i--) {
