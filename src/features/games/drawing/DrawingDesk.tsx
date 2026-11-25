@@ -21,10 +21,14 @@ import { COLORS } from "../games-data";
 import {
   colorShades,
   colorToHsl,
+  DEFAULT_TOOL_SETTINGS,
   hslToColor,
   ignoreTouch,
   rememberColor,
   savedColors,
+  savedToolSettings,
+  type PaintTool,
+  type ToolSetting,
 } from "./controls";
 import {
   PAPER,
@@ -154,8 +158,15 @@ const widths = [
   { value: 24, name: "متوسط" },
   { value: 48, name: "عريض" },
 ];
+const fillOptions = [
+  { value: 8, name: "دقيق" },
+  { value: 28, name: "متوازن" },
+  { value: 56, name: "واسع" },
+];
 const recentColorsKey = "kidzy:desk:recent-colors:v1";
 const penOnlyKey = "kidzy:desk:pen-only:v1";
+const toolSettingsKey = "kidzy:desk:tool-settings:v1";
+const fillToleranceKey = "kidzy:desk:fill-tolerance:v1";
 
 export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -179,8 +190,9 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const [tool, setTool] = useState<DeskTool>("brush");
   const [color, setColor] = useState(COLORS[0].hex);
   const [selectedHsl, setSelectedHsl] = useState(() => colorToHsl(COLORS[0].hex));
-  const [size, setSize] = useState(24);
-  const [opacity, setOpacity] = useState(100);
+  const [toolSettings, setToolSettings] = useState(() => savedToolSettings(null));
+  const [toolSettingsLoaded, setToolSettingsLoaded] = useState(false);
+  const [fillTolerance, setFillTolerance] = useState(28);
   const [palette, setPalette] = useState<(typeof palettes)[number]["id"]>("bright");
   const [load, setLoad] = useState<"loading" | "ready" | "error">("loading");
   const [attempt, setAttempt] = useState(0);
@@ -200,6 +212,9 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   }
   const canClear = marks.length > lastClear + 1;
   const shades = colorShades(color);
+  const setting =
+    tool in DEFAULT_TOOL_SETTINGS ? toolSettings[tool as PaintTool] : toolSettings.brush;
+  const { size, opacity } = setting;
 
   function selectColor(value: string) {
     setColor(value);
@@ -210,6 +225,14 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     setSelectedHsl(next);
     setColor(hslToColor(next));
   }
+  function updateToolSetting(change: Partial<ToolSetting>) {
+    if (!(tool in DEFAULT_TOOL_SETTINGS)) return;
+    const selectedTool = tool as PaintTool;
+    setToolSettings((current) => ({
+      ...current,
+      [selectedTool]: { ...current[selectedTool], ...change },
+    }));
+  }
 
   useEffect(() => {
     try {
@@ -219,6 +242,30 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
       // Browser storage can be disabled; the controls still work for this session.
     }
   }, []);
+
+  useEffect(() => {
+    try {
+      setToolSettings(
+        savedToolSettings(JSON.parse(localStorage.getItem(toolSettingsKey) ?? "null")),
+      );
+      const savedTolerance = Number(localStorage.getItem(fillToleranceKey));
+      if (fillOptions.some((option) => option.value === savedTolerance)) {
+        setFillTolerance(savedTolerance);
+      }
+    } catch {
+      // Use the built-in presets when local storage is unavailable.
+    }
+    setToolSettingsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!toolSettingsLoaded) return;
+    try {
+      localStorage.setItem(toolSettingsKey, JSON.stringify(toolSettings));
+    } catch {
+      // Settings remain available until the page is closed.
+    }
+  }, [toolSettings, toolSettingsLoaded]);
 
   useEffect(() => {
     const ctx = toolPreview.current?.getContext("2d");
@@ -370,6 +417,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
       size,
       opacity: opacity / 100,
       points: [at],
+      ...(tool === "fill" ? { tolerance: fillTolerance } : {}),
       ...(e.pointerType === "pen" ? { pressures: [e.pressure] } : {}),
     };
     const ctx = e.currentTarget.getContext("2d")!;
@@ -576,7 +624,6 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
                       onClick={() => {
                         setTool(key);
                         if (key !== "picker" && key !== "pan") lastPaintTool.current = key;
-                        if (key === "pencil") selectColor("#46505d");
                       }}
                     >
                       <Icon size={21} />
@@ -728,7 +775,38 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
               </div>
             )}
           </fieldset>
-          {tool !== "fill" && (
+          {tool === "fill" && (
+            <fieldset>
+              <legend>انتشار التعبئة</legend>
+              <div
+                className="desk-fill-options"
+                role="group"
+                aria-label="اتساع التعبئة داخل الرسمة"
+              >
+                {fillOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={fillTolerance === option.value}
+                    onClick={() => {
+                      setFillTolerance(option.value);
+                      try {
+                        localStorage.setItem(fillToleranceKey, String(option.value));
+                      } catch {
+                        // Keep the choice for this session.
+                      }
+                    }}
+                  >
+                    {option.name}
+                  </button>
+                ))}
+              </div>
+              <p className="desk-tool-hint">
+                إذا بقيت نقاط صغيرة غير ملونة، جرّب «واسع». حدود الرسمة تظل محمية.
+              </p>
+            </fieldset>
+          )}
+          {tool !== "fill" && tool !== "pan" && tool !== "picker" && (
             <fieldset>
               <legend>سُمك الأداة: {size}</legend>
               <div className="desk-widths">
@@ -736,7 +814,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
                   <button
                     key={w.value}
                     aria-pressed={size === w.value}
-                    onClick={() => setSize(w.value)}
+                    onClick={() => updateToolSetting({ size: w.value })}
                   >
                     <i style={{ width: 5 + w.value / 4, height: 5 + w.value / 4 }} />
                     {w.name}
@@ -751,11 +829,18 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
                 step="1"
                 value={size}
                 aria-label="سُمك القلم أو الفرشاة"
-                onChange={(e) => setSize(Number(e.target.value))}
+                onChange={(e) => updateToolSetting({ size: Number(e.target.value) })}
               />
+              <button
+                className="desk-reset-tool"
+                type="button"
+                onClick={() => updateToolSetting(DEFAULT_TOOL_SETTINGS[tool as PaintTool])}
+              >
+                استعادة إعدادات هذه الأداة
+              </button>
             </fieldset>
           )}
-          {tool !== "fill" && tool !== "eraser" && (
+          {tool !== "fill" && tool !== "eraser" && tool !== "pan" && tool !== "picker" && (
             <fieldset>
               <legend>عتامة الفرشاة: {opacity}٪</legend>
               <input
@@ -766,7 +851,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
                 step="5"
                 value={opacity}
                 aria-label="عتامة الفرشاة"
-                onChange={(e) => setOpacity(Number(e.target.value))}
+                onChange={(e) => updateToolSetting({ opacity: Number(e.target.value) })}
               />
             </fieldset>
           )}

@@ -414,6 +414,32 @@
 .desk-widths {
   grid-template-columns: repeat(3, 1fr);
 }
+.desk-fill-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+.desk-fill-options button {
+  min-height: 44px;
+  border-radius: 0.75rem;
+  background: var(--secondary);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+.desk-tool-hint {
+  margin-top: 0.45rem;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+.desk-reset-tool {
+  margin-top: 0.2rem;
+  padding: 0.3rem 0;
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: underline;
+}
 .desk-palettes {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
