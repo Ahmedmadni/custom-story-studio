@@ -1,4 +1,43 @@
+import type { Tool } from "./paint";
+
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+export type PaintTool = Exclude<Tool, "fill" | "clear">;
+export type ToolSetting = { size: number; opacity: number };
+export const DEFAULT_TOOL_SETTINGS: Record<PaintTool, ToolSetting> = {
+  pencil: { size: 10, opacity: 85 },
+  "colored-pencil": { size: 18, opacity: 100 },
+  ink: { size: 12, opacity: 100 },
+  crayon: { size: 36, opacity: 100 },
+  brush: { size: 24, opacity: 100 },
+  oil: { size: 32, opacity: 100 },
+  watercolor: { size: 34, opacity: 65 },
+  marker: { size: 24, opacity: 80 },
+  eraser: { size: 28, opacity: 100 },
+};
+
+export function savedToolSettings(value: unknown): Record<PaintTool, ToolSetting> {
+  const source =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  const result = {} as Record<PaintTool, ToolSetting>;
+  for (const tool of Object.keys(DEFAULT_TOOL_SETTINGS) as PaintTool[]) {
+    const entry = source[tool];
+    const candidate = entry && typeof entry === "object" ? (entry as Partial<ToolSetting>) : {};
+    result[tool] = {
+      size:
+        Number.isInteger(candidate.size) && candidate.size! >= 2 && candidate.size! <= 80
+          ? candidate.size!
+          : DEFAULT_TOOL_SETTINGS[tool].size,
+      opacity:
+        Number.isInteger(candidate.opacity) && candidate.opacity! >= 10 && candidate.opacity! <= 100
+          ? candidate.opacity!
+          : DEFAULT_TOOL_SETTINGS[tool].opacity,
+    };
+  }
+  return result;
+}
 
 export type HslColor = { hue: number; saturation: number; lightness: number };
 

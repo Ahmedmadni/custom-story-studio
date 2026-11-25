@@ -4,10 +4,12 @@ import { collections, sheets } from "../src/features/games/drawing/catalog";
 import {
   colorShades,
   colorToHsl,
+  DEFAULT_TOOL_SETTINGS,
   hslToColor,
   ignoreTouch,
   rememberColor,
   savedColors,
+  savedToolSettings,
 } from "../src/features/games/drawing/controls";
 import {
   fillArea,
@@ -21,6 +23,18 @@ import {
 } from "../src/features/games/drawing/paint";
 
 describe("drawing studio", () => {
+  it("keeps individual tool presets and rejects corrupted saved settings", () => {
+    const settings = savedToolSettings({
+      brush: { size: 47, opacity: 60 },
+      pencil: { size: -1, opacity: "100" },
+      watercolor: { size: 30, opacity: 140 },
+    });
+    expect(settings.brush).toEqual({ size: 47, opacity: 60 });
+    expect(settings.pencil).toEqual(DEFAULT_TOOL_SETTINGS.pencil);
+    expect(settings.watercolor).toEqual({ size: 30, opacity: 65 });
+    expect(savedToolSettings([]).oil).toEqual(DEFAULT_TOOL_SETTINGS.oil);
+    expect(settings.brush).not.toBe(DEFAULT_TOOL_SETTINGS.brush);
+  });
   it("converts palette colors and preserves the chosen color among ordered shades", () => {
     expect(colorToHsl("#ff0000")).toEqual({ hue: 0, saturation: 100, lightness: 50 });
     expect(hslToColor({ hue: 120, saturation: 100, lightness: 50 })).toBe("#00ff00");
@@ -90,6 +104,33 @@ describe("drawing studio", () => {
     expect(data[(start - 1) * 4 + 3]).toBe(0);
     expect(fillArea(ctx, boundary, mark)).toBe(false);
     expect(fillArea(ctx, boundary, { ...mark, points: [[2, 2]] })).toBe(false);
+  });
+  it("controls bucket spread without crossing the original outline", () => {
+    const boundary = new Uint8Array(PAPER * PAPER_HEIGHT).fill(1);
+    const start = PAPER + 20;
+    for (let index = start; index <= start + 2; index++) boundary[index] = 0;
+    const mark: Mark = {
+      tool: "fill",
+      color: "#ef4444",
+      size: 10,
+      points: [[20, 1]],
+      tolerance: 8,
+    };
+    const data = new Uint8ClampedArray(4 * boundary.length);
+    data.set([235, 235, 235, 255], 4 * (start + 1));
+    data.set([215, 215, 215, 255], 4 * (start + 2));
+    const ctx = {
+      getImageData: () => ({ data }),
+      putImageData: () => {},
+    } as unknown as CanvasRenderingContext2D;
+    expect(fillArea(ctx, boundary, mark)).toBe(true);
+    expect(data[4 * (start + 1)]).toBe(235);
+    expect(fillArea(ctx, boundary, { ...mark, points: [[21, 1]], tolerance: 56 })).toBe(true);
+    expect(data[4 * (start + 2)]).toBe(239);
+    expect(data[4 * (start + 3) + 3]).toBe(0);
+    expect(isMark(mark)).toBe(true);
+    expect(isMark({ ...mark, tolerance: 81 })).toBe(false);
+    expect(isMark({ ...mark, tool: "brush" })).toBe(false);
   });
   it("rejects malformed or out-of-bounds saved marks before replay", () => {
     const mark = { tool: "pencil", color: "#112233", size: 24, points: [[200, 300]] };

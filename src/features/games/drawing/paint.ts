@@ -20,6 +20,7 @@ export interface Mark {
   points: Point[];
   opacity?: number;
   pressures?: number[];
+  tolerance?: number;
 }
 
 const TOOLS: Tool[] = [
@@ -86,6 +87,11 @@ export function isMark(value: unknown): value is Mark {
         Number.isFinite(mark.opacity) &&
         mark.opacity >= 0.1 &&
         mark.opacity <= 1)) &&
+    (mark.tolerance === undefined ||
+      (mark.tool === "fill" &&
+        Number.isInteger(mark.tolerance) &&
+        mark.tolerance >= 0 &&
+        mark.tolerance <= 80)) &&
     (mark.pressures === undefined ||
       (Array.isArray(mark.pressures) &&
         mark.pressures.length === mark.points.length &&
@@ -254,6 +260,7 @@ export function fillArea(ctx: CanvasRenderingContext2D, outline: Uint8Array, mar
   const visible = (i: number, channel: number) =>
     255 - ((255 - rgba[4 * i + channel]) * rgba[4 * i + 3]) / 255;
   const target = rgb.map((_, channel) => visible(start, channel));
+  const tolerance = mark.tolerance ?? 28;
   if (target.every((v, c) => Math.abs(v - rgb[c]) < 1)) return false;
   const seen = new Uint8Array(outline.length);
   const queue = new Int32Array(outline.length);
@@ -263,7 +270,7 @@ export function fillArea(ctx: CanvasRenderingContext2D, outline: Uint8Array, mar
   function visit(i: number) {
     if (seen[i] || outline[i]) return;
     seen[i] = 1;
-    for (let c = 0; c < 3; c++) if (Math.abs(visible(i, c) - target[c]) > 28) return;
+    for (let c = 0; c < 3; c++) if (Math.abs(visible(i, c) - target[c]) > tolerance) return;
     queue[end++] = i;
   }
   for (let next = 0; next < end; next++) {
