@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { collections, sheets, type Sheet } from "@/features/games/drawing/catalog";
 import { DrawingDesk } from "@/features/games/drawing/DrawingDesk";
+import { PwaInstallButton } from "@/features/games/drawing/PwaInstallButton";
 import { SITE_URL } from "@/lib/siteUrl";
 import deskStyles from "@/features/games/drawing/drawing.css?url";
 
@@ -62,6 +63,7 @@ function Studio() {
                 <Link to="/games/drawing" search={{ group, sheet: "blank" }}>
                   <FilePlus2 size={18} /> ورقة رسم حرّة
                 </Link>
+                <PwaInstallButton />
               </div>
               <div className="studio-fan" aria-hidden="true">
                 {["dinosaurs-01", "princesses-01", "cute-02"].map((id) => (

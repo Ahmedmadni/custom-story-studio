@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/features/cart/CartContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { PwaRegistration } from "@/components/PwaRegistration";
 import { OnboardingWizard } from "@/features/onboarding/OnboardingWizard";
 import { ReferralCapture } from "@/features/referrals/ReferralCapture";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -105,6 +106,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "منصة كيدزي لإنشاء قصص أطفال وكتب تعليمية مخصصة — طفلك هو البطل!",
       },
       { name: "author", content: "Kidzy" },
+      { name: "theme-color", content: "#6c4dff" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { property: "og:title", content: "Kidzy — كيدزي | قصص وكتب تعليمية للأطفال" },
       {
         property: "og:description",
@@ -135,6 +139,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icons/kidzy-180.png" },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -200,6 +206,7 @@ function RootComponent() {
       <AuthProvider>
         <LanguageProvider>
           <CartProvider>
+            <PwaRegistration />
             <OfflineBanner />
             <ReferralCapture />
             <OnboardingWizard />

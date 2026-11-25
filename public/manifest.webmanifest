@@ -1,0 +1,36 @@
+{
+  "id": "/",
+  "name": "كيدزي | قصص وألعاب الأطفال",
+  "short_name": "كيدزي",
+  "description": "قصص الأطفال وألعابهم ومرسم التلوين في كيدزي",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "categories": ["education", "games"],
+  "background_color": "#f8f5ff",
+  "theme_color": "#6c4dff",
+  "shortcuts": [
+    {
+      "name": "مرسم كيدزي",
+      "short_name": "الرسم",
+      "url": "/games/drawing",
+      "icons": [{ "src": "/icons/kidzy-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
+  "icons": [
+    {
+      "src": "/icons/kidzy-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/kidzy-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

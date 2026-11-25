@@ -7,6 +7,7 @@
 .studio-back,
 .desk-download,
 .studio-hero a,
+.studio-install,
 .desk-history button {
   display: inline-flex;
   align-items: center;
@@ -47,12 +48,16 @@
   font-size: clamp(0.92rem, 2vw, 1.12rem);
 }
 .studio-hero a,
+.studio-install,
 .desk-download {
   border-radius: 999px;
   background: var(--primary);
   color: var(--primary-foreground);
   padding: 0.55rem 1rem;
   min-height: 44px;
+}
+.studio-install {
+  margin-inline-start: 0.5rem;
 }
 .studio-fan {
   width: 33%;
