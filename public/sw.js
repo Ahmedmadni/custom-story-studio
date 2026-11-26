@@ -3,6 +3,7 @@ const VERSION = "kidzy-pwa-v2";
 const CORE = `${VERSION}-core`;
 const ASSETS = `${VERSION}-assets`;
 const DRAWINGS = `${VERSION}-drawings`;
+const COVERS = `${VERSION}-covers`;
 const PUBLIC_SHELL = "/games/drawing";
 
 // Keep only anonymous gallery HTML for offline navigation, including sheet links.
@@ -61,7 +62,7 @@ async function cachePublic(request, name, limit) {
   const response = await fetch(request);
   const contentType = response.headers.get("content-type") || "";
   const safeType =
-    name === DRAWINGS
+    name === DRAWINGS || name === COVERS
       ? contentType.startsWith("image/")
       : Boolean(contentType && !contentType.includes("text/html"));
   if (response.ok && response.type === "basic" && safeType) {
@@ -100,7 +101,8 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.pathname.startsWith("/drawing/") && url.pathname.endsWith(".webp")) {
-    event.respondWith(cachePublic(request, DRAWINGS, 80));
+    const cover = url.pathname.endsWith("-cover.webp");
+    event.respondWith(cachePublic(request, cover ? COVERS : DRAWINGS, cover ? 120 : 80));
   } else if (url.pathname.startsWith("/assets/")) {
     event.respondWith(cachePublic(request, ASSETS, 120));
   }
@@ -110,6 +112,7 @@ self.addEventListener("message", (event) => {
   if (event.data?.type !== "CACHE_PUBLIC_RESOURCES") return;
   event.waitUntil(
     (async () => {
+      const drawings = Array.isArray(event.data.drawings) ? event.data.drawings : [];
       const warm = async (values, prefix, name, limit) => {
         if (!Array.isArray(values)) return;
         const cache = await caches.open(name);
@@ -132,7 +135,7 @@ self.addEventListener("message", (event) => {
             const response = await fetch(value, { credentials: "omit" });
             const contentType = response.headers.get("content-type") || "";
             const safeType =
-              name === DRAWINGS
+              name === DRAWINGS || name === COVERS
                 ? contentType.startsWith("image/")
                 : Boolean(contentType && !contentType.includes("text/html"));
             if (response.ok && response.type === "basic" && safeType) {
@@ -145,7 +148,22 @@ self.addEventListener("message", (event) => {
       await Promise.all([
         refreshPublicShell(),
         warm(event.data.assets, "/assets/", ASSETS, 120),
-        warm(event.data.drawings, "/drawing/", DRAWINGS, 80),
+        warm(
+          drawings.filter(
+            (value) => typeof value === "string" && value.split("?")[0].endsWith("-cover.webp"),
+          ),
+          "/drawing/",
+          COVERS,
+          120,
+        ),
+        warm(
+          drawings.filter(
+            (value) => typeof value === "string" && !value.split("?")[0].endsWith("-cover.webp"),
+          ),
+          "/drawing/",
+          DRAWINGS,
+          80,
+        ),
       ]);
     })(),
   );
