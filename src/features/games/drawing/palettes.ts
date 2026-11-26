@@ -1,0 +1,80 @@
+import { COLORS } from "../games-data";
+
+export const palettes = [
+  {
+    id: "bright",
+    name: "زاهية",
+    colors: [...COLORS, { name: "فيروزي", hex: "#14b8a6" }, { name: "سماوي", hex: "#7dd3fc" }],
+  },
+  {
+    id: "pastel",
+    name: "باستيل",
+    colors: [
+      { name: "وردي فاتح", hex: "#f8b8d3" },
+      { name: "خوخي", hex: "#fdba9b" },
+      { name: "أصفر فاتح", hex: "#ffe2a0" },
+      { name: "نعناعي", hex: "#a8e6cf" },
+      { name: "أزرق فاتح", hex: "#a5d8f3" },
+      { name: "ليلكي", hex: "#c9b6ee" },
+      { name: "وردي باهت", hex: "#f1cfdd" },
+      { name: "كريمي", hex: "#f5e6c8" },
+    ],
+  },
+  {
+    id: "earth",
+    name: "طبيعة",
+    colors: [
+      { name: "أخضر أوراق", hex: "#4d8b55" },
+      { name: "زيتوني", hex: "#7b874a" },
+      { name: "عشبي", hex: "#93b56b" },
+      { name: "بني", hex: "#795548" },
+      { name: "ترابي", hex: "#b3875c" },
+      { name: "رملي", hex: "#d6b88a" },
+      { name: "سماء", hex: "#73b8da" },
+      { name: "بحري", hex: "#287b91" },
+    ],
+  },
+  {
+    id: "neutral",
+    name: "حيادية",
+    colors: [
+      { name: "أسود", hex: "#27233a" },
+      { name: "رصاصي", hex: "#46505d" },
+      { name: "رمادي داكن", hex: "#626775" },
+      { name: "رمادي", hex: "#9a9dab" },
+      { name: "رمادي فاتح", hex: "#c8cbd0" },
+      { name: "عاجي", hex: "#f2eee3" },
+      { name: "أبيض", hex: "#ffffff" },
+    ],
+  },
+  {
+    id: "flowers",
+    name: "زهور",
+    colors: [
+      { name: "توتي", hex: "#ba3160" },
+      { name: "وردي", hex: "#e681a4" },
+      { name: "مرجاني", hex: "#ef786b" },
+      { name: "برتقالي", hex: "#ed9b4f" },
+      { name: "أصفر ذهبي", hex: "#e6b94e" },
+      { name: "أخضر أوراق", hex: "#579467" },
+      { name: "بنفسجي", hex: "#8b63b4" },
+      { name: "ليلكي", hex: "#c09ada" },
+    ],
+  },
+  {
+    id: "portraits",
+    name: "شخصيات",
+    colors: [
+      { name: "بشرة فاتحة", hex: "#f5d8bd" },
+      { name: "بشرة وردية", hex: "#e8b9a5" },
+      { name: "بشرة قمحية", hex: "#d8a77d" },
+      { name: "بشرة سمراء", hex: "#b77e59" },
+      { name: "بشرة بنية", hex: "#8b573d" },
+      { name: "بشرة داكنة", hex: "#583a32" },
+      { name: "شعر ذهبي", hex: "#c99d53" },
+      { name: "شعر بني", hex: "#6f4635" },
+      { name: "شعر أسود", hex: "#302b32" },
+      { name: "شعر أحمر", hex: "#a8503c" },
+    ],
+  },
+] as const;

@@ -4,6 +4,7 @@ export type Tool =
   | "pencil"
   | "colored-pencil"
   | "ink"
+  | "calligraphy"
   | "crayon"
   | "brush"
   | "oil"
@@ -28,6 +29,7 @@ const TOOLS: Tool[] = [
   "pencil",
   "colored-pencil",
   "ink",
+  "calligraphy",
   "crayon",
   "brush",
   "oil",
@@ -189,6 +191,22 @@ export function segment(
     case "ink":
       stroke(ctx, a, b, Math.max(1, width * 0.42));
       break;
+    case "calligraphy": {
+      // Sweep a flat, angled nib along the segment. Undo and playback use this same path.
+      const angle = -Math.PI / 5;
+      const aspect = 0.24;
+      const dx = b[0] - a[0],
+        dy = b[1] - a[1];
+      ctx.translate(...a);
+      ctx.rotate(angle);
+      ctx.scale(1, aspect);
+      const end: Point = [
+        dx * Math.cos(angle) + dy * Math.sin(angle),
+        (dy * Math.cos(angle) - dx * Math.sin(angle)) / aspect,
+      ];
+      stroke(ctx, [0, 0], end, width);
+      break;
+    }
     case "marker":
       ctx.globalAlpha *= 0.56;
       stroke(ctx, a, b, width * 1.15);
