@@ -28,8 +28,18 @@ import {
   type Mark,
 } from "../src/features/games/drawing/paint";
 import { drawingStorageKey, hasSavedArtwork } from "../src/features/games/drawing/progress";
+import { matchesDrawingSearch, matchesDrawingText } from "../src/features/games/drawing/search";
 
 describe("drawing studio", () => {
+  it("finds sheets by Arabic title and collection with normalized spelling", () => {
+    const princess = sheets.find((item) => item.group === "princesses")!;
+    expect(matchesDrawingSearch(princess, "الأميرات")).toBe(true);
+    expect(matchesDrawingSearch(princess, "الاميرات")).toBe(true);
+    expect(matchesDrawingSearch(princess, "ديناصورات")).toBe(false);
+    expect(matchesDrawingSearch(princess, "  ")).toBe(true);
+    expect(matchesDrawingSearch({ ...princess, title: "حَيَاة" }, "حياة")).toBe(true);
+    expect(matchesDrawingText("ورقتي الحرة رسم حر", "رسم حر")).toBe(true);
+  });
   it("exports and restores saved drawings without replacing existing work by default", () => {
     const old: Mark = { tool: "pencil", color: "#112233", size: 12, points: [[2, 3]] };
     const newer: Mark = { ...old, color: "#ff0000" };

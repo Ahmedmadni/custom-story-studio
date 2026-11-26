@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, FilePlus2, Layers } from "lucide-react";
+import { ArrowLeft, ArrowRight, FilePlus2, Layers, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -8,6 +8,7 @@ import { DrawingDesk } from "@/features/games/drawing/DrawingDesk";
 import { DrawingBackup } from "@/features/games/drawing/DrawingBackup";
 import { PwaInstallButton } from "@/features/games/drawing/PwaInstallButton";
 import { drawingStorageKey, hasSavedArtwork } from "@/features/games/drawing/progress";
+import { matchesDrawingSearch, matchesDrawingText } from "@/features/games/drawing/search";
 import { SITE_URL } from "@/lib/siteUrl";
 import deskStyles from "@/features/games/drawing/drawing.css?url";
 
@@ -44,6 +45,7 @@ function Studio() {
   const { group, sheet, mine } = Route.useSearch();
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [checkedSaved, setCheckedSaved] = useState(false);
+  const [query, setQuery] = useState("");
   useEffect(() => {
     if (sheet) return;
     const refresh = () => {
@@ -69,9 +71,13 @@ function Studio() {
   const current = sheets.find((s) => s.id === sheet);
   const collection = collections.find((c) => c.id === group);
   const visible = sheets.filter(
-    (s) => (!group || s.group === group) && (!mine || savedIds.has(s.id)),
+    (s) =>
+      (!group || s.group === group) &&
+      (!mine || savedIds.has(s.id)) &&
+      matchesDrawingSearch(s, query),
   );
-  const freeDrawing = !!mine && !group && savedIds.has("blank");
+  const freeDrawing =
+    !!mine && !group && savedIds.has("blank") && matchesDrawingText("ورقتي الحرة رسم حر", query);
   return (
     <div dir="rtl" className="min-h-screen">
       <Header />
@@ -158,14 +164,40 @@ function Studio() {
                 رسوماتي ({savedIds.size.toLocaleString("ar-EG")})
               </Link>
             </nav>
+            <div className="studio-search">
+              <Search size={20} aria-hidden="true" />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="ابحث عن رسمة أو مجموعة…"
+                aria-label="ابحث في الرسمات"
+              />
+              {query && (
+                <button type="button" onClick={() => setQuery("")} aria-label="مسح البحث">
+                  <X size={19} />
+                </button>
+              )}
+            </div>
             {mine && <p className="studio-progress-note">رسوماتك محفوظة على هذا الجهاز.</p>}
             <DrawingBackup />
-            {mine && checkedSaved && visible.length === 0 && !freeDrawing && (
+            {checkedSaved && visible.length === 0 && !freeDrawing && (
               <div className="studio-empty">
-                <p>لا توجد رسومات محفوظة هنا بعد. اختر رسمة وابدأ تلوينها!</p>
-                <Link to="/games/drawing" search={{ group }}>
-                  تصفّح الرسمات
-                </Link>
+                {query ? (
+                  <>
+                    <p>لم نجد رسمة بهذا الاسم. جرّب كلمة أخرى أو مجموعة مختلفة.</p>
+                    <button type="button" onClick={() => setQuery("")}>
+                      مسح البحث
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p>لا توجد رسومات محفوظة هنا بعد. اختر رسمة وابدأ تلوينها!</p>
+                    <Link to="/games/drawing" search={{ group }}>
+                      تصفّح الرسمات
+                    </Link>
+                  </>
+                )}
               </div>
             )}
             <div className="studio-sheets">
