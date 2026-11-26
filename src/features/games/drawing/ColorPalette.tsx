@@ -6,6 +6,8 @@ import { colorShades, savedColors } from "./controls";
 import { colorFromHsv, hsvFromColor, type Hsv } from "./color-plane";
 
 const pinsKey = "kidzy:desk:pinned-colors:v1";
+const paletteKey = "kidzy:desk:palette:v1";
+const paletteTabKey = "kidzy:desk:palette-tab:v1";
 
 type Swatch = { name: string; hex: string };
 function Swatches({
@@ -61,7 +63,24 @@ export function ColorPalette({
     } catch {
       /* Storage is optional. */
     }
+    try {
+      const savedPalette = localStorage.getItem(paletteKey);
+      if (palettes.some((item) => item.id === savedPalette)) {
+        setPalette(savedPalette as (typeof palettes)[number]["id"]);
+      }
+      const savedTab = localStorage.getItem(paletteTabKey);
+      if (savedTab === "palette" || savedTab === "mix") setTab(savedTab);
+    } catch {
+      /* The default palette remains available without storage. */
+    }
   }, []);
+  function remember(key: string, value: string) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* Keep the choice for this session. */
+    }
+  }
   const hsv = colorFromHsv(draft) === color.toLowerCase() ? draft : hsvFromColor(color, draft.hue);
   const isPinned = pinned.includes(color.toLowerCase());
   function choose(hex: string) {
@@ -129,10 +148,24 @@ export function ColorPalette({
           </button>
         </div>
         <div className="palette-tabs" role="group" aria-label="طريقة اختيار اللون">
-          <button type="button" aria-pressed={tab === "palette"} onClick={() => setTab("palette")}>
+          <button
+            type="button"
+            aria-pressed={tab === "palette"}
+            onClick={() => {
+              setTab("palette");
+              remember(paletteTabKey, "palette");
+            }}
+          >
             بالتات جاهزة
           </button>
-          <button type="button" aria-pressed={tab === "mix"} onClick={() => setTab("mix")}>
+          <button
+            type="button"
+            aria-pressed={tab === "mix"}
+            onClick={() => {
+              setTab("mix");
+              remember(paletteTabKey, "mix");
+            }}
+          >
             مزج لون
           </button>
         </div>
@@ -144,7 +177,10 @@ export function ColorPalette({
                   type="button"
                   key={p.id}
                   aria-pressed={p.id === palette}
-                  onClick={() => setPalette(p.id)}
+                  onClick={() => {
+                    setPalette(p.id);
+                    remember(paletteKey, p.id);
+                  }}
                 >
                   {p.name}
                 </button>
