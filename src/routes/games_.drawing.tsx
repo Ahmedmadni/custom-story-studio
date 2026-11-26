@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { collections, sheets, type Sheet } from "@/features/games/drawing/catalog";
 import { DrawingDesk } from "@/features/games/drawing/DrawingDesk";
+import { DrawingBackup } from "@/features/games/drawing/DrawingBackup";
 import { PwaInstallButton } from "@/features/games/drawing/PwaInstallButton";
 import { drawingStorageKey, hasSavedArtwork } from "@/features/games/drawing/progress";
 import { SITE_URL } from "@/lib/siteUrl";
@@ -59,7 +60,11 @@ function Studio() {
     };
     refresh();
     window.addEventListener("storage", refresh);
-    return () => window.removeEventListener("storage", refresh);
+    window.addEventListener("kidzy:drawing-storage-updated", refresh);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("kidzy:drawing-storage-updated", refresh);
+    };
   }, [sheet]);
   const current = sheets.find((s) => s.id === sheet);
   const collection = collections.find((c) => c.id === group);
@@ -154,6 +159,7 @@ function Studio() {
               </Link>
             </nav>
             {mine && <p className="studio-progress-note">رسوماتك محفوظة على هذا الجهاز.</p>}
+            <DrawingBackup />
             {mine && checkedSaved && visible.length === 0 && !freeDrawing && (
               <div className="studio-empty">
                 <p>لا توجد رسومات محفوظة هنا بعد. اختر رسمة وابدأ تلوينها!</p>

@@ -1,6 +1,11 @@
 import { hsvFromColor, colorFromHsv } from "../src/features/games/drawing/color-plane";
 import { describe, expect, it } from "bun:test";
 import { existsSync } from "node:fs";
+import {
+  createDrawingBackup,
+  parseDrawingBackup,
+  restoreDrawingBackup,
+} from "../src/features/games/drawing/backup";
 import { collections, sheets } from "../src/features/games/drawing/catalog";
 import {
   colorShades,
@@ -25,6 +30,68 @@ import {
 import { drawingStorageKey, hasSavedArtwork } from "../src/features/games/drawing/progress";
 
 describe("drawing studio", () => {
+  it("exports and restores saved drawings without replacing existing work by default", () => {
+    const old: Mark = { tool: "pencil", color: "#112233", size: 12, points: [[2, 3]] };
+    const newer: Mark = { ...old, color: "#ff0000" };
+    const source = new Map([["kidzy:desk:v1:blank", JSON.stringify([newer])]]);
+    const storage = (data: Map<string, string>) => ({
+      getItem: (key: string) => data.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        data.set(key, value);
+      },
+      removeItem: (key: string) => {
+        data.delete(key);
+      },
+    });
+    const backup = createDrawingBackup(storage(source), ["blank", "dinosaurs-01"]);
+    backup.drawings["dinosaurs-01"] = [newer];
+    const parsed = parseDrawingBackup(JSON.stringify(backup), ["blank", "dinosaurs-01"]);
+    const destination = new Map([["kidzy:desk:v1:blank", JSON.stringify([old])]]);
+    expect(restoreDrawingBackup(storage(destination), parsed, false)).toBe(1);
+    expect(JSON.parse(destination.get("kidzy:desk:v1:blank")!)).toEqual([old]);
+    expect(JSON.parse(destination.get("kidzy:desk:v1:dinosaurs-01")!)).toEqual([newer]);
+    expect(restoreDrawingBackup(storage(destination), parsed, true)).toBe(2);
+    expect(JSON.parse(destination.get("kidzy:desk:v1:blank")!)).toEqual([newer]);
+    expect(() => parseDrawingBackup(JSON.stringify(backup), ["blank"])).toThrow();
+    expect(() =>
+      parseDrawingBackup(
+        JSON.stringify({ ...backup, drawings: { blank: [{ ...old, points: [] }] } }),
+        ["blank"],
+      ),
+    ).toThrow();
+  });
+
+  it("rolls back an import when saving the next drawing runs out of space", () => {
+    const old: Mark = { tool: "pencil", color: "#112233", size: 12, points: [[2, 3]] };
+    const newer: Mark = { ...old, color: "#ff0000" };
+    const data = new Map([["kidzy:desk:v1:blank", JSON.stringify([old])]]);
+    let failOnce = true;
+    const storage = {
+      getItem: (key: string) => data.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        if (key.endsWith("dinosaurs-01") && failOnce) {
+          failOnce = false;
+          throw new Error("Quota exceeded");
+        }
+        data.set(key, value);
+      },
+      removeItem: (key: string) => {
+        data.delete(key);
+      },
+    };
+    const backup = parseDrawingBackup(
+      JSON.stringify({
+        app: "kidzy-drawing",
+        version: 1,
+        exportedAt: "2026-11-26T00:00:00Z",
+        drawings: { blank: [newer], "dinosaurs-01": [newer] },
+      }),
+      ["blank", "dinosaurs-01"],
+    );
+    expect(() => restoreDrawingBackup(storage, backup, true)).toThrow();
+    expect(JSON.parse(data.get("kidzy:desk:v1:blank")!)).toEqual([old]);
+    expect(data.has("kidzy:desk:v1:dinosaurs-01")).toBe(false);
+  });
   it("preserves custom colors across the spectrum and remembers the hue at neutral tones", () => {
     for (const hex of [
       "#ffffff",
