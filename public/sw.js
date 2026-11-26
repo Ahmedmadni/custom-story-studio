@@ -1,9 +1,22 @@
 /* Kidzy PWA: cache only public drawing artwork and versioned app assets. */
-const VERSION = "kidzy-pwa-v1";
+const VERSION = "kidzy-pwa-v2";
 const CORE = `${VERSION}-core`;
 const ASSETS = `${VERSION}-assets`;
 const DRAWINGS = `${VERSION}-drawings`;
 const PUBLIC_SHELL = "/games/drawing";
+
+// Keep only anonymous gallery HTML for offline navigation, including sheet links.
+async function refreshPublicShell() {
+  try {
+    const response = await fetch(PUBLIC_SHELL, { credentials: "omit", cache: "no-store" });
+    if (response.ok && response.headers.get("content-type")?.includes("text/html")) {
+      const cache = await caches.open(CORE);
+      await cache.put(PUBLIC_SHELL, response);
+    }
+  } catch {
+    // A cached copy remains usable while offline.
+  }
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -15,15 +28,7 @@ self.addEventListener("install", (event) => {
         "/icons/kidzy-192.png",
         "/icons/kidzy-512.png",
       ]);
-      // Fetch an anonymous public gallery document; never store a visitor's session HTML.
-      try {
-        const response = await fetch(PUBLIC_SHELL, { credentials: "omit", cache: "no-store" });
-        if (response.ok && response.headers.get("content-type")?.includes("text/html")) {
-          await cache.put(PUBLIC_SHELL, response);
-        }
-      } catch {
-        // Installation still succeeds with the standalone offline fallback.
-      }
+      await refreshPublicShell();
     })(),
   );
 });
@@ -80,7 +85,10 @@ self.addEventListener("fetch", (event) => {
         } catch {
           // OAuth handoffs must never be answered from a cached shell.
           if (url.pathname.startsWith("/~oauth")) return Response.error();
-          if (url.pathname === PUBLIC_SHELL && !url.search) {
+          const safeDrawingLink =
+            url.pathname === PUBLIC_SHELL &&
+            [...url.searchParams.keys()].every((key) => ["group", "sheet", "mine"].includes(key));
+          if (safeDrawingLink) {
             const gallery = await caches.match(PUBLIC_SHELL);
             if (gallery) return gallery;
           }
@@ -135,6 +143,7 @@ self.addEventListener("message", (event) => {
         await trim(cache, limit);
       };
       await Promise.all([
+        refreshPublicShell(),
         warm(event.data.assets, "/assets/", ASSETS, 120),
         warm(event.data.drawings, "/drawing/", DRAWINGS, 80),
       ]);
