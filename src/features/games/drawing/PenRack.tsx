@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useEffect, useId, useRef } from "react";
 import type { PaintTool } from "./controls";
 
 const pens = [
@@ -123,8 +123,22 @@ export function PenRack({
   color: string;
   onSelect: (tool: PaintTool) => void;
 }) {
+  const rack = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const container = rack.current;
+    const selected = container?.querySelector<HTMLButtonElement>('[aria-pressed="true"]');
+    if (!container || !selected) return;
+    const frame = container.getBoundingClientRect();
+    const pen = selected.getBoundingClientRect();
+    const padding = 8;
+    if (pen.left < frame.left + padding) {
+      container.scrollBy({ left: pen.left - frame.left - padding, behavior: "auto" });
+    } else if (pen.right > frame.right - padding) {
+      container.scrollBy({ left: pen.right - frame.right + padding, behavior: "auto" });
+    }
+  }, [tool]);
   return (
-    <div className="pen-rack" role="group" aria-label="الأقلام والفرش">
+    <div ref={rack} className="pen-rack" role="group" aria-label="الأقلام والفرش">
       {pens.map(([id, name, accent]) => (
         <button
           key={id}
