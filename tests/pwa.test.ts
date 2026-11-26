@@ -136,5 +136,52 @@ describe("Kidzy PWA", () => {
     expect((await navigate("/games/drawing")).body).toBe(`${origin}/games/drawing`);
     expect((await navigate("/my-orders")).body).toBe(`${origin}/offline.html`);
     expect([...stored.values()].every((cache) => !cache.has(`${origin}/my-orders`))).toBe(true);
+    const oauth = (await navigate("/~oauth/callback")) as unknown as Response;
+    expect(oauth.type).toBe("error");
+  });
+});
+
+describe("Kidzy PWA registration guard", () => {
+  const base = {
+    prod: true,
+    hostname: "kidzy.life",
+    href: "https://kidzy.life/",
+    inIframe: false,
+  };
+
+  it("registers on the published domain and refuses in every preview context", async () => {
+    const { shouldRefuseServiceWorker } = await import("../src/components/PwaRegistration");
+    expect(shouldRefuseServiceWorker(base)).toBe(false);
+    expect(shouldRefuseServiceWorker({ ...base, prod: false })).toBe(true);
+    expect(shouldRefuseServiceWorker({ ...base, inIframe: true })).toBe(true);
+    expect(
+      shouldRefuseServiceWorker({
+        ...base,
+        hostname: "id-preview--e17aa424-1014-461b-89c2-c3373e699dd9.lovable.app",
+        href: "https://id-preview--e17aa424-1014-461b-89c2-c3373e699dd9.lovable.app/",
+      }),
+    ).toBe(true);
+    expect(
+      shouldRefuseServiceWorker({
+        ...base,
+        hostname: "project--e17aa424-1014-461b-89c2-c3373e699dd9-dev.lovable.app",
+        href: "https://project--e17aa424-1014-461b-89c2-c3373e699dd9-dev.lovable.app/",
+      }),
+    ).toBe(true);
+    expect(
+      shouldRefuseServiceWorker({
+        ...base,
+        hostname: "lovableproject.com",
+        href: "https://lovableproject.com/",
+      }),
+    ).toBe(true);
+    expect(shouldRefuseServiceWorker({ ...base, href: "https://kidzy.life/?sw=off" })).toBe(true);
+    expect(
+      shouldRefuseServiceWorker({
+        ...base,
+        hostname: "preview-v2--shop.example.com",
+        href: "https://preview-v2--shop.example.com/",
+      }),
+    ).toBe(false);
   });
 });

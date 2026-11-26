@@ -78,6 +78,8 @@ self.addEventListener("fetch", (event) => {
         try {
           return await fetch(request);
         } catch {
+          // OAuth handoffs must never be answered from a cached shell.
+          if (url.pathname.startsWith("/~oauth")) return Response.error();
           if (url.pathname === PUBLIC_SHELL && !url.search) {
             const gallery = await caches.match(PUBLIC_SHELL);
             if (gallery) return gallery;
