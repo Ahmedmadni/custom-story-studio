@@ -322,6 +322,18 @@
   cursor: crosshair;
   user-select: none;
 }
+.desk-touch-tip {
+  display: none;
+}
+@media (pointer: coarse) {
+  .desk-touch-tip {
+    display: block;
+    margin: 0 0 0.4rem;
+    color: var(--muted-foreground);
+    font-size: 0.78rem;
+    text-align: center;
+  }
+}
 .desk-paper .desk-preview {
   pointer-events: none;
 }
