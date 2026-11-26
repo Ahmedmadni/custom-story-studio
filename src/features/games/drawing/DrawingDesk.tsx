@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import {
-  Brush,
-  Check,
+  SlidersHorizontal,
+  X,
   Download,
   Eraser,
-  Highlighter,
   PaintBucket,
-  Pencil,
   PenLine,
-  Droplets,
   FileDown,
   Hand,
   Pipette,
@@ -17,12 +14,12 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import { PenRack } from "./PenRack";
+import { ColorPalette } from "./ColorPalette";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { COLORS } from "../games-data";
 import {
-  colorShades,
-  colorToHsl,
   DEFAULT_TOOL_SETTINGS,
-  hslToColor,
   ignoreTouch,
   rememberColor,
   savedColors,
@@ -47,113 +44,6 @@ import { drawingStorageKey } from "./progress";
 
 type DeskTool = Tool | "picker" | "pan";
 
-const toolGroups = [
-  {
-    title: "أقلام",
-    tools: [
-      { id: "pencil", name: "رصاص", icon: Pencil },
-      { id: "colored-pencil", name: "قلم ملون", icon: Pencil },
-      { id: "ink", name: "حبر", icon: PenLine },
-      { id: "crayon", name: "شمع", icon: Highlighter },
-    ],
-  },
-  {
-    title: "فرش",
-    tools: [
-      { id: "brush", name: "فرشاة ناعمة", icon: Brush },
-      { id: "oil", name: "ألوان زيتية", icon: Brush },
-      { id: "watercolor", name: "ألوان مائية", icon: Droplets },
-      { id: "marker", name: "قلم فلوماستر", icon: Highlighter },
-    ],
-  },
-  {
-    title: "أدوات",
-    tools: [
-      { id: "fill", name: "تعبئة", icon: PaintBucket },
-      { id: "eraser", name: "ممحاة", icon: Eraser },
-      { id: "picker", name: "قطّارة", icon: Pipette },
-      { id: "pan", name: "تحريك", icon: Hand },
-    ],
-  },
-] as const;
-const palettes = [
-  {
-    id: "bright",
-    name: "زاهية",
-    colors: [...COLORS, { name: "فيروزي", hex: "#14b8a6" }, { name: "سماوي", hex: "#7dd3fc" }],
-  },
-  {
-    id: "pastel",
-    name: "باستيل",
-    colors: [
-      { name: "وردي فاتح", hex: "#f8b8d3" },
-      { name: "خوخي", hex: "#fdba9b" },
-      { name: "أصفر فاتح", hex: "#ffe2a0" },
-      { name: "نعناعي", hex: "#a8e6cf" },
-      { name: "أزرق فاتح", hex: "#a5d8f3" },
-      { name: "ليلكي", hex: "#c9b6ee" },
-      { name: "وردي باهت", hex: "#f1cfdd" },
-      { name: "كريمي", hex: "#f5e6c8" },
-    ],
-  },
-  {
-    id: "earth",
-    name: "طبيعة",
-    colors: [
-      { name: "أخضر أوراق", hex: "#4d8b55" },
-      { name: "زيتوني", hex: "#7b874a" },
-      { name: "عشبي", hex: "#93b56b" },
-      { name: "بني", hex: "#795548" },
-      { name: "ترابي", hex: "#b3875c" },
-      { name: "رملي", hex: "#d6b88a" },
-      { name: "سماء", hex: "#73b8da" },
-      { name: "بحري", hex: "#287b91" },
-    ],
-  },
-  {
-    id: "neutral",
-    name: "حيادية",
-    colors: [
-      { name: "أسود", hex: "#27233a" },
-      { name: "رصاصي", hex: "#46505d" },
-      { name: "رمادي داكن", hex: "#626775" },
-      { name: "رمادي", hex: "#9a9dab" },
-      { name: "رمادي فاتح", hex: "#c8cbd0" },
-      { name: "عاجي", hex: "#f2eee3" },
-      { name: "أبيض", hex: "#ffffff" },
-    ],
-  },
-  {
-    id: "flowers",
-    name: "زهور",
-    colors: [
-      { name: "توتي", hex: "#ba3160" },
-      { name: "وردي", hex: "#e681a4" },
-      { name: "مرجاني", hex: "#ef786b" },
-      { name: "برتقالي", hex: "#ed9b4f" },
-      { name: "أصفر ذهبي", hex: "#e6b94e" },
-      { name: "أخضر أوراق", hex: "#579467" },
-      { name: "بنفسجي", hex: "#8b63b4" },
-      { name: "ليلكي", hex: "#c09ada" },
-    ],
-  },
-  {
-    id: "portraits",
-    name: "شخصيات",
-    colors: [
-      { name: "بشرة فاتحة", hex: "#f5d8bd" },
-      { name: "بشرة وردية", hex: "#e8b9a5" },
-      { name: "بشرة قمحية", hex: "#d8a77d" },
-      { name: "بشرة سمراء", hex: "#b77e59" },
-      { name: "بشرة بنية", hex: "#8b573d" },
-      { name: "بشرة داكنة", hex: "#583a32" },
-      { name: "شعر ذهبي", hex: "#c99d53" },
-      { name: "شعر بني", hex: "#6f4635" },
-      { name: "شعر أسود", hex: "#302b32" },
-      { name: "شعر أحمر", hex: "#a8503c" },
-    ],
-  },
-] as const;
 const widths = [
   { value: 10, name: "رفيع" },
   { value: 24, name: "متوسط" },
@@ -172,7 +62,8 @@ const fillToleranceKey = "kidzy:desk:fill-tolerance:v1";
 export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const previewCanvas = useRef<HTMLCanvasElement>(null);
-  const toolPreview = useRef<HTMLCanvasElement>(null);
+  const [toolPreview, setToolPreview] = useState<HTMLCanvasElement | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const viewport = useRef<HTMLDivElement>(null);
   const art = useRef<HTMLImageElement | null>(null);
   const boundary = useRef<Uint8Array>(new Uint8Array(0));
@@ -190,12 +81,10 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const [counts, setCounts] = useState([0, 0]);
   const [tool, setTool] = useState<DeskTool>("brush");
   const [color, setColor] = useState(COLORS[0].hex);
-  const [selectedHsl, setSelectedHsl] = useState(() => colorToHsl(COLORS[0].hex));
   const [toolSettings, setToolSettings] = useState(() => savedToolSettings(null));
   const [toolSettingsLoaded, setToolSettingsLoaded] = useState(false);
   const [fillTolerance, setFillTolerance] = useState(28);
   const [fillMode, setFillMode] = useState<"paint" | "erase">("paint");
-  const [palette, setPalette] = useState<(typeof palettes)[number]["id"]>("bright");
   const [load, setLoad] = useState<"loading" | "ready" | "error">("loading");
   const [attempt, setAttempt] = useState(0);
   const [message, setMessage] = useState("");
@@ -213,19 +102,14 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     }
   }
   const canClear = marks.length > lastClear + 1;
-  const shades = colorShades(color);
   const setting =
     tool in DEFAULT_TOOL_SETTINGS ? toolSettings[tool as PaintTool] : toolSettings.brush;
   const { size, opacity } = setting;
 
-  function selectColor(value: string) {
-    setColor(value);
-    setSelectedHsl(colorToHsl(value));
-  }
-  function changeColorChannel(channel: "hue" | "saturation" | "lightness", value: number) {
-    const next = { ...selectedHsl, [channel]: value };
-    setSelectedHsl(next);
-    setColor(hslToColor(next));
+  function chooseTool(next: DeskTool) {
+    if (next === tool && next in DEFAULT_TOOL_SETTINGS) setSettingsOpen(true);
+    setTool(next);
+    if (next !== "picker" && next !== "pan") lastPaintTool.current = next;
   }
   function updateToolSetting(change: Partial<ToolSetting>) {
     if (!(tool in DEFAULT_TOOL_SETTINGS)) return;
@@ -270,7 +154,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   }, [toolSettings, toolSettingsLoaded]);
 
   useEffect(() => {
-    const ctx = toolPreview.current?.getContext("2d");
+    const ctx = toolPreview?.getContext("2d");
     if (!ctx || tool === "pan" || tool === "picker") return;
     ctx.clearRect(0, 0, 260, 76);
     ctx.fillStyle = "#fff";
@@ -280,10 +164,10 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
       color,
       size,
       opacity: opacity / 100,
-      points: [
-        [24, 38],
-        [236, 38],
-      ],
+      points: Array.from(
+        { length: 41 },
+        (_, i) => [24 + i * 5.3, 38 + 12 * Math.sin((i * Math.PI) / 16)] as Point,
+      ),
     };
     if (tool === "fill") {
       ctx.fillStyle = fillMode === "erase" ? "#b6a9d2" : color;
@@ -304,9 +188,9 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
         ctx.fillRect(20, 19, 220, 38);
       }
       if (tool === "marker" || tool === "watercolor") smoothStroke(ctx, mark);
-      else segment(ctx, mark, mark.points[0], mark.points[1]);
+      else mark.points.slice(1).forEach((end, i) => segment(ctx, mark, mark.points[i], end));
     }
-  }, [tool, color, size, opacity, fillMode]);
+  }, [tool, color, size, opacity, fillMode, toolPreview]);
 
   useEffect(() => {
     let gone = false;
@@ -413,7 +297,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
               .padStart(2, "0"),
           )
           .join("");
-        selectColor("#" + hex);
+        setColor("#" + hex);
         setTool(lastPaintTool.current);
         setMessage("التقطت اللون من لوحتك.");
       }
@@ -573,361 +457,286 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
           </button>
         </div>
       </div>
-      <div className="desk-layout">
-        <div className="desk-mat" ref={viewport}>
-          <div
-            className="desk-paper"
-            style={{ width: `min(${zoom * 100}%, ${zoom * 60}vh)`, maxWidth: "none" }}
-          >
-            <canvas
-              ref={canvas}
-              width={PAPER}
-              height={PAPER_HEIGHT}
-              aria-label={"ورقة الرسم • " + title}
-              onPointerDown={start}
-              onPointerMove={move}
-              onPointerUp={finish}
-              onPointerCancel={finish}
-              onLostPointerCapture={finish}
-            />
-            <canvas
-              ref={previewCanvas}
-              width={PAPER}
-              height={PAPER_HEIGHT}
-              className="desk-preview"
-              aria-hidden="true"
-            />
-            {id !== "blank" && <img src={"/drawing/" + id + ".webp"} alt="" draggable={false} />}
-            {load !== "ready" && (
-              <div className="desk-loading" role="status">
-                {load === "loading" ? (
-                  "نجهّز ورقتك…"
-                ) : (
-                  <button
-                    onClick={() => {
-                      setLoad("loading");
-                      setAttempt((a) => a + 1);
-                    }}
-                  >
-                    تعذّر فتح الرسمة. حاول مجددًا
-                  </button>
-                )}
+      <div className="rack-shell">
+        <PenRack tool={tool} color={color} onSelect={chooseTool} />
+        <div className="rack-controls">
+          <ColorPalette
+            color={color}
+            onColor={setColor}
+            recent={recentColors}
+            onPick={() => chooseTool("picker")}
+          />
+          <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <PopoverTrigger asChild>
+              <button type="button" title="إعدادات الأداة" aria-label="إعدادات الأداة">
+                <SlidersHorizontal size={19} />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="desk-kit desk-flyout"
+              dir="rtl"
+              aria-label="إعدادات الأداة"
+              collisionPadding={10}
+            >
+              <div className="flyout-title">
+                <strong>إعدادات الأداة</strong>
+                <button
+                  type="button"
+                  aria-label="إغلاق الإعدادات"
+                  onClick={() => setSettingsOpen(false)}
+                >
+                  <X size={18} />
+                </button>
               </div>
-            )}
-          </div>
-        </div>
-        <aside className="desk-kit" aria-label="حقيبة الرسم">
-          <fieldset>
-            <legend>حقيبة الرسم</legend>
-            {toolGroups.map((group) => (
-              <div className="desk-tool-group" key={group.title}>
-                <span className="desk-subtitle">{group.title}</span>
-                <div className="desk-tools">
-                  {group.tools.map(({ id: key, name, icon: Icon }) => (
+              {tool === "fill" && (
+                <fieldset>
+                  <legend>طريقة تعبئة المساحة</legend>
+                  <div
+                    className="desk-fill-options desk-fill-modes"
+                    role="group"
+                    aria-label="تلوين المساحة أو إزالة لونها"
+                  >
                     <button
-                      key={key}
                       type="button"
-                      aria-label={name}
-                      aria-pressed={tool === key}
-                      onClick={() => {
-                        setTool(key);
-                        if (key !== "picker" && key !== "pan") lastPaintTool.current = key;
-                      }}
+                      aria-pressed={fillMode === "paint"}
+                      onClick={() => setFillMode("paint")}
                     >
-                      <Icon size={21} />
-                      {name}
+                      لون المساحة
                     </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </fieldset>
-          {tool === "fill" && (
-            <fieldset>
-              <legend>طريقة تعبئة المساحة</legend>
-              <div
-                className="desk-fill-options desk-fill-modes"
-                role="group"
-                aria-label="تلوين المساحة أو إزالة لونها"
-              >
-                <button
-                  type="button"
-                  aria-pressed={fillMode === "paint"}
-                  onClick={() => setFillMode("paint")}
-                >
-                  لون المساحة
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={fillMode === "erase"}
-                  onClick={() => setFillMode("erase")}
-                >
-                  امسح لونها
-                </button>
-              </div>
-              <span className="desk-subtitle">انتشار التعبئة</span>
-              <div
-                className="desk-fill-options"
-                role="group"
-                aria-label="اتساع التعبئة داخل الرسمة"
-              >
-                {fillOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    aria-pressed={fillTolerance === option.value}
-                    onClick={() => {
-                      setFillTolerance(option.value);
-                      try {
-                        localStorage.setItem(fillToleranceKey, String(option.value));
-                      } catch {
-                        // Keep the choice for this session.
-                      }
-                    }}
+                    <button
+                      type="button"
+                      aria-pressed={fillMode === "erase"}
+                      onClick={() => setFillMode("erase")}
+                    >
+                      امسح لونها
+                    </button>
+                  </div>
+                  <span className="desk-subtitle">انتشار التعبئة</span>
+                  <div
+                    className="desk-fill-options"
+                    role="group"
+                    aria-label="اتساع التعبئة داخل الرسمة"
                   >
-                    {option.name}
+                    {fillOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={fillTolerance === option.value}
+                        onClick={() => {
+                          setFillTolerance(option.value);
+                          try {
+                            localStorage.setItem(fillToleranceKey, String(option.value));
+                          } catch {
+                            // Keep the choice for this session.
+                          }
+                        }}
+                      >
+                        {option.name}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="desk-tool-hint">
+                    {fillMode === "erase"
+                      ? "المس داخل المساحة الملونة لإزالة لونها. يمكنك التراجع دائمًا."
+                      : "إذا بقيت نقاط صغيرة غير ملونة، جرّب «واسع». حدود الرسمة تظل محمية."}
+                  </p>
+                </fieldset>
+              )}
+              <button
+                className="desk-pen-mode"
+                type="button"
+                aria-pressed={penOnly}
+                onClick={() => {
+                  const next = !penOnly;
+                  setPenOnly(next);
+                  try {
+                    localStorage.setItem(penOnlyKey, String(next));
+                  } catch {
+                    // Continue without device storage.
+                  }
+                }}
+              >
+                <PenLine size={20} />
+                <span>
+                  <strong>الرسم بالقلم الإلكتروني فقط</strong>
+                  <small>عند تفعيله، يمكنك تحريك الورقة بإصبعك من أداة التحريك.</small>
+                </span>
+              </button>
+              {tool !== "fill" && tool !== "pan" && tool !== "picker" && (
+                <fieldset>
+                  <legend>سُمك الأداة: {size}</legend>
+                  <div className="desk-widths">
+                    {widths.map((w) => (
+                      <button
+                        key={w.value}
+                        aria-pressed={size === w.value}
+                        onClick={() => updateToolSetting({ size: w.value })}
+                      >
+                        <i style={{ width: 5 + w.value / 4, height: 5 + w.value / 4 }} />
+                        {w.name}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    className="desk-range"
+                    type="range"
+                    min="2"
+                    max="80"
+                    step="1"
+                    value={size}
+                    aria-label="سُمك القلم أو الفرشاة"
+                    onChange={(e) => updateToolSetting({ size: Number(e.target.value) })}
+                  />
+                  <button
+                    className="desk-reset-tool"
+                    type="button"
+                    onClick={() => updateToolSetting(DEFAULT_TOOL_SETTINGS[tool as PaintTool])}
+                  >
+                    استعادة إعدادات هذه الأداة
                   </button>
-                ))}
-              </div>
-              <p className="desk-tool-hint">
-                {fillMode === "erase"
-                  ? "المس داخل المساحة الملونة لإزالة لونها. يمكنك التراجع دائمًا."
-                  : "إذا بقيت نقاط صغيرة غير ملونة، جرّب «واسع». حدود الرسمة تظل محمية."}
-              </p>
-            </fieldset>
-          )}
+                </fieldset>
+              )}
+              {tool !== "fill" && tool !== "eraser" && tool !== "pan" && tool !== "picker" && (
+                <fieldset>
+                  <legend>عتامة الفرشاة: {opacity}٪</legend>
+                  <input
+                    className="desk-range"
+                    type="range"
+                    min="10"
+                    max="100"
+                    step="5"
+                    value={opacity}
+                    aria-label="عتامة الفرشاة"
+                    onChange={(e) => updateToolSetting({ opacity: Number(e.target.value) })}
+                  />
+                </fieldset>
+              )}
+              {tool !== "pan" && tool !== "picker" && (
+                <fieldset className="desk-tool-sample">
+                  <legend>معاينة الأداة</legend>
+                  <canvas
+                    ref={setToolPreview}
+                    width={260}
+                    height={76}
+                    aria-label="شكل القلم أو الفرشاة باللون والسُمك الحاليين"
+                  />
+                </fieldset>
+              )}
+            </PopoverContent>
+          </Popover>
           <button
-            className="desk-pen-mode"
             type="button"
-            aria-pressed={penOnly}
+            title="تعبئة"
+            aria-label="تعبئة"
+            aria-pressed={tool === "fill"}
             onClick={() => {
-              const next = !penOnly;
-              setPenOnly(next);
-              try {
-                localStorage.setItem(penOnlyKey, String(next));
-              } catch {
-                // Continue without device storage.
-              }
+              chooseTool("fill");
+              setSettingsOpen(true);
             }}
           >
-            <PenLine size={20} />
-            <span>
-              <strong>الرسم بالقلم الإلكتروني فقط</strong>
-              <small>عند تفعيله، يمكنك تحريك الورقة بإصبعك من أداة التحريك.</small>
-            </span>
+            <PaintBucket size={19} />
           </button>
-          <fieldset hidden={tool === "fill" && fillMode === "erase"}>
-            <legend>بالتة الألوان</legend>
-            <div className="desk-palettes" role="group" aria-label="مجموعات الألوان">
-              {palettes.map((p) => (
+          <button
+            type="button"
+            title="قطّارة"
+            aria-label="قطّارة"
+            aria-pressed={tool === "picker"}
+            onClick={() => chooseTool("picker")}
+          >
+            <Pipette size={19} />
+          </button>
+          <button
+            type="button"
+            title="تحريك"
+            aria-label="تحريك"
+            aria-pressed={tool === "pan"}
+            onClick={() => chooseTool("pan")}
+          >
+            <Hand size={19} />
+          </button>
+          <button
+            type="button"
+            title="تراجع"
+            aria-label="تراجع"
+            disabled={!counts[0]}
+            onClick={() => step(true)}
+          >
+            <Undo2 size={19} />
+          </button>
+          <button
+            type="button"
+            title="إعادة"
+            aria-label="إعادة"
+            disabled={!counts[1]}
+            onClick={() => step(false)}
+          >
+            <Redo2 size={19} />
+          </button>
+        </div>
+      </div>
+      <div className="desk-mat" ref={viewport}>
+        <div
+          className="desk-paper"
+          style={{ width: `min(${zoom * 100}%, ${zoom * 60}vh)`, maxWidth: "none" }}
+        >
+          <canvas
+            ref={canvas}
+            width={PAPER}
+            height={PAPER_HEIGHT}
+            aria-label={"ورقة الرسم • " + title}
+            onPointerDown={start}
+            onPointerMove={move}
+            onPointerUp={finish}
+            onPointerCancel={finish}
+            onLostPointerCapture={finish}
+          />
+          <canvas
+            ref={previewCanvas}
+            width={PAPER}
+            height={PAPER_HEIGHT}
+            className="desk-preview"
+            aria-hidden="true"
+          />
+          {id !== "blank" && <img src={"/drawing/" + id + ".webp"} alt="" draggable={false} />}
+          {load !== "ready" && (
+            <div className="desk-loading" role="status">
+              {load === "loading" ? (
+                "نجهّز ورقتك…"
+              ) : (
                 <button
-                  key={p.id}
-                  type="button"
-                  aria-pressed={palette === p.id}
-                  onClick={() => setPalette(p.id)}
+                  onClick={() => {
+                    setLoad("loading");
+                    setAttempt((a) => a + 1);
+                  }}
                 >
-                  {p.name}
+                  تعذّر فتح الرسمة. حاول مجددًا
                 </button>
-              ))}
+              )}
             </div>
-            <div className="desk-swatches">
-              {palettes
-                .find((p) => p.id === palette)!
-                .colors.map((c) => (
-                  <button
-                    key={c.hex}
-                    type="button"
-                    aria-label={c.name}
-                    title={c.name}
-                    aria-pressed={color === c.hex}
-                    onClick={() => selectColor(c.hex)}
-                  >
-                    <span style={{ background: c.hex }}>
-                      {color === c.hex && <Check size={17} strokeWidth={3} />}
-                    </span>
-                  </button>
-                ))}
-            </div>
-            <div className="desk-shades">
-              <span className="desk-subtitle">درجات اللون • من الغامق إلى الفاتح</span>
-              <div
-                className="desk-swatches desk-shade-swatches"
-                role="group"
-                aria-label="درجات اللون المختار"
-              >
-                {shades.map((shade, index) => (
-                  <button
-                    key={shade}
-                    type="button"
-                    aria-label={`درجة اللون ${index + 1}: ${shade}`}
-                    aria-pressed={color.toLowerCase() === shade}
-                    onClick={() => selectColor(shade)}
-                  >
-                    <span style={{ background: shade }}>
-                      {color.toLowerCase() === shade && <Check size={17} strokeWidth={3} />}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <label className="desk-color-adjust">
-                <span>طيف اللون</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="359"
-                  value={selectedHsl.hue}
-                  dir="ltr"
-                  aria-label="تغيير طيف اللون"
-                  onChange={(e) => changeColorChannel("hue", Number(e.target.value))}
-                />
-              </label>
-              <label className="desk-color-adjust">
-                <span>قوة اللون: {selectedHsl.saturation}٪</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={selectedHsl.saturation}
-                  dir="ltr"
-                  aria-label="قوة اللون"
-                  onChange={(e) => changeColorChannel("saturation", Number(e.target.value))}
-                />
-              </label>
-              <label className="desk-color-adjust">
-                <span>فاتح أو غامق: {selectedHsl.lightness}٪</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={selectedHsl.lightness}
-                  dir="ltr"
-                  aria-label="تفتيح اللون أو تغميقه"
-                  onChange={(e) => changeColorChannel("lightness", Number(e.target.value))}
-                />
-              </label>
-            </div>
-            <label className="desk-custom-color">
-              <span>لون من اختيارك</span>
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => selectColor(e.target.value)}
-                aria-label="اختر لونًا مخصصًا"
-              />
-              <span dir="ltr">{color.toUpperCase()}</span>
-            </label>
-            {recentColors.length > 0 && (
-              <div className="desk-recent">
-                <span className="desk-subtitle">ألوان استخدمتها</span>
-                <div className="desk-swatches" role="group" aria-label="الألوان المستخدمة مؤخرًا">
-                  {recentColors.map((recent, index) => (
-                    <button
-                      key={recent}
-                      type="button"
-                      aria-label={`لون مستخدم ${index + 1}: ${recent}`}
-                      aria-pressed={color.toLowerCase() === recent}
-                      onClick={() => selectColor(recent)}
-                    >
-                      <span style={{ background: recent }}>
-                        {color.toLowerCase() === recent && <Check size={17} strokeWidth={3} />}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </fieldset>
-          {tool !== "fill" && tool !== "pan" && tool !== "picker" && (
-            <fieldset>
-              <legend>سُمك الأداة: {size}</legend>
-              <div className="desk-widths">
-                {widths.map((w) => (
-                  <button
-                    key={w.value}
-                    aria-pressed={size === w.value}
-                    onClick={() => updateToolSetting({ size: w.value })}
-                  >
-                    <i style={{ width: 5 + w.value / 4, height: 5 + w.value / 4 }} />
-                    {w.name}
-                  </button>
-                ))}
-              </div>
-              <input
-                className="desk-range"
-                type="range"
-                min="2"
-                max="80"
-                step="1"
-                value={size}
-                aria-label="سُمك القلم أو الفرشاة"
-                onChange={(e) => updateToolSetting({ size: Number(e.target.value) })}
-              />
-              <button
-                className="desk-reset-tool"
-                type="button"
-                onClick={() => updateToolSetting(DEFAULT_TOOL_SETTINGS[tool as PaintTool])}
-              >
-                استعادة إعدادات هذه الأداة
+          )}
+        </div>
+      </div>
+      <div className="rack-foot">
+        <div className="desk-clear">
+          {confirmClear ? (
+            <div role="group" aria-label="تأكيد مسح اللوحة">
+              <span>تمسح الألوان من هذه الورقة؟ يمكنك التراجع بعدها.</span>
+              <button type="button" onClick={clearArtwork}>
+                امسح الألوان
               </button>
-            </fieldset>
-          )}
-          {tool !== "fill" && tool !== "eraser" && tool !== "pan" && tool !== "picker" && (
-            <fieldset>
-              <legend>عتامة الفرشاة: {opacity}٪</legend>
-              <input
-                className="desk-range"
-                type="range"
-                min="10"
-                max="100"
-                step="5"
-                value={opacity}
-                aria-label="عتامة الفرشاة"
-                onChange={(e) => updateToolSetting({ opacity: Number(e.target.value) })}
-              />
-            </fieldset>
-          )}
-          {tool !== "pan" && tool !== "picker" && (
-            <fieldset className="desk-tool-sample">
-              <legend>معاينة الأداة</legend>
-              <canvas
-                ref={toolPreview}
-                width={260}
-                height={76}
-                aria-label="شكل القلم أو الفرشاة باللون والسُمك الحاليين"
-              />
-            </fieldset>
-          )}
-          <div className="desk-history">
-            <button disabled={!counts[0]} onClick={() => step(true)}>
-              <Undo2 size={19} />
-              تراجع
-            </button>
-            <button disabled={!counts[1]} onClick={() => step(false)}>
-              <Redo2 size={19} />
-              إعادة
-            </button>
-          </div>
-          <div className="desk-clear">
-            {confirmClear ? (
-              <div role="group" aria-label="تأكيد مسح اللوحة">
-                <span>تمسح الألوان من هذه الورقة؟ يمكنك التراجع بعدها.</span>
-                <button type="button" onClick={clearArtwork}>
-                  امسح الألوان
-                </button>
-                <button type="button" onClick={() => setConfirmClear(false)}>
-                  إلغاء
-                </button>
-              </div>
-            ) : (
-              <button type="button" disabled={!canClear} onClick={() => setConfirmClear(true)}>
-                <Eraser size={18} /> مسح الألوان
+              <button type="button" onClick={() => setConfirmClear(false)}>
+                إلغاء
               </button>
-            )}
-          </div>
-          <p className="desk-status" role="status">
-            {message || (load === "ready" && counts[0] > 0 ? "حُفظت رسمتك على هذا الجهاز" : "")}
-          </p>
-        </aside>
+            </div>
+          ) : (
+            <button type="button" disabled={!canClear} onClick={() => setConfirmClear(true)}>
+              <Eraser size={18} /> مسح الألوان
+            </button>
+          )}
+        </div>
+        <p className="desk-status" role="status">
+          {message || (load === "ready" && counts[0] > 0 ? "حُفظت رسمتك على هذا الجهاز" : "")}
+        </p>
       </div>
     </section>
   );

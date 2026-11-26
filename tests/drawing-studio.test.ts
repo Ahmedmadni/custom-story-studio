@@ -1,3 +1,4 @@
+import { hsvFromColor, colorFromHsv } from "../src/features/games/drawing/color-plane";
 import { describe, expect, it } from "bun:test";
 import { existsSync } from "node:fs";
 import { collections, sheets } from "../src/features/games/drawing/catalog";
@@ -24,6 +25,21 @@ import {
 import { drawingStorageKey, hasSavedArtwork } from "../src/features/games/drawing/progress";
 
 describe("drawing studio", () => {
+  it("preserves custom colors across the spectrum and remembers the hue at neutral tones", () => {
+    for (const hex of [
+      "#ffffff",
+      "#000000",
+      "#567499",
+      "#00ff00",
+      "#ff00ff",
+      "#ff0033",
+      "#898989",
+    ]) {
+      expect(colorFromHsv(hsvFromColor(hex))).toBe(hex);
+    }
+    expect(hsvFromColor("#111111", 187).hue).toBe(187);
+    expect(colorFromHsv({ hue: 360, saturation: 1, value: 1 })).toBe("#ff0000");
+  });
   it("finds saved color after undo, clear, and recolor without treating a blank page as progress", () => {
     const paint: Mark = { tool: "pencil", color: "#112233", size: 24, points: [[200, 300]] };
     const clear: Mark = { tool: "clear", color: "#ffffff", size: 1, points: [[0, 0]] };

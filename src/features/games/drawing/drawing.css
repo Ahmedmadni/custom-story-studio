@@ -7,8 +7,7 @@
 .studio-back,
 .desk-download,
 .studio-hero a,
-.studio-install,
-.desk-history button {
+.studio-install {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -287,12 +286,6 @@
   background: var(--secondary);
   color: var(--secondary-foreground);
 }
-.desk-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
-  gap: 1rem;
-  align-items: start;
-}
 .desk-mat {
   display: flex;
   justify-content: safe center;
@@ -350,14 +343,6 @@
   padding: 1rem;
   box-shadow: 0 5px 18px #3d2b5b08;
 }
-@media (min-width: 761px) {
-  .desk-kit {
-    position: sticky;
-    top: 1rem;
-    max-height: calc(100vh - 2rem);
-    overflow-y: auto;
-  }
-}
 .desk-kit fieldset {
   margin: 0 0 0.9rem;
   min-width: 0;
@@ -373,9 +358,7 @@
   font-weight: 800;
   color: var(--muted-foreground);
 }
-.desk-tools,
-.desk-widths,
-.desk-history {
+.desk-widths {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.3rem;
@@ -410,9 +393,6 @@
   background: var(--destructive);
   color: var(--destructive-foreground);
 }
-.desk-tool-group:last-child .desk-tools {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
 .desk-pen-mode {
   display: flex;
   align-items: center;
@@ -440,8 +420,6 @@
   line-height: 1.4;
   margin-top: 0.15rem;
 }
-.desk-tools button,
-.desk-history button,
 .desk-widths button {
   min-height: 44px;
   border-radius: 0.75rem;
@@ -450,17 +428,11 @@
   background: var(--secondary);
   color: var(--secondary-foreground);
 }
-.desk-tools button,
 .desk-widths button {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.25rem;
-}
-.desk-tools button {
-  flex-direction: column;
-  padding: 0.4rem 0.15rem;
-  line-height: 1.25;
 }
 .desk-kit button[aria-pressed="true"]:not(.desk-swatches button) {
   background: var(--primary);
@@ -552,51 +524,6 @@
   color: #171626;
   filter: drop-shadow(0 1px 1px white);
 }
-.desk-shades {
-  margin-top: 0.65rem;
-  padding-top: 0.25rem;
-  border-top: 1px solid var(--border);
-}
-.desk-shade-swatches {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-.desk-color-adjust {
-  display: block;
-  margin-top: 0.55rem;
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-.desk-color-adjust input {
-  display: block;
-  width: 100%;
-  min-height: 26px;
-  margin-top: 0.1rem;
-  accent-color: var(--primary);
-  cursor: pointer;
-}
-.desk-custom-color {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0.55rem 0 0;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-.desk-custom-color input {
-  width: 44px;
-  height: 38px;
-  cursor: pointer;
-  border: 0;
-  background: transparent;
-}
-.desk-custom-color span:last-child {
-  margin-inline-start: auto;
-  color: var(--muted-foreground);
-  font-variant-numeric: tabular-nums;
-}
-.desk-recent .desk-subtitle {
-  margin-top: 0.7rem;
-}
 .desk-tool-sample canvas {
   display: block;
   width: 100%;
@@ -612,11 +539,6 @@
   accent-color: var(--primary);
   min-height: 25px;
 }
-.desk-history {
-  grid-template-columns: 1fr 1fr;
-  border-top: 1px solid var(--border);
-  padding-top: 0.65rem;
-}
 .desk button:disabled {
   opacity: 0.45;
   cursor: default;
@@ -631,17 +553,11 @@
   .studio-fan {
     height: 110px;
   }
-  .desk-layout {
-    grid-template-columns: 1fr;
-  }
   .desk-paper {
     max-width: none;
   }
   .desk-kit {
     padding: 0.7rem 0.85rem;
-  }
-  .desk-tools {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .desk-kit fieldset {
     margin-bottom: 0.5rem;
@@ -677,5 +593,313 @@
 @media (prefers-reduced-motion: reduce) {
   .studio-card {
     transition: none;
+  }
+}
+
+.rack-shell {
+  position: sticky;
+  top: 4rem;
+  z-index: 12;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.8rem;
+  padding: 0.35rem 0 0.55rem;
+  background: var(--background);
+}
+.pen-rack,
+.rack-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 1.45rem;
+  background: var(--card);
+  box-shadow: 0 3px 10px #2b233710;
+}
+.pen-rack {
+  flex: 1 1 35rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  padding: 3px 0.4rem 2px;
+}
+.pen-rack button {
+  flex: 1 0 48px;
+  min-width: max-content;
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  overflow: hidden;
+  border-radius: 0.85rem;
+  height: 76px;
+  padding: 0 4px 3px;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+.rack-instrument {
+  width: 30px;
+  height: 53px;
+  transform: translateY(6px);
+  filter: drop-shadow(1px 1px 1.1px #29253629);
+  transition: transform 0.15s ease;
+}
+.pen-rack button span {
+  z-index: 1;
+  line-height: 18px;
+  border-radius: 0.3rem;
+  background: var(--card);
+}
+.pen-rack button[aria-pressed="true"] {
+  color: var(--primary);
+  background: var(--secondary);
+  box-shadow: inset 0 -3px 0 var(--primary);
+}
+.pen-rack button[aria-pressed="true"] span {
+  background: var(--secondary);
+}
+.pen-rack button[aria-pressed="true"] .rack-instrument {
+  transform: translateY(0) scale(1.06);
+}
+.rack-controls {
+  padding: 3px 0.35rem;
+  flex-wrap: wrap;
+}
+.rack-controls > button,
+.flyout-title button,
+.palette-actions > button {
+  min-width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+.rack-controls > button[aria-pressed="true"],
+.rack-controls > button[data-state="open"] {
+  color: var(--primary);
+  background: var(--secondary);
+}
+.rack-controls > .rack-color {
+  gap: 0.45rem;
+  padding: 0 0.6rem;
+  border-radius: 999px;
+  font-weight: 800;
+}
+.rack-color i,
+.hex-entry i {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  border: 1px solid #0003;
+  flex: none;
+}
+.rack-foot,
+.flyout-title,
+.palette-actions,
+.hex-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.rack-foot,
+.flyout-title {
+  justify-content: space-between;
+}
+.rack-foot {
+  flex-wrap: wrap;
+}
+.desk-flyout,
+.desk-kit.desk-flyout {
+  position: relative;
+  top: auto;
+  z-index: 60;
+  width: min(21rem, calc(100vw - 20px));
+  max-height: min(70dvh, var(--radix-popover-content-available-height));
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 1.35rem;
+  padding: 0.65rem 1rem 1rem;
+  box-shadow:
+    0 12px 38px #26203824,
+    0 2px 8px #26203815;
+}
+.flyout-title {
+  margin-bottom: 0.35rem;
+}
+.flyout-title strong {
+  font-size: 1.05rem;
+}
+.palette-tabs {
+  display: flex;
+  border-radius: 999px;
+  background: var(--secondary);
+  padding: 3px;
+  margin-bottom: 0.75rem;
+}
+.palette-tabs > button {
+  flex: 1;
+  min-height: 40px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+.palette-tabs > button[aria-pressed="true"] {
+  background: var(--card);
+  color: var(--primary);
+  box-shadow: 0 1px 4px #211c3024;
+}
+.color-flyout .desk-palettes button[aria-pressed="true"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.color-plane {
+  height: clamp(100px, 20dvh, 172px);
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  cursor: crosshair;
+  touch-action: none;
+  background-image:
+    linear-gradient(to top, black, transparent), linear-gradient(to right, white, transparent);
+}
+.color-plane i {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 0 0 1px #272131aa;
+}
+.palette-hue {
+  width: 100%;
+  height: 40px;
+  display: block;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.palette-hue::-webkit-slider-runnable-track {
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red);
+}
+.palette-hue::-moz-range-track {
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red);
+}
+.palette-hue::-webkit-slider-thumb {
+  appearance: none;
+  width: 23px;
+  height: 23px;
+  margin-top: -5.5px;
+  border-radius: 50%;
+  border: 3px solid white;
+  background: transparent;
+  box-shadow: 0 0 0 1px #484153;
+}
+.palette-hue::-moz-range-thumb {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 3px solid white;
+  background: transparent;
+  box-shadow: 0 0 0 1px #484153;
+}
+.palette-numbers {
+  font-size: 0.81rem;
+}
+.palette-numbers summary {
+  cursor: pointer;
+  font-weight: 750;
+}
+.palette-numbers label,
+.palette-numbers input {
+  display: block;
+  width: 100%;
+  margin-top: 0.4rem;
+}
+.palette-actions {
+  margin-top: 0.6rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border);
+}
+.hex-entry,
+.palette-actions > button {
+  background: var(--secondary);
+}
+.hex-entry {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.8rem;
+}
+.hex-entry input {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  font: 600 0.92rem monospace;
+  height: 29px;
+}
+.palette-actions button:disabled {
+  opacity: 0.4;
+}
+.rack-shell button:focus-visible,
+.desk-flyout :is(button, input, summary):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+@media (max-width: 760px) {
+  .rack-shell {
+    gap: 0.3rem;
+    padding-block: 0.2rem 0.4rem;
+  }
+  .pen-rack {
+    flex-basis: 100%;
+  }
+  .pen-rack button {
+    height: 65px;
+  }
+  .rack-instrument {
+    height: 43px;
+  }
+  .rack-controls {
+    gap: 0;
+    padding: 1px 3px;
+  }
+}
+@media (max-height: 520px) {
+  .rack-shell {
+    position: static;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rack-instrument {
+    transition: none;
+  }
+}
+.desk-flyout[data-state="closed"] {
+  pointer-events: none;
+}
+@media (max-width: 540px) {
+  .desk-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .desk-heading-actions {
+    justify-content: flex-start;
+  }
+  .desk-heading-actions .desk-download {
+    padding-inline: 0.7rem;
+    font-size: 0.82rem;
   }
 }

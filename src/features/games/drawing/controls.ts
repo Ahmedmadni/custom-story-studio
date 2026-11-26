@@ -8,6 +8,7 @@ export const DEFAULT_TOOL_SETTINGS: Record<PaintTool, ToolSetting> = {
   pencil: { size: 10, opacity: 85 },
   "colored-pencil": { size: 18, opacity: 100 },
   ink: { size: 12, opacity: 100 },
+  calligraphy: { size: 18, opacity: 100 },
   crayon: { size: 36, opacity: 100 },
   brush: { size: 24, opacity: 100 },
   oil: { size: 32, opacity: 100 },
