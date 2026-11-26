@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import {
   SlidersHorizontal,
   X,
@@ -67,6 +67,17 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const [toolPreview, setToolPreview] = useState<HTMLCanvasElement | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const viewport = useRef<HTMLDivElement>(null);
+  const paper = useRef<HTMLDivElement>(null);
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  const pendingTouch = useRef<{ pointer: number; at: Point } | null>(null);
+  const gesture = useRef<{
+    distance: number;
+    zoom: number;
+    center: { x: number; y: number };
+  } | null>(null);
+  const zoomAnchor = useRef<{ x: number; y: number; clientX: number; clientY: number } | null>(
+    null,
+  );
   const art = useRef<HTMLImageElement | null>(null);
   const boundary = useRef<Uint8Array>(new Uint8Array(0));
   const history = useRef<{ done: Mark[]; undone: Mark[] }>({ done: [], undone: [] });
@@ -92,6 +103,15 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const [attempt, setAttempt] = useState(0);
   const [message, setMessage] = useState("");
   const [zoom, setZoom] = useState(1);
+
+  useLayoutEffect(() => {
+    const anchor = zoomAnchor.current;
+    if (!anchor || !paper.current || !viewport.current) return;
+    zoomAnchor.current = null;
+    const box = paper.current.getBoundingClientRect();
+    viewport.current.scrollLeft += box.left + box.width * anchor.x - anchor.clientX;
+    viewport.current.scrollTop += box.top + box.height * anchor.y - anchor.clientY;
+  }, [zoom]);
   const [confirmClear, setConfirmClear] = useState(false);
   const [recentColors, setRecentColors] = useState<string[]>([]);
   const [penOnly, setPenOnly] = useState(false);
@@ -293,9 +313,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
       scale(e.clientY - box.top, box.height, PAPER_HEIGHT),
     ];
   }
-  function start(e: PointerEvent<HTMLCanvasElement>) {
-    if (load !== "ready" || active.current || panning.current || !e.isPrimary || e.button !== 0)
-      return;
+  function beginInput(e: PointerEvent<HTMLCanvasElement>, at: Point) {
     const now = Date.now();
     if (e.pointerType === "pen") lastPenAt.current = now;
     if (ignoreTouch(e.pointerType, penOnly, lastPenAt.current, now, tool === "pan")) return;
@@ -311,7 +329,6 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
       e.currentTarget.setPointerCapture(e.pointerId);
       return;
     }
-    const at = point(e);
     if (tool === "picker") {
       const pixels = e.currentTarget.getContext("2d")!.getImageData(at[0], at[1], 1, 1).data;
       if (pixels[3] < 8) {
@@ -350,8 +367,68 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
       smoothStroke(previewCanvas.current!.getContext("2d")!, mark);
     } else segment(ctx, mark, at, at, mark.pressures?.[0] ?? 1);
   }
+  function start(e: PointerEvent<HTMLCanvasElement>) {
+    if (load !== "ready" || e.button !== 0) return;
+    if (e.pointerType !== "touch") {
+      if (active.current || panning.current) return;
+      if (e.isPrimary) beginInput(e, point(e));
+      return;
+    }
+    if (active.current && !touches.current.has(active.current.pointer)) return;
+    touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    e.currentTarget.setPointerCapture(e.pointerId);
+    if (touches.current.size === 1) {
+      pendingTouch.current = { pointer: e.pointerId, at: point(e) };
+    } else if (touches.current.size === 2) {
+      if (active.current) {
+        replay(e.currentTarget.getContext("2d")!, boundary.current, history.current.done);
+        previewCanvas.current!.getContext("2d")!.clearRect(0, 0, PAPER, PAPER_HEIGHT);
+        active.current = null;
+      }
+      panning.current = null;
+      pendingTouch.current = null;
+      const [a, b] = [...touches.current.values()];
+      gesture.current = {
+        distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+        zoom,
+        center: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+      };
+    }
+  }
   function move(e: PointerEvent<HTMLCanvasElement>) {
     if (e.pointerType === "pen") lastPenAt.current = Date.now();
+    if (e.pointerType === "touch" && touches.current.has(e.pointerId)) {
+      touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const pinch = gesture.current;
+      if (pinch) {
+        if (touches.current.size !== 2) return;
+        const [a, b] = [...touches.current.values()];
+        const center = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        const view = viewport.current!;
+        view.scrollLeft += pinch.center.x - center.x;
+        view.scrollTop += pinch.center.y - center.y;
+        pinch.center = center;
+        const box = paper.current!.getBoundingClientRect();
+        zoomAnchor.current = {
+          x: (center.x - box.left) / box.width,
+          y: (center.y - box.top) / box.height,
+          clientX: center.x,
+          clientY: center.y,
+        };
+        const nextZoom = Math.max(
+          1,
+          Math.min(3, (pinch.zoom * Math.hypot(a.x - b.x, a.y - b.y)) / pinch.distance),
+        );
+        if (nextZoom === zoom) zoomAnchor.current = null;
+        else setZoom(nextZoom);
+        return;
+      }
+      if (pendingTouch.current?.pointer === e.pointerId) {
+        const at = pendingTouch.current.at;
+        pendingTouch.current = null;
+        beginInput(e, at);
+      }
+    }
     const pan = panning.current;
     if (pan?.pointer === e.pointerId) {
       const view = viewport.current!;
@@ -378,6 +455,17 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   }
   function finish(e: PointerEvent<HTMLCanvasElement>) {
     if (e.pointerType === "pen") lastPenAt.current = Date.now();
+    if (e.pointerType === "touch") {
+      if (pendingTouch.current?.pointer === e.pointerId) {
+        if (e.type === "pointerup") beginInput(e, pendingTouch.current.at);
+        pendingTouch.current = null;
+      }
+      touches.current.delete(e.pointerId);
+      if (gesture.current) {
+        if (touches.current.size === 0) gesture.current = null;
+        return;
+      }
+    }
     if (panning.current?.pointer === e.pointerId) {
       if (e.type === "pointerup") move(e);
       panning.current = null;
@@ -701,8 +789,10 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
           </button>
         </div>
       </div>
+      <p className="desk-touch-tip">بإصبعين يمكنك تكبير الورقة وتحريكها</p>
       <div className="desk-mat" ref={viewport}>
         <div
+          ref={paper}
           className="desk-paper"
           style={{ width: `min(${zoom * 100}%, ${zoom * 60}vh)`, maxWidth: "none" }}
         >
