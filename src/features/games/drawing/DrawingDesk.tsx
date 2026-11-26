@@ -58,6 +58,8 @@ const recentColorsKey = "kidzy:desk:recent-colors:v1";
 const penOnlyKey = "kidzy:desk:pen-only:v1";
 const toolSettingsKey = "kidzy:desk:tool-settings:v1";
 const fillToleranceKey = "kidzy:desk:fill-tolerance:v1";
+const activeColorKey = "kidzy:desk:active-color:v1";
+const activeToolKey = "kidzy:desk:active-tool:v1";
 
 export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -83,6 +85,7 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
   const [color, setColor] = useState(COLORS[0].hex);
   const [toolSettings, setToolSettings] = useState(() => savedToolSettings(null));
   const [toolSettingsLoaded, setToolSettingsLoaded] = useState(false);
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [fillTolerance, setFillTolerance] = useState(28);
   const [fillMode, setFillMode] = useState<"paint" | "erase">("paint");
   const [load, setLoad] = useState<"loading" | "ready" | "error">("loading");
@@ -124,10 +127,34 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     try {
       setRecentColors(savedColors(JSON.parse(localStorage.getItem(recentColorsKey) ?? "[]")));
       setPenOnly(localStorage.getItem(penOnlyKey) === "true");
+      const previousColor = localStorage.getItem(activeColorKey);
+      if (previousColor && /^#[0-9a-f]{6}$/i.test(previousColor)) {
+        setColor(previousColor.toLowerCase());
+      }
+      const previousTool = localStorage.getItem(activeToolKey);
+      if (
+        previousTool === "fill" ||
+        (previousTool && Object.hasOwn(DEFAULT_TOOL_SETTINGS, previousTool))
+      ) {
+        const restoredTool = previousTool as PaintTool | "fill";
+        setTool(restoredTool);
+        lastPaintTool.current = restoredTool;
+      }
     } catch {
       // Browser storage can be disabled; the controls still work for this session.
     }
+    setPreferencesLoaded(true);
   }, []);
+
+  useEffect(() => {
+    if (!preferencesLoaded) return;
+    try {
+      localStorage.setItem(activeColorKey, color);
+      if (tool !== "picker" && tool !== "pan") localStorage.setItem(activeToolKey, tool);
+    } catch {
+      // Keep the choice available for this session.
+    }
+  }, [color, tool, preferencesLoaded]);
 
   useEffect(() => {
     try {
