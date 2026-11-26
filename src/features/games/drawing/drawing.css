@@ -349,6 +349,33 @@
   text-decoration: underline;
   margin-top: 1.6rem;
 }
+.studio-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+}
+.studio-more button {
+  min-width: 12rem;
+  min-height: 48px;
+  padding: 0.55rem 1.3rem;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  color: var(--primary);
+  background: white;
+  font-weight: 800;
+}
+.studio-more button:hover,
+.studio-more button:focus-visible {
+  background: #f1eafe;
+}
+.studio-more button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 .desk-heading {
   margin-top: 0.2rem;
 }

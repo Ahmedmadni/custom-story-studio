@@ -18,6 +18,8 @@ interface DrawingSearch {
   mine?: boolean;
 }
 
+const GALLERY_BATCH = 48;
+
 export const Route = createFileRoute("/games_/drawing")({
   validateSearch: (input: Record<string, unknown>): DrawingSearch => ({
     group: collections.find((c) => c.id === input.group)?.id,
@@ -46,6 +48,10 @@ function Studio() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [checkedSaved, setCheckedSaved] = useState(false);
   const [query, setQuery] = useState("");
+  const [displayedCount, setDisplayedCount] = useState(GALLERY_BATCH);
+  useEffect(() => {
+    setDisplayedCount(GALLERY_BATCH);
+  }, [group, mine, query]);
   useEffect(() => {
     if (sheet) return;
     const refresh = () => {
@@ -215,7 +221,7 @@ function Studio() {
                   </span>
                 </Link>
               )}
-              {visible.map((s) => (
+              {visible.slice(0, displayedCount).map((s) => (
                 <Link
                   key={s.id}
                   to="/games/drawing"
@@ -239,6 +245,23 @@ function Studio() {
                 </Link>
               ))}
             </div>
+            {visible.length > displayedCount && (
+              <div className="studio-more">
+                <span aria-live="polite">
+                  يظهر{" "}
+                  {(Math.min(displayedCount, visible.length) + Number(freeDrawing)).toLocaleString(
+                    "ar-EG",
+                  )}{" "}
+                  من {(visible.length + Number(freeDrawing)).toLocaleString("ar-EG")} رسمة
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setDisplayedCount((count) => count + GALLERY_BATCH)}
+                >
+                  عرض المزيد
+                </button>
+              </div>
+            )}
             <a className="studio-credits" href="/drawing/credits.txt">
               مصادر الرسومات
             </a>
