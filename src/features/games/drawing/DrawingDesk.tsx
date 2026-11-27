@@ -473,7 +473,13 @@ export function DrawingDesk({ id, title }: { id: string; title: string }) {
     }
     const drag = active.current;
     if (!drag || drag.pointer !== e.pointerId) return;
-    if (e.type === "pointerup") move(e);
+    if (e.type !== "pointerup") {
+      active.current = null;
+      previewCanvas.current!.getContext("2d")!.clearRect(0, 0, PAPER, PAPER_HEIGHT);
+      replay(e.currentTarget.getContext("2d")!, boundary.current, history.current.done);
+      return;
+    }
+    move(e);
     if (drag.mark.tool === "marker" || drag.mark.tool === "watercolor") {
       const preview = previewCanvas.current!;
       e.currentTarget.getContext("2d")!.drawImage(preview, 0, 0);
