@@ -243,6 +243,32 @@ export function segment(
 
 // Transparent paints are drawn as a single path. Segment-by-segment alpha
 // creates dark joints, especially when a child moves slowly with a stylus.
+function pressureStroke(points: Point[], pressures: number[], width: number) {
+  const path = new Path2D();
+  const radius = (index: number) => Math.max(0.5, (width * (0.5 + 0.5 * pressures[index])) / 2);
+  for (let index = 0; index < points.length; index++) {
+    const [x, y] = points[index];
+    const r = radius(index);
+    path.moveTo(x + r, y);
+    path.arc(x, y, r, 0, Math.PI * 2);
+    if (index === 0) continue;
+    const [ax, ay] = points[index - 1];
+    const dx = x - ax;
+    const dy = y - ay;
+    const length = Math.hypot(dx, dy);
+    if (!length) continue;
+    const nx = -dy / length;
+    const ny = dx / length;
+    const previousRadius = radius(index - 1);
+    path.moveTo(ax - nx * previousRadius, ay - ny * previousRadius);
+    path.lineTo(x - nx * r, y - ny * r);
+    path.lineTo(x + nx * r, y + ny * r);
+    path.lineTo(ax + nx * previousRadius, ay + ny * previousRadius);
+    path.closePath();
+  }
+  return path;
+}
+
 export function smoothStroke(ctx: CanvasRenderingContext2D, mark: Mark) {
   if (mark.tool !== "marker" && mark.tool !== "watercolor") return;
   const points = mark.points;
@@ -251,6 +277,10 @@ export function smoothStroke(ctx: CanvasRenderingContext2D, mark: Mark) {
   ctx.lineCap = ctx.lineJoin = "round";
   const path = (width: number, alpha: number) => {
     ctx.globalAlpha = (mark.opacity ?? 1) * alpha;
+    if (mark.pressures) {
+      ctx.fill(pressureStroke(points, mark.pressures, width));
+      return;
+    }
     ctx.lineWidth = width;
     ctx.beginPath();
     if (points.length === 1) {
